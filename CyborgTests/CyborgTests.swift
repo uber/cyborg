@@ -44,17 +44,18 @@ class CyborgTests: XCTestCase {
         let data = string.data(using: .utf8)!
         let callbackIsCalled = expectation(description: "Callback is called")
         VectorDrawable
-            .create(from: data) { drawable in
+            .create(from: data) { result in
                 callbackIsCalled.fulfill()
-                if let drawable = drawable {
+                switch result {
+                case .ok(let drawable):
                     XCTAssert(drawable.viewPortWidth == 600)
                     XCTAssert(drawable.viewPortHeight == 600)
                     XCTAssert(drawable.commands.count != 0)
-                } else {
-                    XCTFail()
+                case .error(let error):
+                    XCTFail(error)
                 }
         }
-        wait(for: [callbackIsCalled], timeout: 4.0)
+        wait(for: [callbackIsCalled], timeout: 1.0)
     }
     
     func test_int_parser() {

@@ -1,5 +1,10 @@
 import UIKit
 
+public enum Result {
+    case ok(VectorDrawable)
+    case error(ParseError)
+}
+
 enum ParseResult<Wrapped> {
     
     case ok(Wrapped, String.Index)
@@ -36,7 +41,7 @@ enum ParseResult<Wrapped> {
     
 }
 
-typealias ParseError = String
+public typealias ParseError = String
 
 enum ParentNode: String {
     case vectorShape = "vector"
@@ -273,7 +278,7 @@ typealias Parser<T> = (String, String.Index) -> ParseResult<T>
 final class DrawableParser: NSObject, XMLParserDelegate {
     
     let xml: XMLParser
-    let onCompletion: (VectorDrawable?) -> ()
+    let onCompletion: (Result) -> ()
     
     var baseWidth: CGFloat?
     var baseHeight: CGFloat?
@@ -281,8 +286,9 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     var viewPortHeight: CGFloat?
     var baseAlpha: CGFloat?
     var commands: [RelativePathSegment]?
+    var parseError: ParseError?
     
-    init(data: Data, onCompletion: @escaping (VectorDrawable?) -> ()) {
+    init(data: Data, onCompletion: @escaping (Result) -> ()) {
         xml = XMLParser(data: data)
         self.onCompletion = onCompletion
         super.init()
@@ -305,24 +311,25 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         if let parent = ParentNode(rawValue: elementName) {
             switch parent {
             case .vectorShape:
-                if !parseVectorShape(from: attributeDict) {
-                    // TODO: write a good error message
+                if let error = parseVectorShape(from: attributeDict) {
+                    parseError = error
                 }
             case .shapePath:
                 if let error = parseShape(from: attributeDict) {
-                    print(error) // TODO
+                    parseError = error
                 }
             }
         }
     }
     
-    private func parseVectorShape(from attributes: [String: String]) -> Bool {
+    private func parseVectorShape(from attributes: [String: String]) -> ParseError? {
         var attributes = attributes
         let schema = "xmlns:android"
+        let baseError = "Error parsing the <vector> tag: "
         if attributes.keys.contains(schema) {
             attributes.removeValue(forKey: schema)
         } else {
-            return false
+            return baseError + "Schema not found."
         }
         for (key, value) in attributes {
             if let attribute = VectorProperty(rawValue: key),
@@ -330,14 +337,15 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                 // TODO: convert to Android Coords
                 self[keyPath: attribute.parserAttribute] = CGFloat(intValue)
             } else {
-                return false
+                return baseError + "Could not find attribute \(key)"
             }
         }
-        return true
+        return nil
     }
     
     private func parseShape(from attributes: [String: String]) -> ParseError? {
         // TODO: pick up fillcolor, name, etc
+        let baseError = "Error parsing the <android:pathData> tag: "
         let parsers = DrawingCommand
             .all
             .map { (command) -> Parser<RelativePathSegment> in
@@ -348,7 +356,7 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         case .ok(let result, _):
             self.commands = result
             return nil
-        case .error(let error): return error
+        case .error(let error): return baseError + error
         }
     }
     
@@ -365,9 +373,9 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                                         viewPortHeight: viewPortHeight,
                                         baseAlpha: baseAlpha,
                                         commands: commands)
-            onCompletion(result)
+            onCompletion(.ok(result))
         } else {
-            onCompletion(nil)
+            onCompletion(.error(parseError ?? "The parse failed, but there is no parse error. This is a bug in the VectorDrawable Library."))
         }
     }
 }
@@ -382,12 +390,12 @@ public class VectorDrawable {
     let commands: [RelativePathSegment]
     
     public static func create(from data: Data,
-                              whenComplete run: @escaping (VectorDrawable?) -> ()) {
+                              whenComplete run: @escaping (Result) -> ()) {
         var retainParser: DrawableParser? = nil
-        let drawableParser = DrawableParser(data: data) { (drawable: VectorDrawable?) in
+        let drawableParser = DrawableParser(data: data) { (result: Result) in
             retainParser?.stop()
             retainParser = nil
-            run(drawable)
+            run(result)
         }
         retainParser = drawableParser
         retainParser?.start()
@@ -416,31 +424,6 @@ public class VectorDrawable {
         return path
     }
     
-}
-
-func shapeLayer(fillColor: CGColor, fillAlpha: CGFloat, fillType: String) -> () -> CAShapeLayer {
-    return {
-        let layer = CAShapeLayer()
-        layer.fillRule = fillType
-        layer.opacity = Float(fillAlpha)
-        layer.fillColor = fillColor
-        return layer
-    }
-}
-
-func literal(_ text: String) -> Parser<String> {
-    return { (stream: String, index: String.Index) in
-        if let endOfRange = stream.index(index, offsetBy: text.count, limitedBy: stream.endIndex) {
-            let potentialMatch = stream[index..<endOfRange]
-            if potentialMatch == text {
-                return .ok(String(potentialMatch), endOfRange)
-            } else {
-                return ParseResult(error: "Literal ", index: index, stream: stream)
-            }
-        } else {
-            return ParseResult(error: "Literal was too long for remaining stream", index: index, stream: stream)
-        }
-    }
 }
 
 func assignment<T, U>(of property: U,
@@ -474,123 +457,6 @@ func assignment<T, U>(of property: U,
                     stream: stream)
             }
         }
-}
-
-func delimited(by delimiter: String) -> Parser<String> {
-    let delimiterParser = literal(delimiter)
-    return { (stream: String, index: String.Index) in
-        if let (_, index) = delimiterParser(stream, index).asOptional {
-            return take(until: delimiterParser)(stream, index)
-        } else {
-            return ParseResult(error: "Could not find second delimiter",
-                               index: index,
-                               stream: stream)
-        }
-    }
-}
-
-func take<T>(until match: @escaping Parser<T>) -> Parser<String> {
-    return { (stream: String, index: String.Index) in
-        let startIndex = index
-        var index = index
-        while true {
-            if let (_, index) = match(stream, index).asOptional {
-                return .ok(String(stream[startIndex..<index]), index)
-            } else {
-                if let nextIndex = stream.index(index, offsetBy: 1, limitedBy: stream.endIndex) {
-                    index = nextIndex
-                } else {
-                    return ParseResult(error: "Stream ended before match",
-                                       index: index,
-                                       stream: stream)
-                }
-            }
-        }
-    }
-}
-
-func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
-        var
-        index = index,
-        results: [T] = []
-        untilNoMatchFound: while true {
-            for parser in parsers {
-                if let (match, currentIndex) = parser(stream, index).asOptional {
-                    results.append(match)
-                    index = currentIndex
-                    break
-                }
-            }
-            if index == stream.endIndex {
-                return .ok(results, index)
-            } else {
-                return ParseResult(error: "Couldn't find a match for all parsers",
-                                   index: index,
-                                   stream: stream)
-            }
-        }
-    }
-}
-
-func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
-        var
-        parsers = parsers,
-        index = index,
-        results: [T] = []
-        untilNoMatchFound: while true {
-            for (parserIndex, parser) in parsers.enumerated() {
-                if let (match, currentIndex) = parser(stream, index).asOptional {
-                    _ = parsers.remove(at: parserIndex)
-                    results.append(match)
-                    index = currentIndex
-                    break
-                }
-            }
-            if index == stream.endIndex {
-                return .ok(results, index)
-            } else {
-                return ParseResult(error: "Couldn't find a match for all parsers",
-                                   index: index,
-                                   stream: stream)
-            }
-        }
-    }
-}
-
-func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
-    return anyOrder(of: parsers)
-}
-
-func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) -> Parser<(T, U)> {
-    return { (stream: String, index: String.Index) in
-        first(stream, index).transform { firstResult, index in
-            second(stream, index).transform { (secondResult, index) in
-                return .ok((firstResult, secondResult), index)
-            }
-        }
-    }
-}
-
-func n<T>(_ n: Int, of parser: @escaping Parser<T>) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
-        var taken = 0,
-        index = index,
-        result = [T]()
-        while taken != n {
-            if let (currentResult, nextIndex) = parser(stream, index).asOptional {
-                result.append(currentResult)
-                index = nextIndex
-                taken += 1
-            } else {
-                return ParseResult(error: "Could not take until \(n), only found \(taken)",
-                    index: index,
-                    stream: stream)
-            }
-        }
-        return .ok(result, index)
-    }
 }
 
 func height() -> Parser<(VectorProperty, Int)> {
@@ -629,20 +495,9 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
     }
 }
 
-func not<T>(_ parser: @escaping Parser<T>) -> Parser<()> {
-    return { stream, index in
-        switch parser(stream, index) {
-        case .ok(let result, let index): return ParseResult(error: "Expected Failure, but succeeded with result \(result)",
-            index: index,
-            stream: stream)
-        case .error(_): return .ok((), index)
-        }
-    }
-}
-
 func trivia() -> Parser<String> {
     return { stream, index in
-        let whitespace: Set<Character> = [" ", "\n", ","] // TODO
+        let whitespace: Set<Character> = [" ", "\n"]
         if whitespace.contains(stream[index]) {
             return .ok(stream, stream.index(after: index))
         } else {
@@ -682,8 +537,16 @@ func int() -> Parser<Int> {
     }
 }
 
-func createInt(from text: String) -> Int? { // necessary to prevent ambiguity, otherwise I'd use Int.init(_ description:)
-    return Int(text) // TODO: does not work, takes the entire strng
+func coordinatePair() -> Parser<CGPoint> {
+    return { stream, input in
+        return pair(of: pair(of: int(), literal(",")), int())(stream, input)
+            .transform { (arg, index) -> (ParseResult<CGPoint>) in
+                let ((x, _), y) = arg
+                return .ok(CGPoint.init(x: x, y: y), index)
+            }
+    }
 }
 
-
+func createInt(from text: String) -> Int? { // necessary to prevent ambiguity, otherwise I'd use Int.init(_ description:)
+    return Int(text)
+}
