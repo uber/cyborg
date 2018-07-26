@@ -55,7 +55,7 @@ class CyborgTests: XCTestCase {
                     XCTFail(error)
                 }
         }
-        wait(for: [callbackIsCalled], timeout: 1.0)
+        wait(for: [callbackIsCalled], timeout: 0.001) // note: this is actually synchronous, but just in case it 
     }
     
     func test_int_parser() {

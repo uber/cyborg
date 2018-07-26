@@ -8,6 +8,44 @@
 
 import Foundation
 
+typealias Parser<T> = (String, String.Index) -> ParseResult<T>
+
+enum ParseResult<Wrapped> {
+    
+    case ok(Wrapped, String.Index)
+    case error(String)
+    
+    init(error: String, index: String.Index, stream: String) {
+        self = .error("""
+            Error at \(index.encodedOffset): \(error)
+            \(stream[stream.startIndex..<index])⏏️\(stream[index..<stream.endIndex])
+            """)
+    }
+    
+    var asOptional: (Wrapped, String.Index)? {
+        switch self {
+        case .ok(let wrapped): return wrapped
+        case .error(_): return nil
+        }
+    }
+    
+    var asParseError: ParseError? {
+        switch self {
+        case .error(let error): return error
+        case .ok(_, _): return nil
+        }
+    }
+    
+    func map<T>(_ transformer: (Wrapped, String.Index) -> (ParseResult<T>)) -> ParseResult<T> {
+        switch self {
+        case .ok(let value, let index):
+            return transformer(value, index)
+        case .error(let error): return .error(error)
+        }
+    }
+    
+}
+
 func literal(_ text: String) -> Parser<String> {
     return { (stream: String, index: String.Index) in
         if let endOfRange = stream.index(index, offsetBy: text.count, limitedBy: stream.endIndex) {
