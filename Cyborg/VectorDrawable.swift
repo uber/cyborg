@@ -31,7 +31,7 @@ enum ParseResult<Wrapped> {
         }
     }
     
-    func transform<T>(_ transformer: (Wrapped, String.Index) -> (ParseResult<T>)) -> ParseResult<T> {
+    func map<T>(_ transformer: (Wrapped, String.Index) -> (ParseResult<T>)) -> ParseResult<T> {
         switch self {
         case .ok(let value, let index):
             return transformer(value, index)
@@ -540,7 +540,7 @@ func int() -> Parser<Int> {
 func coordinatePair() -> Parser<CGPoint> {
     return { stream, input in
         return pair(of: pair(of: int(), literal(",")), int())(stream, input)
-            .transform { (arg, index) -> (ParseResult<CGPoint>) in
+            .map { (arg, index) -> (ParseResult<CGPoint>) in
                 let ((x, _), y) = arg
                 return .ok(CGPoint.init(x: x, y: y), index)
             }

@@ -112,8 +112,8 @@ func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
 
 func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) -> Parser<(T, U)> {
     return { (stream: String, index: String.Index) in
-        first(stream, index).transform { firstResult, index in
-            second(stream, index).transform { (secondResult, index) in
+        first(stream, index).map { firstResult, index in
+            second(stream, index).map { (secondResult, index) in
                 return .ok((firstResult, secondResult), index)
             }
         }
