@@ -1,5 +1,43 @@
 import UIKit
 
+enum ParseResult<Wrapped> {
+    
+    case ok(Wrapped, String.Index)
+    case error(String)
+    
+    init(error: String, index: String.Index, stream: String) {
+        self = .error("""
+            Error at \(index.encodedOffset): \(error)
+            \(stream[stream.startIndex..<index])⏏️\(stream[index..<stream.endIndex])
+            """)
+    }
+    
+    var asOptional: (Wrapped, String.Index)? {
+        switch self {
+        case .ok(let wrapped): return wrapped
+        case .error(_): return nil
+        }
+    }
+    
+    var asParseError: ParseError? {
+        switch self {
+        case .error(let error): return error
+        case .ok(_, _): return nil
+        }
+    }
+    
+    func transform<T>(_ transformer: (Wrapped, String.Index) -> (ParseResult<T>)) -> ParseResult<T> {
+        switch self {
+        case .ok(let value, let index):
+            return transformer(value, index)
+        case .error(let error): return .error(error)
+        }
+    }
+    
+}
+
+typealias ParseError = String
+
 enum ParentNode: String {
     case vectorShape = "vector"
     case shapePath = "path"
@@ -27,7 +65,7 @@ enum AndroidUnitOfMeasure: String {
         .mm,
         .pt,
         .sp,
-    ]
+        ]
     
 }
 
@@ -193,18 +231,20 @@ enum DrawingCommand: String {
     
     var parser: Parser<RelativePathSegment> {
         return { stream, index in
-            if let (result, nextIndex) = pair(of: literal(self.rawValue),
-                                              n(self.consumed, of: int()))(stream, index) {
-                return (self.createSegment(using: result.1), nextIndex)
+            if let (result, nextIndex) = consumeTrivia(before: pair(of: literal(self.rawValue),
+                                              n(self.consumed,
+                                                of: consumeTrivia(before: int()))))(stream, index)
+                .asOptional {
+                return .ok(self.createSegment(using: result.1), nextIndex)
             } else {
-                return nil
+                return ParseResult(error: "Failed to parse \(self)",
+                    index: index,
+                    stream: stream)
             }
         }
     }
     
     static let all: [DrawingCommand] = [
-        .closePath,
-        closePathAbsolute,
         .move,
         .moveAbsolute,
         .line,
@@ -221,12 +261,14 @@ enum DrawingCommand: String {
         .reflectedQuadratic,
         .reflectedQuadraticAbsolute,
         .arc,
-        .arcAbsolute
+        .arcAbsolute,
+        .closePath,
+        .closePathAbsolute,
     ]
 }
 
 typealias RelativePathSegment = (CGPoint, CGMutablePath) -> (CGPoint)
-typealias Parser<T> = (String, String.Index) -> (T, String.Index)?
+typealias Parser<T> = (String, String.Index) -> ParseResult<T>
 
 final class DrawableParser: NSObject, XMLParserDelegate {
     
@@ -255,10 +297,6 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         xml.abortParsing()
     }
     
-    func parser(_ parser: XMLParser, foundCharacters string: String) {
-        currentCharacters += string
-    }
-    
     func parser(_ parser: XMLParser,
                 didStartElement elementName: String,
                 namespaceURI: String?,
@@ -271,12 +309,11 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                     // TODO: write a good error message
                 }
             case .shapePath:
-                if !parseShape(from: currentCharacters) {
-                    // TODO: write a good error message
+                if let error = parseShape(from: attributeDict) {
+                    print(error) // TODO
                 }
             }
         }
-        currentCharacters = ""
     }
     
     private func parseVectorShape(from attributes: [String: String]) -> Bool {
@@ -299,22 +336,21 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         return true
     }
     
-    private func parseShape(from string: String) -> Bool {
+    private func parseShape(from attributes: [String: String]) -> ParseError? {
+        // TODO: pick up fillcolor, name, etc
         let parsers = DrawingCommand
             .all
-            .map{ (command) -> Parser<RelativePathSegment> in
+            .map { (command) -> Parser<RelativePathSegment> in
                 command.parser
         }
-        let results = anyOrder(of: parsers)(string, string.startIndex)
-        if let (commands, _) = results {
-            self.commands = commands
-            return true
-        } else {
-            return false
+        let pathData = attributes["android:pathData"]!
+        switch consumeAll(using: parsers)(pathData, pathData.startIndex) {
+        case .ok(let result, _):
+            self.commands = result
+            return nil
+        case .error(let error): return error
         }
     }
-    
-    var currentCharacters: String = ""
     
     func parserDidEndDocument(_ parser: XMLParser) {
         if let baseWidth = baseWidth,
@@ -392,17 +428,17 @@ func shapeLayer(fillColor: CGColor, fillAlpha: CGFloat, fillType: String) -> () 
     }
 }
 
-func literal(_ text: String) -> (String, String.Index) -> (String, String.Index)? {
+func literal(_ text: String) -> Parser<String> {
     return { (stream: String, index: String.Index) in
         if let endOfRange = stream.index(index, offsetBy: text.count, limitedBy: stream.endIndex) {
             let potentialMatch = stream[index..<endOfRange]
             if potentialMatch == text {
-                return (String(potentialMatch), endOfRange)
+                return .ok(String(potentialMatch), endOfRange)
             } else {
-                return nil
+                return ParseResult(error: "Literal ", index: index, stream: stream)
             }
         } else {
-            return nil
+            return ParseResult(error: "Literal was too long for remaining stream", index: index, stream: stream)
         }
     }
 }
@@ -412,22 +448,30 @@ func assignment<T, U>(of property: U,
     -> Parser<(U, T)>
     where U: RawRepresentable, U.RawValue == String {
         return { (stream: String, index: String.Index) in
-            if let (_, index) = literal(property.rawValue)(stream, index) {
-                if let (_, index) = literal("=")(stream, index) {
-                    if let (rhs, index) = delimited(by: "\"")(stream, index) {
+            if let (_, index) = literal(property.rawValue)(stream, index).asOptional {
+                if let (_, index) = literal("=")(stream, index).asOptional {
+                    if let (rhs, index) = delimited(by: "\"")(stream, index).asOptional {
                         if let value = valueCreator(rhs) {
-                            return ((property, value), index)
+                            return .ok((property, value), index)
                         } else {
-                            return nil
+                            return ParseResult(error: "Could not transform \"\(rhs)\" to \(T.self)",
+                                index: index,
+                                stream: stream)
                         }
                     } else {
-                        return nil
+                        return ParseResult(error: "RHS was not delimited by quotes",
+                                           index: index,
+                                           stream: stream)
                     }
                 } else {
-                    return nil
+                    return ParseResult(error: "Did not find an = sign",
+                                       index: index,
+                                       stream: stream)
                 }
             } else {
-                return nil
+                return ParseResult(error: "Could not find lhs: \(property.rawValue)",
+                    index: index,
+                    stream: stream)
             }
         }
 }
@@ -435,27 +479,55 @@ func assignment<T, U>(of property: U,
 func delimited(by delimiter: String) -> Parser<String> {
     let delimiterParser = literal(delimiter)
     return { (stream: String, index: String.Index) in
-        if let (_, index) = delimiterParser(stream, index) {
+        if let (_, index) = delimiterParser(stream, index).asOptional {
             return take(until: delimiterParser)(stream, index)
         } else {
-            return nil
+            return ParseResult(error: "Could not find second delimiter",
+                               index: index,
+                               stream: stream)
         }
     }
 }
 
-func take(until match: @escaping Parser<String>) -> Parser<String> {
+func take<T>(until match: @escaping Parser<T>) -> Parser<String> {
     return { (stream: String, index: String.Index) in
         let startIndex = index
         var index = index
         while true {
-            if let (_, index) = match(stream, index) {
-                return (String(stream[startIndex..<index]), index)
+            if let (_, index) = match(stream, index).asOptional {
+                return .ok(String(stream[startIndex..<index]), index)
             } else {
                 if let nextIndex = stream.index(index, offsetBy: 1, limitedBy: stream.endIndex) {
                     index = nextIndex
                 } else {
-                    return nil
+                    return ParseResult(error: "Stream ended before match",
+                                       index: index,
+                                       stream: stream)
                 }
+            }
+        }
+    }
+}
+
+func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
+    return { (stream: String, index: String.Index) in
+        var
+        index = index,
+        results: [T] = []
+        untilNoMatchFound: while true {
+            for parser in parsers {
+                if let (match, currentIndex) = parser(stream, index).asOptional {
+                    results.append(match)
+                    index = currentIndex
+                    break
+                }
+            }
+            if index == stream.endIndex {
+                return .ok(results, index)
+            } else {
+                return ParseResult(error: "Couldn't find a match for all parsers",
+                                   index: index,
+                                   stream: stream)
             }
         }
     }
@@ -469,7 +541,7 @@ func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
         results: [T] = []
         untilNoMatchFound: while true {
             for (parserIndex, parser) in parsers.enumerated() {
-                if let (match, currentIndex) = parser(stream, index) {
+                if let (match, currentIndex) = parser(stream, index).asOptional {
                     _ = parsers.remove(at: parserIndex)
                     results.append(match)
                     index = currentIndex
@@ -477,13 +549,14 @@ func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
                 }
             }
             if index == stream.endIndex {
-                return (results, index)
+                return .ok(results, index)
             } else {
-                return nil
+                return ParseResult(error: "Couldn't find a match for all parsers",
+                                   index: index,
+                                   stream: stream)
             }
         }
     }
-    
 }
 
 func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
@@ -492,14 +565,10 @@ func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
 
 func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) -> Parser<(T, U)> {
     return { (stream: String, index: String.Index) in
-        if let (firstResult, nextIndex) = first(stream, index) {
-            if let (secondResult, nextIndex) = second(stream, nextIndex) {
-                return ((firstResult, secondResult), nextIndex)
-            } else {
-                return nil
+        first(stream, index).transform { firstResult, index in
+            second(stream, index).transform { (secondResult, index) in
+                return .ok((firstResult, secondResult), index)
             }
-        } else {
-            return nil
         }
     }
 }
@@ -510,15 +579,17 @@ func n<T>(_ n: Int, of parser: @escaping Parser<T>) -> Parser<[T]> {
         index = index,
         result = [T]()
         while taken != n {
-            if let (currentResult, nextIndex) = parser(stream, index) {
+            if let (currentResult, nextIndex) = parser(stream, index).asOptional {
                 result.append(currentResult)
                 index = nextIndex
                 taken += 1
             } else {
-                return nil
+                return ParseResult(error: "Could not take until \(n), only found \(taken)",
+                    index: index,
+                    stream: stream)
             }
         }
-        return (result, index)
+        return .ok(result, index)
     }
 }
 
@@ -526,25 +597,60 @@ func height() -> Parser<(VectorProperty, Int)> {
     return assignment(of: VectorProperty.height, to: createInt(from: ))
 }
 
-func width() -> (String, String.Index) -> ((VectorProperty, Int), String.Index)? {
+func width() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
     return assignment(of: VectorProperty.width, to: createInt(from: ))
 }
 
-func viewPortHeight() -> (String, String.Index) -> ((VectorProperty, Int), String.Index)? {
+func viewPortHeight() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
     return assignment(of: VectorProperty.viewPortWidth, to: parseAndroidMeasurement(from: ))
 }
 
-func viewPortWidth() -> (String, String.Index) -> ((VectorProperty, Int), String.Index)? {
+func viewPortWidth() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
     return assignment(of: VectorProperty.viewPortWidth, to: parseAndroidMeasurement(from: ))
 }
 
 func parseAndroidMeasurement(from text: String) -> Int? {
     for unit in AndroidUnitOfMeasure.all {
-        if let (text, _) = take(until: literal(unit.rawValue))(text, text.startIndex) {
+        if let (text, _) = take(until: literal(unit.rawValue))(text, text.startIndex).asOptional {
             return Int(text)
         }
     }
     return nil
+}
+
+func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
+    return { stream, input in
+        let parser: Parser<(String, T)> = pair(of: take(until: not(trivia())), before)
+        let result: ParseResult<(String, T)> = parser(stream, input)
+        switch  result {
+        case .ok((_, let result), let index): return .ok(result, index)
+        case .error(let error): return .error(error)
+        }
+    }
+}
+
+func not<T>(_ parser: @escaping Parser<T>) -> Parser<()> {
+    return { stream, index in
+        switch parser(stream, index) {
+        case .ok(let result, let index): return ParseResult(error: "Expected Failure, but succeeded with result \(result)",
+            index: index,
+            stream: stream)
+        case .error(_): return .ok((), index)
+        }
+    }
+}
+
+func trivia() -> Parser<String> {
+    return { stream, index in
+        let whitespace: Set<Character> = [" ", "\n", ","] // TODO
+        if whitespace.contains(stream[index]) {
+            return .ok(stream, stream.index(after: index))
+        } else {
+            return ParseResult(error: "Character \"\(stream[index])\" is not whitespace.",
+                index: index,
+                stream: stream)
+        }
+    }
 }
 
 func int() -> Parser<Int> {
@@ -567,9 +673,11 @@ func int() -> Parser<Int> {
             }
         }
         if let integer = Int(string[index..<next]) {
-            return (integer, next)
+            return .ok(integer, next)
         } else {
-            return nil
+            return ParseResult(error: "Could not create Integer",
+                               index: next,
+                               stream: string)
         }
     }
 }
