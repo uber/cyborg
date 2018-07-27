@@ -44,6 +44,37 @@ enum ParseResult<Wrapped> {
         }
     }
     
+    func chain<T>(into stream: String, _ transformer: Parser<T>) -> ParseResult<T> {
+        switch self {
+        case .ok(_, let index):
+            return transformer(stream, index)
+        case .error(let error): return .error(error)
+        }
+    }
+}
+
+func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
+    return { stream, index in
+        switch parser(stream, index) {
+        case .ok(let result, let index):
+            var nextIndex = index
+            var results = [result]
+            findMoreMatches: while true {
+                switch parser(stream, nextIndex) {
+                case .ok(let result, let index):
+                    nextIndex = index
+                    results.append(result)
+                case .error(_):
+                    break findMoreMatches
+                }
+            }
+            return .ok(results, nextIndex)
+        case .error(let error):
+            return ParseResult(error: "Could not find one match: subparser error was: \(error)",
+                index: index,
+                stream: stream)
+        }
+    }
 }
 
 func literal(_ text: String) -> Parser<String> {
@@ -82,7 +113,14 @@ func take<T>(until match: @escaping Parser<T>) -> Parser<String> {
             if let (_, index) = match(stream, index).asOptional {
                 return .ok(String(stream[startIndex..<index]), index)
             } else {
-                if let nextIndex = stream.index(index, offsetBy: 1, limitedBy: stream.endIndex) {
+                if let endIndex = stream
+                    .index(stream.endIndex,
+                offsetBy: -1,
+                limitedBy: stream.startIndex),
+                    let nextIndex = stream
+                        .index(index,
+                               offsetBy: 1,
+                               limitedBy: endIndex) {
                     index = nextIndex
                 } else {
                     return ParseResult(error: "Stream ended before match",
@@ -104,6 +142,7 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
                 if let (match, currentIndex) = parser(stream, index).asOptional {
                     results.append(match)
                     index = currentIndex
+                } else {
                     break
                 }
             }
@@ -175,6 +214,12 @@ func n<T>(_ n: Int, of parser: @escaping Parser<T>) -> Parser<[T]> {
             }
         }
         return .ok(result, index)
+    }
+}
+
+func empty() -> Parser<()> {
+    return { _, index in
+        .ok((), index)
     }
 }
 

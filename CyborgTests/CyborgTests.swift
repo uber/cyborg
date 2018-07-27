@@ -58,6 +58,49 @@ class CyborgTests: XCTestCase {
         wait(for: [callbackIsCalled], timeout: 0.001) // note: this is actually synchronous, but just in case it 
     }
     
+    func test_move() {
+        let move = "M300,70"
+        let result = parseMoveAbsolute()(move, move.startIndex)
+        let path = CGMutablePath()
+        let expected = CGMutablePath()
+        let movement = CGPoint(x: 300, y: 70)
+        expected.move(to: movement)
+        switch result {
+        case .ok(let pathSegment, _):
+            let next = pathSegment(.zero, path)
+            XCTAssertEqual(path, expected)
+            XCTAssertEqual(next, movement)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
+    
+    func test_closePath() {
+        let close = "   z"
+        let result = parseClosePath()(close, close.startIndex)
+        let expected = CGMutablePath()
+        expected.closeSubpath()
+        switch result {
+        case .ok(let wrapped, let index):
+            let path = CGMutablePath()
+            _ = wrapped(.zero, path)
+            XCTAssertEqual(index, close.endIndex)
+            XCTAssertEqual(path, expected)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
+    
+    func test_oneorMoreOf() {
+        let str = "a"
+        let contents = "aaa"
+        XCTAssertEqual(oneOrMore(of: literal(str))(contents, contents.startIndex).asOptional?.0,
+                       Array(repeating: str, count: 3))
+        let contents2 = "   a a   a"
+        XCTAssertEqual(oneOrMore(of: consumeTrivia(before: literal(str)))(contents2, contents2.startIndex).asOptional?.0,
+                       Array(repeating: str, count: 3))
+    }
+    
     func test_int_parser() {
         let str = "-432"
         switch Cyborg.int()(str, str.startIndex) {

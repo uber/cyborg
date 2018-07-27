@@ -88,7 +88,7 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         let baseError = "Error parsing the <android:pathData> tag: "
         let parsers = DrawingCommand
             .all
-            .map { (command) -> Parser<PathSegment> in
+            .compactMap { (command) -> Parser<PathSegment>? in
                 command.parser
         }
         let pathData = attributes["android:pathData"]! // TODO
@@ -191,13 +191,19 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 
 func trivia() -> Parser<String> {
     return { stream, index in
-        let whitespace: Set<Character> = [" ", "\n"]
-        if whitespace.contains(stream[index]) {
-            return .ok(stream, stream.index(after: index))
+        if stream.distance(from: index, to: stream.endIndex) > 1 {
+            let whitespace: Set<Character> = [" ", "\n"]
+            if whitespace.contains(stream[index]) {
+                return .ok(stream, stream.index(after: index))
+            } else {
+                return ParseResult(error: "Character \"\(stream[index])\" is not whitespace.",
+                    index: index,
+                    stream: stream)
+            }
         } else {
-            return ParseResult(error: "Character \"\(stream[index])\" is not whitespace.",
-                index: index,
-                stream: stream)
+            return ParseResult(error: "String empty",
+                               index: index,
+                               stream: stream)
         }
     }
 }
