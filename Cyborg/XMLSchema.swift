@@ -30,6 +30,13 @@ enum VectorProperty: String {
         case .viewPortHeight: return \.viewPortHeight
         }
     }
+    
+    var parser: (String) -> ParseResult<Int> {
+        switch self {
+        case .height, .width: return parseAndroidMeasurement(from: )
+        case .viewPortWidth, .viewPortHeight: return parseInt(from: )
+        }
+    }
 }
 
 enum DrawableProperty: String {

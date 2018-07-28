@@ -24,7 +24,7 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     var baseHeight: CGFloat?
     var viewPortWidth: CGFloat?
     var viewPortHeight: CGFloat?
-    var baseAlpha: CGFloat?
+    var baseAlpha: CGFloat = 1
     var commands: [PathSegment]?
     var parseError: ParseError?
     
@@ -41,6 +41,9 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     
     func stop() {
         xml.abortParsing()
+        if let parseError = parseError {
+            onCompletion(.error(parseError))
+        }
     }
     
     func parser(_ parser: XMLParser,
@@ -51,18 +54,20 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         if let parent = ParentNode(rawValue: elementName) {
             switch parent {
             case .vectorShape:
-                if let error = parseVectorShape(from: attributeDict) {
-                    parseError = error
+                if let error = parseVectorElement(attributes: attributeDict) {
+                    parseError ?= error
+                    stop()
                 }
             case .shapePath:
                 if let error = parseShape(from: attributeDict) {
-                    parseError = error
+                    parseError ?= error
+                    stop()
                 }
             }
         }
     }
     
-    private func parseVectorShape(from attributes: [String: String]) -> ParseError? {
+    private func parseVectorElement(attributes: [String: String]) -> ParseError? {
         var attributes = attributes
         let schema = "xmlns:android"
         let baseError = "Error parsing the <vector> tag: "
@@ -72,10 +77,15 @@ final class DrawableParser: NSObject, XMLParserDelegate {
             return baseError + "Schema not found."
         }
         for (key, value) in attributes {
-            if let attribute = VectorProperty(rawValue: key),
-                let intValue = parseAndroidMeasurement(from: value) {
+            if let attribute = VectorProperty(rawValue: key) {
                 // TODO: convert to Android Coords
-                self[keyPath: attribute.parserAttribute] = CGFloat(intValue)
+                switch attribute.parser(value) {
+                case .ok(let wrapped, _):
+                    self[keyPath: attribute.parserAttribute] = CGFloat(wrapped)
+                    continue
+                case .error(let error):
+                    return error
+                }
             } else {
                 return baseError + "Could not find attribute \(key)"
             }
@@ -96,7 +106,8 @@ final class DrawableParser: NSObject, XMLParserDelegate {
         case .ok(let result, _):
             self.commands = result
             return nil
-        case .error(let error): return baseError + error
+        case .error(let error):
+            return baseError + error
         }
     }
     
@@ -105,7 +116,6 @@ final class DrawableParser: NSObject, XMLParserDelegate {
             let baseHeight = baseHeight,
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight,
-            let baseAlpha = baseAlpha,
             let commands = commands {
             let result = VectorDrawable(baseWidth: baseWidth,
                                         baseHeight: baseHeight,
@@ -120,62 +130,29 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     }
 }
 
-func assignment<T, U>(of property: U,
-                      to valueCreator: @escaping (String) -> (T?))
-    -> Parser<(U, T)>
-    where U: RawRepresentable, U.RawValue == String {
-        return { (stream: String, index: String.Index) in
-            if let (_, index) = literal(property.rawValue)(stream, index).asOptional {
-                if let (_, index) = literal("=")(stream, index).asOptional {
-                    if let (rhs, index) = delimited(by: "\"")(stream, index).asOptional {
-                        if let value = valueCreator(rhs) {
-                            return .ok((property, value), index)
-                        } else {
-                            return ParseResult(error: "Could not transform \"\(rhs)\" to \(T.self)",
-                                index: index,
-                                stream: stream)
-                        }
-                    } else {
-                        return ParseResult(error: "RHS was not delimited by quotes",
-                                           index: index,
-                                           stream: stream)
-                    }
-                } else {
-                    return ParseResult(error: "Did not find an = sign",
-                                       index: index,
-                                       stream: stream)
-                }
-            } else {
-                return ParseResult(error: "Could not find lhs: \(property.rawValue)",
-                    index: index,
-                    stream: stream)
-            }
-        }
-}
-
-func height() -> Parser<(VectorProperty, Int)> {
-    return assignment(of: VectorProperty.height, to: createInt(from: ))
-}
-
-func width() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
-    return assignment(of: VectorProperty.width, to: createInt(from: ))
-}
-
-func viewPortHeight() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
-    return assignment(of: VectorProperty.viewPortWidth, to: parseAndroidMeasurement(from: ))
-}
-
-func viewPortWidth() -> (String, String.Index) -> ParseResult<(VectorProperty, Int)> {
-    return assignment(of: VectorProperty.viewPortWidth, to: parseAndroidMeasurement(from: ))
-}
-
-func parseAndroidMeasurement(from text: String) -> Int? {
+func parseAndroidMeasurement(from text: String) -> ParseResult<Int> {
+    var lastError = ParseResult<Int>.error("no text found")
     for unit in AndroidUnitOfMeasure.all {
-        if let (text, _) = take(until: literal(unit.rawValue))(text, text.startIndex).asOptional {
-            return Int(text)
+        switch take(until: literal(unit.rawValue))(text, text.startIndex) {
+        case .ok(let text, let index):
+            if let int = Int(text[text.startIndex..<text.index(text.endIndex, offsetBy: -unit.rawValue.count)]) {
+                return .ok(int, index)
+            } else {
+                return .error("Could not convert \"\(text)\" to Int.")
+            }
+        case .error(let error):
+            lastError = .error(error)
         }
     }
-    return nil
+    return lastError
+}
+
+func parseInt(from text: String) -> ParseResult<Int> {
+    if let int = Int(text) {
+        return .ok(int, text.endIndex)
+    } else {
+        return .error("Couldn't parse int from \"\(text)\"")
+    }
 }
 
 func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
@@ -249,4 +226,11 @@ func coordinatePair() -> Parser<CGPoint> {
 
 func createInt(from text: String) -> Int? { // necessary to prevent ambiguity, otherwise I'd use Int.init(_ description:)
     return Int(text)
+}
+
+infix operator ?=
+func ?=<T>(lhs: inout T?, rhs: T) {
+    if lhs == nil {
+        lhs = rhs
+    }
 }

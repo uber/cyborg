@@ -30,16 +30,6 @@ class CyborgTests: XCTestCase {
  </vector>
 """
     
-    override func setUp() {
-        super.setUp()
-        
-    }
-    
-    override func tearDown() {
-        
-        super.tearDown()
-    }
-    
     func test_Deserialize() {
         let data = string.data(using: .utf8)!
         let callbackIsCalled = expectation(description: "Callback is called")
@@ -51,11 +41,28 @@ class CyborgTests: XCTestCase {
                     XCTAssert(drawable.viewPortWidth == 600)
                     XCTAssert(drawable.viewPortHeight == 600)
                     XCTAssert(drawable.commands.count != 0)
+                    let path = drawable.createPath()
+                    let expected = CGMutablePath()
+                    var relativeTo = CGPoint(x: 300, y: 70)
+                    expected.move(to: relativeTo)
+                    let list = [
+                        CGPoint(x: 0, y: -70),
+                        CGPoint(x: 70, y: 70),
+                        CGPoint(x: 0, y: 0),
+                        CGPoint(x: -70, y: -70)
+                    ]
+                    for point in list {
+                        let point = point.add(relativeTo)
+                        expected.addLine(to: point)
+                        relativeTo = point
+                    }
+                    expected.closeSubpath()
+                    XCTAssertEqual(path, expected)
                 case .error(let error):
                     XCTFail(error)
                 }
         }
-        wait(for: [callbackIsCalled], timeout: 0.001) // note: this is actually synchronous, but just in case it 
+        wait(for: [callbackIsCalled], timeout: 0.001) // note: this is actually synchronous, but just in case it isn't called, check to make sure it actually happens
     }
     
     func test_move() {
@@ -91,6 +98,28 @@ class CyborgTests: XCTestCase {
         }
     }
     
+    func test_pair() {
+        let first = "a"
+        let second = "b"
+        let expected = first + second
+        let parser = pair(of: literal(first), literal(second))
+        var result = parser(expected, expected.startIndex)
+        switch result {
+        case .ok(let str, _):
+            XCTAssertEqual(str.0 + str.1, expected)
+        case .error(let error):
+            XCTFail(error)
+        }
+        for failureCase in [first, second] {
+            result = parser(failureCase, failureCase.startIndex)
+            switch result {
+            case .ok(let incorrectResult, _):
+                XCTFail("Succeeded: found \(incorrectResult)")
+            case .error(_): break
+            }
+        }
+    }
+    
     func test_oneorMoreOf() {
         let str = "a"
         let contents = "aaa"
@@ -113,5 +142,17 @@ class CyborgTests: XCTestCase {
         case .error(let error): XCTFail(error)
         }
     }
-    
+
+    func test_questionmarkequals() {
+        struct C {
+            var a: Int? = 5
+            var b: Int? = nil
+        }
+        var c = C()
+        c.a ?= 2
+        XCTAssertEqual(c.a, 5)
+        c.b ?= 5
+        XCTAssertEqual(c.b, 5)
+    }
+
 }

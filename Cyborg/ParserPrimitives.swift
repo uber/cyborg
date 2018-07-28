@@ -84,7 +84,7 @@ func literal(_ text: String) -> Parser<String> {
             if potentialMatch == text {
                 return .ok(String(potentialMatch), endOfRange)
             } else {
-                return ParseResult(error: "Literal ", index: index, stream: stream)
+                return ParseResult(error: "Literal \(text)", index: index, stream: stream)
             }
         } else {
             return ParseResult(error: "Literal was too long for remaining stream", index: index, stream: stream)
@@ -136,22 +136,26 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
     return { (stream: String, index: String.Index) in
         var
         index = index,
-        results: [T] = []
+        results: [T] = [],
+        errors: [String] = []
+        errors.reserveCapacity(parsers.count)
         untilNoMatchFound: while true {
-            for parser in parsers {
-                if let (match, currentIndex) = parser(stream, index).asOptional {
-                    results.append(match)
+            checkAllParsers: for parser in parsers {
+                switch parser(stream, index) {
+                case .ok(let result, let currentIndex):
+                    results.append(result)
                     index = currentIndex
-                } else {
-                    break
+                    continue checkAllParsers
+                case .error(let error):
+                    errors.append(error)
                 }
             }
             if index == stream.endIndex {
                 return .ok(results, index)
             } else {
-                return ParseResult(error: "Couldn't find a match for all parsers",
-                                   index: index,
-                                   stream: stream)
+                return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
+                    index: index,
+                    stream: stream)
             }
         }
     }
