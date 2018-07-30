@@ -15,6 +15,35 @@ public enum Result {
 
 public typealias ParseError = String
 
+protocol NodeParser: AnyObject {
+    
+    func parse(element: String, attributes: [String: String])
+    
+    func ended(element: String)
+    
+}
+
+class VectorParser: NodeParser {
+    
+    func parse(element: String, attributes: [String : String]) -> ParseError? {
+        if element == "vector" {
+            
+            return nil
+        } else {
+            
+        }
+    }
+    
+}
+
+class PathParser: NodeParser {
+    
+}
+
+class GroupParser: NodeParser {
+    
+}
+
 final class DrawableParser: NSObject, XMLParserDelegate {
     
     let xml: XMLParser
@@ -24,9 +53,12 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     var baseHeight: CGFloat?
     var viewPortWidth: CGFloat?
     var viewPortHeight: CGFloat?
-    var baseAlpha: CGFloat = 1
+    var alpha: CGFloat = 1
     var commands: [PathSegment]?
     var parseError: ParseError?
+    var tintMode: BlendMode? = nil
+    var tintColor: String? = nil
+    var autoMirrored: Bool = false
     
     init(data: Data, onCompletion: @escaping (Result) -> ()) {
         xml = XMLParser(data: data)
@@ -53,12 +85,14 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                 attributes attributeDict: [String : String] = [:]) {
         if let parent = ParentNode(rawValue: elementName) {
             switch parent {
-            case .vectorShape:
+            case .group:
+                break
+            case .vector:
                 if let error = parseVectorElement(attributes: attributeDict) {
                     parseError ?= error
                     stop()
                 }
-            case .shapePath:
+            case .path:
                 if let error = parseShape(from: attributeDict) {
                     parseError ?= error
                     stop()
@@ -121,8 +155,8 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                                         baseHeight: baseHeight,
                                         viewPortWidth: viewPortWidth,
                                         viewPortHeight: viewPortHeight,
-                                        baseAlpha: baseAlpha,
-                                        commands: commands)
+                                        baseAlpha: alpha,
+                                        groups: commands)
             onCompletion(.ok(result))
         } else {
             onCompletion(.error(parseError ?? "The parse failed, but there is no parse error. This is a bug in the VectorDrawable Library."))
