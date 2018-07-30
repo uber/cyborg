@@ -49,7 +49,7 @@ class CyborgTests: XCTestCase {
                         CGPoint(x: 0, y: -70),
                         CGPoint(x: 70, y: 70),
                         CGPoint(x: 0, y: 0),
-                        CGPoint(x: -70, y: -70)
+                        CGPoint(x: -70, y: 70)
                     ]
                     for point in list {
                         let point = point.add(relativeTo)

@@ -35,7 +35,7 @@ func parseCurve() -> Parser<PathSegment> {
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { point, path in
                                 points.reduce(.zero) { (result, points) -> CGPoint in
-                                    let points = points.map(point.add)
+                                    let points = points.makeRelative(startingWith: point)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
@@ -79,9 +79,9 @@ func parseLine() -> Parser<PathSegment> {
                         subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
                         creator: { (points: [CGPoint]) -> (PathSegment) in
                             return { (point: CGPoint, path: CGMutablePath) -> CGPoint in
-                                let points = points.map(point.add)
+                                let points = points.makeRelative(startingWith: point)
                                 return points.reduce(.zero) { result, point -> CGPoint in
-                                    path.move(to: point)
+                                    path.addLine(to: point)
                                     return point
                                 }
                             }
@@ -286,4 +286,17 @@ extension CGPoint {
     func add(_ rhs: CGPoint) -> CGPoint {
         return .init(x: x + rhs.x, y: y + rhs.y)
     }
+}
+
+extension Array where Element == CGPoint {
+    
+    func makeRelative(startingWith start: CGPoint) -> [CGPoint] {
+        var current = start
+        return map { next in
+            let result = next.add(current)
+            current = result
+            return result
+        }
+    }
+    
 }
