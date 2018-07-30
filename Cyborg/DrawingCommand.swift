@@ -8,7 +8,7 @@
 
 import Foundation
 
-typealias PathSegment = (CGPoint, CGMutablePath) -> (CGPoint)
+typealias PathSegment = (CGPoint, CGMutablePath, CGSize) -> (CGPoint)
 
 func consumeTrivia(before lit: String , _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
     return consumeTrivia { stream, index in
@@ -33,9 +33,9 @@ func parseCurve() -> Parser<PathSegment> {
                         subparser: oneOrMore(of: n(3,
                                                    of: consumeTrivia(before: coordinatePair()))),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
-                            return { point, path in
+                            return { point, path, size in
                                 points.reduce(.zero) { (result, points) -> CGPoint in
-                                    let points = points.makeRelative(startingWith: point)
+                                    let points = points.makeAbsolute(startingWith: point, in: size)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
@@ -51,8 +51,9 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
                         subparser: oneOrMore(of: n(3,
                                                    of: consumeTrivia(before: coordinatePair()))),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
-                            return { point, path in
+                            return { point, path, size in
                                 points.reduce(.zero) { (result, points) -> CGPoint in
+                                    let points = points.makeAbsolute(startingWith: .zero, in: size)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
@@ -67,7 +68,8 @@ func parseMoveAbsolute() -> Parser<PathSegment> {
     return parseCommand(.moveAbsolute,
                         subparser: consumeTrivia(before: coordinatePair()),
                         creator: { (point) -> (PathSegment) in
-                            return { _, path in
+                            return { _, path, size in
+                                let point = point.times(size.width, size.height)
                                 path.move(to: point)
                                 return point
                             }
@@ -78,8 +80,8 @@ func parseLine() -> Parser<PathSegment> {
     return parseCommand(.line,
                         subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
                         creator: { (points: [CGPoint]) -> (PathSegment) in
-                            return { (point: CGPoint, path: CGMutablePath) -> CGPoint in
-                                let points = points.makeRelative(startingWith: point)
+                            return { (point: CGPoint, path: CGMutablePath, size: CGSize) -> CGPoint in
+                                let points = points.makeAbsolute(startingWith: point, in: size)
                                 return points.reduce(.zero) { result, point -> CGPoint in
                                     path.addLine(to: point)
                                     return point
@@ -92,7 +94,7 @@ func parseClosePath() -> Parser<PathSegment> {
     return parseCommand(.closePath,
                         subparser: empty(),
                         creator: { (_) -> (PathSegment) in
-                            return { point, path in
+                            return { point, path, _ in
                                 path.closeSubpath()
                                 return point
                             }
@@ -103,7 +105,7 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
     return parseCommand(.closePathAbsolute,
                         subparser: empty(),
                         creator: { (_) -> (PathSegment) in
-                            return { point, path in
+                            return { point, path, _ in
                                 path.closeSubpath()
                                 return point
                             }
@@ -283,17 +285,25 @@ enum DrawingCommand: String {
 }
 
 extension CGPoint {
+    
     func add(_ rhs: CGPoint) -> CGPoint {
         return .init(x: x + rhs.x, y: y + rhs.y)
     }
+    
+    func times(_ x1: CGFloat, _ y1: CGFloat) -> CGPoint {
+        return .init(x: x * x1, y: y * y1)
+    }
+    
 }
 
 extension Array where Element == CGPoint {
     
-    func makeRelative(startingWith start: CGPoint) -> [CGPoint] {
+    func makeAbsolute(startingWith start: CGPoint, in size: CGSize) -> [CGPoint] {
         var current = start
         return map { next in
-            let result = next.add(current)
+            let result = next
+                .times(size.width, size.height)
+                .add(current)
             current = result
             return result
         }

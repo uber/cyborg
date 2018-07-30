@@ -55,11 +55,11 @@ public final class VectorDrawable {
         self.commands = commands
     }
     
-    func createPath() -> CGPath {
+    func createPath(in size: CGSize) -> CGPath {
         let path = CGMutablePath()
         var lastPoint: CGPoint = .zero
         for command in commands {
-            lastPoint = command(lastPoint, path)
+            lastPoint = command(lastPoint, path, size)
         }
         return path
     }
