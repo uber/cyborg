@@ -22,38 +22,41 @@ enum VectorProperty: String {
     case width = "android:width"
     case viewPortHeight = "android:viewportHeight"
     case viewPortWidth = "android:viewportWidth"
-//    case tint = "android:tint"
-//    case tintMode = "android:tintMode"
-//    case autoMirrored = "android:autoMirrored"
-//    case alpha = "android:alpha"
+    case tint = "android:tint"
+    case tintMode = "android:tintMode"
+    case autoMirrored = "android:autoMirrored"
+    case alpha = "android:alpha"
     
-    var parserAttribute: ReferenceWritableKeyPath<DrawableParser, CGFloat?> {
-        switch self {
-        case .height: return \.baseHeight
-        case .width: return \.baseWidth
-        case .viewPortWidth: return \.viewPortWidth
-        case .viewPortHeight: return \.viewPortHeight
-//        case .alpha: return \.alpha
-//        case .tintMode: return \.tintMode
-        }
-    }
-    
-    var parser: (String) -> ParseResult<Int> {
-        switch self {
-        case .height, .width: return parseAndroidMeasurement(from: )
-        case .viewPortWidth, .viewPortHeight: return parseInt(from: )
-        }
-    }
+   
+//    var parser: (String) -> ParseResult<Int> {
+//        switch self {
+//        case .height, .width: return parseAndroidMeasurement(from: )
+//        case .viewPortWidth, .viewPortHeight: return parseInt(from: )
+//        }
+//    }
 }
 
-enum DrawableProperty: String {
-    case pathShiftX = "shift-x"
-    case pathShiftY = "shift-y"
-    case shapeGroup = "group"
-    case pathID = "android:name"
-    case pathDescription = "android:pathData" // TODO
+/// Elements of the <path> element of a VectorDrawable document
+enum PathProperty: String {
+    
+    case name = "android:name"
+    case pathData = "android:pathData"
+    case fillColor = "android:fillColor"
+    case strokeColor = "android:strokeColor"
+    case strokeWidth = "android:strokeWidth"
+    case strokeAlpha = "android:strokeAlpha"
+    case fillAlpha = "android:fillAlpha"
+    case trimPathStart = "android:trimPathStart"
+    case trimPathEnd = "android:trimPathEnd"
+    case trimPathOffset = "android:trimPathOffset"
+    case strokeLineCap = "android:strokeLineCap"
+    case strokeLineJoin = "android:strokeLineJoin"
+    case strokeMiterLimit = "android:strokeMiterLimit"
+    case fillType = "android:fillType"
+    
 }
 
+/// Elements of the <group> element of a VectorDrawable document
 enum GroupProperty: String {
     
     case name = "android:name"
@@ -68,15 +71,21 @@ enum GroupProperty: String {
 }
 
 enum Color {
+    
     case theme(name: String)
     case hex(value: String)
+    case resource(named: String)
+    
+    init?(_ string: String) {
+        fatalError()
+    }
     
     var asUIColor: UIColor {
         fatalError()
     }
 }
 
-enum LineCap {
+enum LineCap: String {
     
     case butt
     case round
@@ -92,7 +101,7 @@ enum LineCap {
     
 }
 
-enum LineJoin {
+enum LineJoin: String {
     
     case miter
     case round

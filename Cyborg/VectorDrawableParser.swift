@@ -8,6 +8,7 @@
 
 import Foundation
 
+/// Contains either a `VectorDrawable`, or an `error` if the `VectorDrawable` could not be deserialized.
 public enum Result {
     case ok(VectorDrawable)
     case error(ParseError)
@@ -15,22 +16,112 @@ public enum Result {
 
 public typealias ParseError = String
 
-protocol NodeParser: AnyObject {
+// MARK: - Element Parsers
+
+class NodeParser {
     
-    func parse(element: String, attributes: [String: String])
+    let name: ParentNode
     
-    func ended(element: String)
+    init(name: ParentNode) {
+        self.name = name
+    }
+    
+    func parse(element: String, attributes: [String: String]) -> ParseError? {
+        return nil
+    }
+    
+    func ended(element: String) -> Bool {
+        return false
+    }
+    
+    final func assign<T>(_ string: String,
+                     to path: inout T,
+                     creatingWith creator: (String) -> (T?)) -> ParseError? {
+        if let float = creator(string) {
+            path = float
+            return nil
+        } else {
+            return "Could not assign \(string)"
+        }
+    }
+    
+    final func assignFloat(_ string: String,
+                     to path: inout CGFloat?) -> ParseError? {
+        return assign(string, to: &path, creatingWith: { (string) in
+            Double(string).flatMap(CGFloat.init(value:))
+        })
+    }
+    
+    final func assignFloat(_ string: String,
+                     to path: inout CGFloat) -> ParseError? {
+        return assign(string, to: &path, creatingWith: { (string) in
+            Double(string).flatMap(CGFloat.init(value:))
+        })
+    }
+
     
 }
 
 class VectorParser: NodeParser {
     
-    func parse(element: String, attributes: [String : String]) -> ParseError? {
-        if element == "vector" {
-            
+    var baseWidth: CGFloat?
+    var baseHeight: CGFloat?
+    var viewPortWidth: CGFloat?
+    var viewPortHeight: CGFloat?
+    var tintMode: BlendMode?
+    var tintColor: Color?
+    var autoMirrored: Bool = false
+    var alpha: CGFloat = 1
+    
+    init() {
+        super.init(name: .vector)
+    }
+
+    override func parse(element: String, attributes: [String : String]) -> ParseError? {
+        if element == name.rawValue {
+            var attributes = attributes
+            let schema = "xmlns:android"
+            let baseError = "Error parsing the <vector> tag: "
+            if attributes.keys.contains(schema) {
+                attributes.removeValue(forKey: schema)
+            } else {
+                return baseError + "Schema not found."
+            }
+            for (key, value) in attributes {
+                if let property = VectorProperty(rawValue: key) {
+                    switch property {
+                    case .height: return assignFloat(value, to: &baseHeight)
+                    case .width: return assignFloat(value, to: &baseWidth)
+                    case .viewPortHeight: return assignFloat(value, to: &viewPortHeight)
+                    case .viewPortWidth: return assignFloat(value, to: &viewPortWidth)
+                    case .tint: return assign(value, to: &tintColor, creatingWith: Color.init)
+                    case .tintMode: return assign(value, to: &tintMode, creatingWith: BlendMode.init)
+                    case .autoMirrored: return assign(value, to: &autoMirrored, creatingWith: Bool.init)
+                    case .alpha: return assignFloat(value, to: &alpha)
+                    }
+                } else {
+                    return "Key \(key) is not a valid attribute of <vector>"
+                }
+            }
             return nil
         } else {
-            
+            return "Unexpected element found at the top level"
+        }
+    }
+    
+    func createElement(with groups: [VectorDrawable.Group]) -> Result {
+        if let baseWidth = baseWidth,
+            let baseHeight = baseHeight,
+            let viewPortWidth = viewPortWidth,
+            let viewPortHeight = viewPortHeight {
+        return .ok(.init(baseWidth: baseWidth,
+                         baseHeight: baseHeight,
+                         viewPortWidth: viewPortWidth,
+                         viewPortHeight: viewPortHeight,
+                         baseAlpha: alpha,
+                         groups: groups))
+        } else {
+            return .error("Could not parse a <vector> element, but there was no error. This is a bug in the VectorDrawable Library.")
         }
     }
     
@@ -38,9 +129,159 @@ class VectorParser: NodeParser {
 
 class PathParser: NodeParser {
     
+    var pathName: String?
+    var commands: [PathSegment]?
+    var fillColor: Color?
+    var strokeColor: Color?
+    var strokeWidth: CGFloat = 0
+    var strokeAlpha: CGFloat = 1
+    var fillAlpha: CGFloat = 1
+    var trimPathStart: CGFloat = 0
+    var trimPathEnd: CGFloat = 1
+    var trimPathOffset: CGFloat = 0
+    var strokeLineCap: LineCap = .butt
+    var strokeMiterLimit: CGFloat = 4
+    var strokeLineJoin: LineJoin = .miter
+    var fillType: CGPathFillRule = .winding
+    
+    override func parse(element: String, attributes: [String : String]) -> ParseError? {
+        let baseError = "Error parsing the <android:pathData> tag: "
+        let parsers = DrawingCommand
+            .all
+            .compactMap { (command) -> Parser<PathSegment>? in
+                command.parser
+        }
+        for (key, value) in attributes {
+            if let property = PathProperty(rawValue: key) {
+                switch property {
+                case .name:
+                    pathName = value
+                    return nil
+                case .pathData:
+                    switch consumeAll(using: parsers)(value, value.startIndex) {
+                    case .ok(let result, _):
+                        self.commands = result
+                        return nil
+                    case .error(let error):
+                        return baseError + error
+                    }
+                case .fillColor:
+                    fillColor = Color(value)
+                case .strokeWidth:
+                    return assignFloat(value, to: &strokeWidth)
+                case .strokeColor:
+                    return assign(value, to: &strokeColor, creatingWith: Color.init)
+                case .strokeAlpha:
+                    return assignFloat(value, to: &strokeAlpha)
+                case .fillAlpha:
+                    return assignFloat(value, to: &fillAlpha)
+                case .trimPathStart:
+                    return assignFloat(value, to: &trimPathStart)
+                case .trimPathEnd:
+                    return assignFloat(value, to: &trimPathEnd)
+                case .trimPathOffset:
+                    return assignFloat(value, to: &trimPathOffset)
+                case .strokeLineCap:
+                    return assign(value, to: &strokeLineCap, creatingWith: LineCap.init)
+                case .strokeLineJoin:
+                    return assign(value, to: &strokeLineJoin, creatingWith: LineJoin.init)
+                case .strokeMiterLimit:
+                    return assignFloat(value, to: &strokeMiterLimit)
+                case .fillType:
+                    return assign(value, to: &fillType, creatingWith: { (string) -> (CGPathFillRule?) in
+                        switch string {
+                        case "evenOdd": return .evenOdd
+                        case "nonZero": return .winding
+                        default: return nil
+                        }
+                    })
+                }
+            } else {
+                return "Key \(key) is not a valid attribute of <path>."
+            }
+        }
+        let pathData = attributes["android:pathData"]! // TODO
+        switch consumeAll(using: parsers)(pathData, pathData.startIndex) {
+        case .ok(let result, _):
+            self.commands = result
+            return nil
+        case .error(let error):
+            return baseError + error
+        }
+    }
+    
+    func createElement() -> VectorDrawable.Path? {
+        if let pathName = pathName,
+            let commands = commands,
+            let fillColor = fillColor,
+            let strokeColor = strokeColor {
+            return VectorDrawable.Path(name: pathName,
+                                       fillColor: fillColor,
+                                       fillAlpha: fillAlpha,
+                                       data: commands,
+                                       strokeColor: strokeColor,
+                                       strokeWidth: strokeWidth,
+                                       strokeAlpha: strokeAlpha,
+                                       trimPathStart: trimPathStart,
+                                       trimPathEnd: trimPathEnd,
+                                       trimPathOffset: trimPathOffset,
+                                       strokeLineCap: strokeLineCap,
+                                       strokeLineJoin: strokeLineJoin,
+                                       fillType: fillType)
+        } else {
+            return nil
+        }
+    }
+    
 }
 
 class GroupParser: NodeParser {
+    
+    var groupName: String?
+    var pivotX: CGFloat?
+    var pivotY: CGFloat?
+    var rotation: CGFloat?
+    var scaleX: CGFloat?
+    var scaleY: CGFloat?
+    var translationX: CGFloat?
+    var translationY: CGFloat?
+    
+    init() {
+        super.init(name: .group)
+    }
+    
+    override func parse(element: String, attributes: [String : String]) -> ParseError? {
+        if element == name.rawValue {
+            for (key, value) in attributes {
+                if let property = GroupProperty(rawValue: key) {
+                    switch property {
+                    case .name:
+                        groupName = value
+                        return nil
+                    case .rotation:
+                        return assignFloat(value, to: &rotation)
+                    case .pivotX:
+                        return assignFloat(value, to: &pivotX)
+                    case .pivotY:
+                        return assignFloat(value, to: &pivotY)
+                    case .scaleX:
+                        return assignFloat(value, to: &scaleX)
+                    case .scaleY:
+                        return assignFloat(value, to: &scaleY)
+                    case .translateX:
+                        return assignFloat(value, to: &translationX)
+                    case .translateY:
+                        return assignFloat(value, to: &translationY)
+                    }
+                } else {
+                    return "Unrecognized Attribute: \(key)"
+                }
+            }
+        } else {
+            return "Unrecognized Element"
+        }
+        return "No attributes found"
+    }
     
 }
 
@@ -48,19 +289,14 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     
     let xml: XMLParser
     let onCompletion: (Result) -> ()
-    
-    var baseWidth: CGFloat?
-    var baseHeight: CGFloat?
-    var viewPortWidth: CGFloat?
-    var viewPortHeight: CGFloat?
-    var alpha: CGFloat = 1
-    var commands: [PathSegment]?
+    let vector: VectorParser
+    var parserStack: [NodeParser]
     var parseError: ParseError?
-    var tintMode: BlendMode? = nil
-    var tintColor: String? = nil
-    var autoMirrored: Bool = false
+    
     
     init(data: Data, onCompletion: @escaping (Result) -> ()) {
+        vector = VectorParser()
+        parserStack = [vector]
         xml = XMLParser(data: data)
         self.onCompletion = onCompletion
         super.init()
@@ -83,86 +319,18 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                 namespaceURI: String?,
                 qualifiedName qName: String?,
                 attributes attributeDict: [String : String] = [:]) {
-        if let parent = ParentNode(rawValue: elementName) {
-            switch parent {
-            case .group:
-                break
-            case .vector:
-                if let error = parseVectorElement(attributes: attributeDict) {
-                    parseError ?= error
-                    stop()
-                }
-            case .path:
-                if let error = parseShape(from: attributeDict) {
-                    parseError ?= error
-                    stop()
-                }
-            }
-        }
-    }
-    
-    private func parseVectorElement(attributes: [String: String]) -> ParseError? {
-        var attributes = attributes
-        let schema = "xmlns:android"
-        let baseError = "Error parsing the <vector> tag: "
-        if attributes.keys.contains(schema) {
-            attributes.removeValue(forKey: schema)
-        } else {
-            return baseError + "Schema not found."
-        }
-        for (key, value) in attributes {
-            if let attribute = VectorProperty(rawValue: key) {
-                // TODO: convert to Android Coords
-                switch attribute.parser(value) {
-                case .ok(let wrapped, _):
-                    self[keyPath: attribute.parserAttribute] = CGFloat(wrapped)
-                    continue
-                case .error(let error):
-                    return error
-                }
-            } else {
-                return baseError + "Could not find attribute \(key)"
-            }
-        }
-        return nil
-    }
-    
-    private func parseShape(from attributes: [String: String]) -> ParseError? {
-        // TODO: pick up fillcolor, name, etc
-        let baseError = "Error parsing the <android:pathData> tag: "
-        let parsers = DrawingCommand
-            .all
-            .compactMap { (command) -> Parser<PathSegment>? in
-                command.parser
-        }
-        let pathData = attributes["android:pathData"]! // TODO
-        switch consumeAll(using: parsers)(pathData, pathData.startIndex) {
-        case .ok(let result, _):
-            self.commands = result
-            return nil
-        case .error(let error):
-            return baseError + error
+        if let errorMessage = parserStack[0].parse(element: elementName, attributes: attributeDict) {
+            parseError = errorMessage
+            stop()
         }
     }
     
     func parserDidEndDocument(_ parser: XMLParser) {
-        if let baseWidth = baseWidth,
-            let baseHeight = baseHeight,
-            let viewPortWidth = viewPortWidth,
-            let viewPortHeight = viewPortHeight,
-            let commands = commands {
-            let result = VectorDrawable(baseWidth: baseWidth,
-                                        baseHeight: baseHeight,
-                                        viewPortWidth: viewPortWidth,
-                                        viewPortHeight: viewPortHeight,
-                                        baseAlpha: alpha,
-                                        groups: commands)
-            onCompletion(.ok(result))
-        } else {
-            onCompletion(.error(parseError ?? "The parse failed, but there is no parse error. This is a bug in the VectorDrawable Library."))
-        }
+//        onCompletion()
     }
 }
+
+// MARK: - Parser Combinators
 
 func parseAndroidMeasurement(from text: String) -> ParseResult<Int> {
     var lastError = ParseResult<Int>.error("no text found")
@@ -266,5 +434,11 @@ infix operator ?=
 func ?=<T>(lhs: inout T?, rhs: T) {
     if lhs == nil {
         lhs = rhs
+    }
+}
+
+extension CGFloat {
+    init(value: Double) {
+        self.init(value)
     }
 }

@@ -82,6 +82,7 @@ public final class VectorDrawable {
         }
     }
     
+    /// Representation of a <group> element from a VectorDrawable document.
     public class Group {
         
         public let name: String
@@ -95,13 +96,14 @@ public final class VectorDrawable {
             self.transform = transform
             self.path = path
         }
-                
+        
         func createPath(in size: CGSize) -> CGPath {
             return path.createPath(in: size)
         }
         
     }
     
+    /// Representation of a <path> element from a VectorDrawable document.
     public class Path {
         
         public let name: String
@@ -167,6 +169,7 @@ public final class VectorDrawable {
     
 }
 
+/// A rigid body transformation as specced by VectorDrawable.
 public struct Transform {
     
     public let pivot: CGPoint
@@ -174,10 +177,11 @@ public struct Transform {
     public let scale: CGPoint
     public let translation: CGPoint
     
-    static let identity: Transform = .init(pivot: .zero,
-                                           rotation: 0,
-                                           scale: CGPoint(x: 1, y: 1),
-                                           translation: .zero)
+    /// The Identity Transform.
+    public static let identity: Transform = .init(pivot: .zero,
+                                                  rotation: 0,
+                                                  scale: CGPoint(x: 1, y: 1),
+                                                  translation: .zero)
     
     func affineTransform(in size: CGSize) -> CGAffineTransform {
         let translation = self.translation.times(size.width, size.height)
