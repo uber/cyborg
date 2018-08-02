@@ -26,14 +26,7 @@ enum VectorProperty: String {
     case tintMode = "android:tintMode"
     case autoMirrored = "android:autoMirrored"
     case alpha = "android:alpha"
-    
-   
-//    var parser: (String) -> ParseResult<Int> {
-//        switch self {
-//        case .height, .width: return parseAndroidMeasurement(from: )
-//        case .viewPortWidth, .viewPortHeight: return parseInt(from: )
-//        }
-//    }
+       
 }
 
 /// Elements of the <path> element of a VectorDrawable document
