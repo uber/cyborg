@@ -14,6 +14,8 @@ public enum Result {
     case error(ParseError)
 }
 
+/// An Error encountered when parsing. Generally optional, the presence of a value indicates that
+/// an error occurred.
 public typealias ParseError = String
 
 // MARK: - Element Parsers
@@ -502,13 +504,6 @@ func coordinatePair() -> Parser<CGPoint> {
 
 func createInt(from text: String) -> Int? { // necessary to prevent ambiguity, otherwise I'd use Int.init(_ description:)
     return Int(text)
-}
-
-infix operator ?=
-func ?=<T>(lhs: inout T?, rhs: T) {
-    if lhs == nil {
-        lhs = rhs
-    }
 }
 
 extension CGFloat {

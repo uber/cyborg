@@ -142,17 +142,3 @@ class CyborgTests: XCTestCase {
         case .error(let error): XCTFail(error)
         }
     }
-
-    func test_questionmarkequals() {
-        struct C {
-            var a: Int? = 5
-            var b: Int? = nil
-        }
-        var c = C()
-        c.a ?= 2
-        XCTAssertEqual(c.a, 5)
-        c.b ?= 5
-        XCTAssertEqual(c.b, 5)
-    }
-
-}

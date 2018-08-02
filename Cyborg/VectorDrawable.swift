@@ -27,6 +27,8 @@ enum AndroidUnitOfMeasure: String {
 }
 
 enum BlendMode: String {
+    
+    // TODO: make these have values from the vector drawable spec, add conversion function
     case add
     case clear
     case darken
@@ -47,13 +49,26 @@ enum BlendMode: String {
     case xor
 }
 
+/// A VectorDrawable. This can be displayed in a `VectorView`.
 public final class VectorDrawable {
     
+    /// The intrinsic width in points.
     public let baseWidth: CGFloat
+    
+    /// The intrinsic height in points.
     public let baseHeight: CGFloat
+    
+    /// The width that all path and group translation coordinates are relative to. Used
+    /// to resize the VectorDrawable if it's not displayed at `baseWidth`.
     public let viewPortWidth: CGFloat
+    
+    /// The height that all path and group translation coordinates are relative to. Used
+    /// to resize the VectorDrawable if it's not displayed at `baseHeight`.
     public let viewPortHeight: CGFloat
+    
+    /// The overall alpha to apply to the drawable.
     public let baseAlpha: CGFloat
+    
     let groups: [Group]
     
     public static func create(from data: Data,
@@ -89,8 +104,12 @@ public final class VectorDrawable {
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group {
         
+        /// The name of the group.
         public let name: String
+        
+        /// The transform to apply to all children of the group.
         public let transform: Transform
+        
         let paths: [Path]
         
         init(name: String,
@@ -112,7 +131,9 @@ public final class VectorDrawable {
     /// Representation of a <path> element from a VectorDrawable document.
     public class Path {
         
+        /// The name of the group.
         public let name: String
+        
         let fillColor: Color
         let data: [PathSegment]
         let strokeColor: Color
@@ -178,11 +199,25 @@ public final class VectorDrawable {
 /// A rigid body transformation as specced by VectorDrawable.
 public struct Transform {
     
+    /// The offset from the origin to apply the rotation from. Specified in relative coordinates.
     public let pivot: CGPoint
+    
+    /// The rotation, in absolute terms.
     public let rotation: CGFloat
+    
+    /// The scale, in absolute terms.
     public let scale: CGPoint
+    
+    /// The translation, in relative terms.
     public let translation: CGPoint
     
+    /// Intializer.
+    ///
+    /// - Parameters:
+    ///   - pivot: The offset from the origin to apply the rotation from. Specified in relative coordinates.
+    ///   - rotation: The rotation, in absolute terms.
+    ///   - scale: The scale, in absolute terms.
+    ///   - translation: The translation, in relative terms.
     public init(pivot: CGPoint,
                 rotation: CGFloat,
                 scale: CGPoint,

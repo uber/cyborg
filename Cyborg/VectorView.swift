@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+/// Displays a VectorDrawable.
 open class VectorView: UIView {
     
     private var drawableLayers: [CALayer] = [] {
@@ -27,6 +28,7 @@ open class VectorView: UIView {
         updateLayers()
     }
     
+    /// The drawable to display.
     open var drawable: VectorDrawable? {
         didSet {
             updateLayers()
