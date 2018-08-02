@@ -9,7 +9,7 @@
 import Foundation
 
 /// Elements of a VectorDrawable document.
-enum ParentNode: String {
+enum Element: String {
     case vector = "vector"
     case path = "path"
     case group = "group"
@@ -75,14 +75,24 @@ enum Color {
     case theme(name: String)
     case hex(value: String)
     case resource(named: String)
+    case hardCoded(UIColor)
     
     init?(_ string: String) {
-        fatalError()
+        // TODO
+        print("returning bogus hard coded color")
+        self = .hardCoded(.black)
     }
     
     var asUIColor: UIColor {
-        fatalError()
+        switch self {
+        case .hardCoded(let color):
+            return color
+        default:
+            fatalError()
+        }
     }
+    
+    static let clear: Color = .hardCoded(.clear)
 }
 
 enum LineCap: String {

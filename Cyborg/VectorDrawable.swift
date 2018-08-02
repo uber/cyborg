@@ -77,9 +77,13 @@ public final class VectorDrawable {
     }
     
     func createPaths(in size: CGSize) -> [CGPath] {
-        return groups.map { (group) in
-            group.createPath(in: size)
-        }
+        return Array(
+            groups
+                .map { (group) in
+                    group.createPath(in: size)
+                }
+                .joined()
+        )
     }
     
     /// Representation of a <group> element from a VectorDrawable document.
@@ -87,18 +91,20 @@ public final class VectorDrawable {
         
         public let name: String
         public let transform: Transform
-        let path: Path
+        let paths: [Path]
         
         init(name: String,
              transform: Transform,
-             path: Path) {
+             paths: [Path]) {
             self.name = name
             self.transform = transform
-            self.path = path
+            self.paths = paths
         }
         
-        func createPath(in size: CGSize) -> CGPath {
-            return path.createPath(in: size)
+        func createPath(in size: CGSize) -> [CGPath] {
+            return paths.map { path in
+                path.createPath(in: size)
+            }
         }
         
     }
@@ -176,6 +182,16 @@ public struct Transform {
     public let rotation: CGFloat
     public let scale: CGPoint
     public let translation: CGPoint
+    
+    public init(pivot: CGPoint,
+                rotation: CGFloat,
+                scale: CGPoint,
+                translation: CGPoint) {
+        self.pivot = pivot
+        self.rotation = rotation
+        self.scale = scale
+        self.translation = translation
+    }
     
     /// The Identity Transform.
     public static let identity: Transform = .init(pivot: .zero,

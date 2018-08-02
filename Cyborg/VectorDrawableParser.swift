@@ -18,51 +18,94 @@ public typealias ParseError = String
 
 // MARK: - Element Parsers
 
-class NodeParser {
-    
-    let name: ParentNode
-    
-    init(name: ParentNode) {
-        self.name = name
-    }
-    
-    func parse(element: String, attributes: [String: String]) -> ParseError? {
+func assign<T>(_ string: String,
+               to path: inout T,
+               creatingWith creator: (String) -> (T?)) -> ParseError? {
+    if let float = creator(string) {
+        path = float
         return nil
+    } else {
+        return "Could not assign \(string)"
     }
-    
-    func ended(element: String) -> Bool {
-        return false
-    }
-    
-    final func assign<T>(_ string: String,
-                     to path: inout T,
-                     creatingWith creator: (String) -> (T?)) -> ParseError? {
-        if let float = creator(string) {
-            path = float
-            return nil
-        } else {
-            return "Could not assign \(string)"
-        }
-    }
-    
-    final func assignFloat(_ string: String,
-                     to path: inout CGFloat?) -> ParseError? {
-        return assign(string, to: &path, creatingWith: { (string) in
-            Double(string).flatMap(CGFloat.init(value:))
-        })
-    }
-    
-    final func assignFloat(_ string: String,
-                     to path: inout CGFloat) -> ParseError? {
-        return assign(string, to: &path, creatingWith: { (string) in
-            Double(string).flatMap(CGFloat.init(value:))
-        })
-    }
+}
 
+func assignFloat(_ string: String,
+                 to path: inout CGFloat?) -> ParseError? {
+    return assign(string, to: &path, creatingWith: { (string) in
+        Double(string).flatMap(CGFloat.init(value:))
+    })
+}
+
+func assignFloat(_ string: String,
+                 to path: inout CGFloat) -> ParseError? {
+    return assign(string, to: &path, creatingWith: { (string) in
+        Double(string).flatMap(CGFloat.init(value:))
+    })
+}
+
+protocol NodeParsing: AnyObject {
+    
+    static var name: Element { get }
+    
+    func parse(element: String, attributes: [String: String]) -> ParseError?
+    
+    func ended(element: String)
+    
+    init()
     
 }
 
-class VectorParser: NodeParser {
+extension NodeParsing {
+    
+    func ended(element: String) {
+        
+    }
+    
+}
+
+class ParentParser<Child>: NodeParsing where Child: NodeParsing {
+    
+    required init() {
+        
+    }
+    
+    var currentChild: Child?
+    var children: [Child] = []
+    
+    class var name: Element {
+        return .vector
+    }
+    
+    var name: Element {
+        return ParentParser.name
+    }
+    
+    func parse(element: String, attributes: [String : String]) -> ParseError? {
+        if let currentChild = currentChild {
+            return currentChild.parse(element: element, attributes: attributes)
+        } else if element == name.rawValue {
+            return parseAttributes(attributes)
+        } else if element == Child.name.rawValue {
+            let currentChild = Child()
+            self.currentChild = currentChild
+            children.append(currentChild)
+            return currentChild.parse(element: element, attributes: attributes)
+        } else {
+            return "Element \"\(element)\" found, expected \(name.rawValue)."
+        }
+    }
+    
+    func parseAttributes(_ attributes: [String: String]) -> ParseError? {
+        return nil
+    }
+    
+    func ended(element: String) {
+        currentChild?.ended(element: element)
+    }
+    
+}
+
+class VectorParser: ParentParser<GroupParser> {
     
     var baseWidth: CGFloat?
     var baseHeight: CGFloat?
@@ -73,66 +116,88 @@ class VectorParser: NodeParser {
     var autoMirrored: Bool = false
     var alpha: CGFloat = 1
     
-    init() {
-        super.init(name: .vector)
-    }
-
-    override func parse(element: String, attributes: [String : String]) -> ParseError? {
-        if element == name.rawValue {
-            var attributes = attributes
-            let schema = "xmlns:android"
-            let baseError = "Error parsing the <vector> tag: "
-            if attributes.keys.contains(schema) {
-                attributes.removeValue(forKey: schema)
-            } else {
-                return baseError + "Schema not found."
-            }
-            for (key, value) in attributes {
-                if let property = VectorProperty(rawValue: key) {
-                    switch property {
-                    case .height: return assignFloat(value, to: &baseHeight)
-                    case .width: return assignFloat(value, to: &baseWidth)
-                    case .viewPortHeight: return assignFloat(value, to: &viewPortHeight)
-                    case .viewPortWidth: return assignFloat(value, to: &viewPortWidth)
-                    case .tint: return assign(value, to: &tintColor, creatingWith: Color.init)
-                    case .tintMode: return assign(value, to: &tintMode, creatingWith: BlendMode.init)
-                    case .autoMirrored: return assign(value, to: &autoMirrored, creatingWith: Bool.init)
-                    case .alpha: return assignFloat(value, to: &alpha)
-                    }
-                } else {
-                    return "Key \(key) is not a valid attribute of <vector>"
-                }
-            }
-            return nil
+    override func parseAttributes(_ attributes: [String: String]) -> ParseError? {
+        var attributes = attributes
+        let schema = "xmlns:android"
+        let baseError = "Error parsing the <vector> tag: "
+        if attributes.keys.contains(schema) {
+            attributes.removeValue(forKey: schema)
         } else {
-            return "Unexpected element found at the top level"
+            return baseError + "Schema not found."
         }
+        for (key, value) in attributes {
+            if let property = VectorProperty(rawValue: key) {
+                let result: ParseError?
+                switch property {
+                case .height: result = assign(value, to: &baseHeight, creatingWith: parseAndroidMeasurement(from: ))
+                case .width: result = assign(value, to: &baseWidth,  creatingWith: parseAndroidMeasurement(from: ))
+                case .viewPortHeight: result = assignFloat(value, to: &viewPortHeight)
+                case .viewPortWidth: result = assignFloat(value, to: &viewPortWidth)
+                case .tint: result = assign(value, to: &tintColor, creatingWith: Color.init)
+                case .tintMode: result = assign(value, to: &tintMode, creatingWith: BlendMode.init)
+                case .autoMirrored: result = assign(value, to: &autoMirrored, creatingWith: Bool.init)
+                case .alpha: result = assignFloat(value, to: &alpha)
+                }
+                if result != nil {
+                    return result
+                }
+            } else {
+                return "Key \(key) is not a valid attribute of <vector>"
+            }
+        }
+        return nil
     }
     
-    func createElement(with groups: [VectorDrawable.Group]) -> Result {
+    
+    func createElement() -> Result {
         if let baseWidth = baseWidth,
             let baseHeight = baseHeight,
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
-        return .ok(.init(baseWidth: baseWidth,
-                         baseHeight: baseHeight,
-                         viewPortWidth: viewPortWidth,
-                         viewPortHeight: viewPortHeight,
-                         baseAlpha: alpha,
-                         groups: groups))
+            let groups = children.map { group in
+                group.createPath()! // TODO
+            }
+            return .ok(.init(baseWidth: baseWidth,
+                             baseHeight: baseHeight,
+                             viewPortWidth: viewPortWidth,
+                             viewPortHeight: viewPortHeight,
+                             baseAlpha: alpha,
+                             groups: groups))
         } else {
             return .error("Could not parse a <vector> element, but there was no error. This is a bug in the VectorDrawable Library.")
         }
     }
     
+    func parseAndroidMeasurement(from text: String) -> CGFloat? {
+        for unit in AndroidUnitOfMeasure.all {
+            switch take(until: literal(unit.rawValue))(text, text.startIndex) {
+            case .ok(let text, _):
+                if let int = Int(text[text.startIndex..<text.index(text.endIndex, offsetBy: -unit.rawValue.count)]) {
+                    return CGFloat(int)
+                } else {
+                    return nil
+                }
+            case .error(_):
+                return nil
+            }
+        }
+        return nil
+    }
+    
 }
 
-class PathParser: NodeParser {
+class PathParser: NodeParsing {
+    
+    static let name: Element = .path
+    
+    required init() {
+        
+    }
     
     var pathName: String?
     var commands: [PathSegment]?
-    var fillColor: Color?
-    var strokeColor: Color?
+    var fillColor: Color = .clear
+    var strokeColor: Color = .clear
     var strokeWidth: CGFloat = 0
     var strokeAlpha: CGFloat = 1
     var fillAlpha: CGFloat = 1
@@ -144,7 +209,7 @@ class PathParser: NodeParser {
     var strokeLineJoin: LineJoin = .miter
     var fillType: CGPathFillRule = .winding
     
-    override func parse(element: String, attributes: [String : String]) -> ParseError? {
+    func parse(element: String, attributes: [String : String]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         let parsers = DrawingCommand
             .all
@@ -153,48 +218,55 @@ class PathParser: NodeParser {
         }
         for (key, value) in attributes {
             if let property = PathProperty(rawValue: key) {
+                let result: ParseError?
                 switch property {
                 case .name:
                     pathName = value
-                    return nil
+                    result = nil
                 case .pathData:
+                    let subResult: ParseError?
                     switch consumeAll(using: parsers)(value, value.startIndex) {
                     case .ok(let result, _):
                         self.commands = result
-                        return nil
+                        subResult = nil
                     case .error(let error):
-                        return baseError + error
+                        subResult = baseError + error
                     }
+                    result = subResult
                 case .fillColor:
-                    fillColor = Color(value)
+                    fillColor = Color(value)! // TODO
+                    result = nil // TODO
                 case .strokeWidth:
-                    return assignFloat(value, to: &strokeWidth)
+                    result = assignFloat(value, to: &strokeWidth)
                 case .strokeColor:
-                    return assign(value, to: &strokeColor, creatingWith: Color.init)
+                    result = assign(value, to: &strokeColor, creatingWith: Color.init)
                 case .strokeAlpha:
-                    return assignFloat(value, to: &strokeAlpha)
+                    result = assignFloat(value, to: &strokeAlpha)
                 case .fillAlpha:
-                    return assignFloat(value, to: &fillAlpha)
+                    result = assignFloat(value, to: &fillAlpha)
                 case .trimPathStart:
-                    return assignFloat(value, to: &trimPathStart)
+                    result = assignFloat(value, to: &trimPathStart)
                 case .trimPathEnd:
-                    return assignFloat(value, to: &trimPathEnd)
+                    result = assignFloat(value, to: &trimPathEnd)
                 case .trimPathOffset:
-                    return assignFloat(value, to: &trimPathOffset)
+                    result = assignFloat(value, to: &trimPathOffset)
                 case .strokeLineCap:
-                    return assign(value, to: &strokeLineCap, creatingWith: LineCap.init)
+                    result = assign(value, to: &strokeLineCap, creatingWith: LineCap.init)
                 case .strokeLineJoin:
-                    return assign(value, to: &strokeLineJoin, creatingWith: LineJoin.init)
+                    result = assign(value, to: &strokeLineJoin, creatingWith: LineJoin.init)
                 case .strokeMiterLimit:
-                    return assignFloat(value, to: &strokeMiterLimit)
+                    result = assignFloat(value, to: &strokeMiterLimit)
                 case .fillType:
-                    return assign(value, to: &fillType, creatingWith: { (string) -> (CGPathFillRule?) in
+                    result = assign(value, to: &fillType, creatingWith: { (string) -> (CGPathFillRule?) in
                         switch string {
                         case "evenOdd": return .evenOdd
                         case "nonZero": return .winding
                         default: return nil
                         }
                     })
+                }
+                if result != nil {
+                    return result
                 }
             } else {
                 return "Key \(key) is not a valid attribute of <path>."
@@ -212,9 +284,7 @@ class PathParser: NodeParser {
     
     func createElement() -> VectorDrawable.Path? {
         if let pathName = pathName,
-            let commands = commands,
-            let fillColor = fillColor,
-            let strokeColor = strokeColor {
+            let commands = commands {
             return VectorDrawable.Path(name: pathName,
                                        fillColor: fillColor,
                                        fillAlpha: fillAlpha,
@@ -235,52 +305,76 @@ class PathParser: NodeParser {
     
 }
 
-class GroupParser: NodeParser {
+class GroupParser: ParentParser<PathParser> {
     
-    var groupName: String?
-    var pivotX: CGFloat?
-    var pivotY: CGFloat?
-    var rotation: CGFloat?
-    var scaleX: CGFloat?
-    var scaleY: CGFloat?
-    var translationX: CGFloat?
-    var translationY: CGFloat?
-    
-    init() {
-        super.init(name: .group)
+    override class var name: Element {
+        return  .group
     }
     
-    override func parse(element: String, attributes: [String : String]) -> ParseError? {
-        if element == name.rawValue {
-            for (key, value) in attributes {
-                if let property = GroupProperty(rawValue: key) {
-                    switch property {
-                    case .name:
-                        groupName = value
-                        return nil
-                    case .rotation:
-                        return assignFloat(value, to: &rotation)
-                    case .pivotX:
-                        return assignFloat(value, to: &pivotX)
-                    case .pivotY:
-                        return assignFloat(value, to: &pivotY)
-                    case .scaleX:
-                        return assignFloat(value, to: &scaleX)
-                    case .scaleY:
-                        return assignFloat(value, to: &scaleY)
-                    case .translateX:
-                        return assignFloat(value, to: &translationX)
-                    case .translateY:
-                        return assignFloat(value, to: &translationY)
-                    }
-                } else {
-                    return "Unrecognized Attribute: \(key)"
+    override var name: Element {
+        return GroupParser.name
+    }
+    
+    var groupName: String?
+    var pivotX: CGFloat = 0
+    var pivotY: CGFloat = 0
+    var rotation: CGFloat = 0
+    var scaleX: CGFloat = 1
+    var scaleY: CGFloat = 1
+    var translationX: CGFloat = 0
+    var translationY: CGFloat = 0
+    
+    required init() {
+        
+    }
+    
+    override func parseAttributes(_ attributes: [String : String]) -> ParseError? {
+        for (key, value) in attributes {
+            if let property = GroupProperty(rawValue: key) {
+                let result: ParseError?
+                switch property {
+                case .name:
+                    groupName = value
+                    result = nil
+                case .rotation:
+                    result = assignFloat(value, to: &rotation)
+                case .pivotX:
+                    result = assignFloat(value, to: &pivotX)
+                case .pivotY:
+                    result = assignFloat(value, to: &pivotY)
+                case .scaleX:
+                    result = assignFloat(value, to: &scaleX)
+                case .scaleY:
+                    result = assignFloat(value, to: &scaleY)
+                case .translateX:
+                    result = assignFloat(value, to: &translationX)
+                case .translateY:
+                    result = assignFloat(value, to: &translationY)
                 }
+                if result != nil {
+                    return result
+                }
+            } else {
+                return "Unrecognized Attribute: \(key)"
             }
-        } else {
-            return "Unrecognized Element"
         }
-        return "No attributes found"
+        return nil
+    }
+    
+    func createPath() -> VectorDrawable.Group? {
+        if let groupName = groupName {
+            let paths = children.map { (parser) in
+                parser.createElement()! // TODO
+            }
+            return VectorDrawable.Group(name: groupName,
+                                        transform: Transform(pivot: .init(x: pivotX, y: pivotY),
+                                                             rotation: rotation,
+                                                             scale: .init(x: scaleX, y: scaleY),
+                                                             translation: .init(x: translationX, y: translationY)),
+                                        paths: paths)
+        } else {
+            return nil
+        }
     }
     
 }
@@ -289,14 +383,11 @@ final class DrawableParser: NSObject, XMLParserDelegate {
     
     let xml: XMLParser
     let onCompletion: (Result) -> ()
-    let vector: VectorParser
-    var parserStack: [NodeParser]
+    let vector: VectorParser = VectorParser()
     var parseError: ParseError?
     
     
     init(data: Data, onCompletion: @escaping (Result) -> ()) {
-        vector = VectorParser()
-        parserStack = [vector]
         xml = XMLParser(data: data)
         self.onCompletion = onCompletion
         super.init()
@@ -319,35 +410,18 @@ final class DrawableParser: NSObject, XMLParserDelegate {
                 namespaceURI: String?,
                 qualifiedName qName: String?,
                 attributes attributeDict: [String : String] = [:]) {
-        if let errorMessage = parserStack[0].parse(element: elementName, attributes: attributeDict) {
+        if let errorMessage = vector.parse(element: elementName, attributes: attributeDict) {
             parseError = errorMessage
             stop()
         }
     }
     
     func parserDidEndDocument(_ parser: XMLParser) {
-//        onCompletion()
+        onCompletion(vector.createElement())
     }
 }
 
 // MARK: - Parser Combinators
-
-func parseAndroidMeasurement(from text: String) -> ParseResult<Int> {
-    var lastError = ParseResult<Int>.error("no text found")
-    for unit in AndroidUnitOfMeasure.all {
-        switch take(until: literal(unit.rawValue))(text, text.startIndex) {
-        case .ok(let text, let index):
-            if let int = Int(text[text.startIndex..<text.index(text.endIndex, offsetBy: -unit.rawValue.count)]) {
-                return .ok(int, index)
-            } else {
-                return .error("Could not convert \"\(text)\" to Int.")
-            }
-        case .error(let error):
-            lastError = .error(error)
-        }
-    }
-    return lastError
-}
 
 func parseInt(from text: String) -> ParseResult<Int> {
     if let int = Int(text) {
