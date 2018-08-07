@@ -9,6 +9,7 @@
 import Foundation
 
 enum PriorContext {
+    
     case last(CGPoint)
     case lastAndControlPoint(CGPoint, CGPoint)
     
@@ -143,6 +144,72 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
                             }
     })
 }
+
+func parseHorizontal() -> Parser<PathSegment> {
+    return parseCommand(.horizontal,
+                        subparser: oneOrMore(of: consumeTrivia(before: int())),
+                        creator: { (xs: [Int]) -> (PathSegment) in
+                            return { prior, path, size in
+                                let points = xs.map { x in
+                                    CGPoint(x: (CGFloat(x) + prior.point.x) * size.width, y: prior.point.y * size.height)
+                                }
+                                return points.reduce(.zero) { (result, point) -> PriorContext in
+                                    path.addLine(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
+    })
+}
+
+func parseHorizontalAbsolute() -> Parser<PathSegment> {
+    return parseCommand(.horizontalAbsolute,
+                        subparser: oneOrMore(of: consumeTrivia(before: int())),
+                        creator: { (xs: [Int]) -> (PathSegment) in
+                            return { prior, path, size in
+                                let points = xs.map { x in
+                                    CGPoint(x: CGFloat(x) * size.width, y: prior.point.y * size.height)
+                                }
+                                return points.reduce(.zero) { (result, point) -> PriorContext in
+                                    path.addLine(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
+    })
+}
+
+func parseVertical() -> Parser<PathSegment> {
+    return parseCommand(.vertical,
+                        subparser: oneOrMore(of: consumeTrivia(before: int())),
+                        creator: { (ys: [Int]) -> (PathSegment) in
+                            return { prior, path, size in
+                                let points = ys.map { y in
+                                    CGPoint(x: prior.point.x * size.width, y: (CGFloat(y) + prior.point.y) * size.height)
+                                }
+                                return points.reduce(.zero) { (result, point) -> PriorContext in
+                                    path.addLine(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
+    })
+}
+
+func parseVerticalAbsolute() -> Parser<PathSegment> {
+    return parseCommand(.verticalAbsolute,
+                        subparser: oneOrMore(of: consumeTrivia(before: int())),
+                        creator: { (ys: [Int]) -> (PathSegment) in
+                            return { prior, path, size in
+                                let points = ys.map { y in
+                                    CGPoint(x: prior.point.x * size.width, y: (CGFloat(y) + prior.point.y) * size.height)
+                                }
+                                return points.reduce(.zero) { (result, point) -> PriorContext in
+                                    path.addLine(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
+    })
+}
+
+
 
 
 enum DrawingCommand: String {
@@ -288,6 +355,10 @@ enum DrawingCommand: String {
         case .line: return parseLine()
         case .closePath: return parseClosePath()
         case .closePathAbsolute: return parseClosePathAbsolute()
+        case .horizontal: return parseHorizontal()
+        case .horizontalAbsolute: return parseHorizontalAbsolute()
+        case .vertical: return parseVertical()
+        case .verticalAbsolute: return parseVerticalAbsolute()
         default:
             return nil // TODO
         }

@@ -47,13 +47,9 @@ func assignFloat(_ string: String,
 
 protocol NodeParsing: AnyObject {
     
-    static var name: Element { get }
-    
     func parse(element: String, attributes: [String: String]) -> ParseError?
     
     func ended(element: String)
-    
-    init()
     
 }
 
@@ -67,19 +63,11 @@ extension NodeParsing {
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     
-    required init() {
-        
-    }
-    
     var currentChild: Child?
     var children: [Child] = []
     
-    class var name: Element {
-        return .vector
-    }
-    
     var name: Element {
-        return ParentParser.name
+        return .vector
     }
     
     func parse(element: String, attributes: [String : String]) -> ParseError? {
@@ -87,11 +75,10 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             return currentChild.parse(element: element, attributes: attributes)
         } else if element == name.rawValue {
             return parseAttributes(attributes)
-        } else if element == Child.name.rawValue {
-            let currentChild = Child()
-            self.currentChild = currentChild
-            children.append(currentChild)
-            return currentChild.parse(element: element, attributes: attributes)
+        } else if let child = childForElement(element) {
+            self.currentChild = child
+            children.append(child)
+            return child.parse(element: element, attributes: attributes)
         } else {
             return "Element \"\(element)\" found, expected \(name.rawValue)."
         }
@@ -103,6 +90,10 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     
     func ended(element: String) {
         currentChild?.ended(element: element)
+    }
+    
+    func childForElement(_ element: String) -> Child? {
+        return nil
     }
     
 }
@@ -150,6 +141,16 @@ class VectorParser: ParentParser<GroupParser> {
         return nil
     }
     
+    override func childForElement(_ element: String) -> GroupParser? {
+        switch Element(rawValue: element) {
+        case .some(.path): return GroupParser()
+            // The group parser already has all its elements filled out,
+            // so it'll "fall through" directly to the path.
+            // All we need to do is give it a name for it to complete.
+        case .some(.group): return GroupParser(groupName: "anonymous")
+        default: return nil
+        }
+    }
     
     func createElement() -> Result {
         if let baseWidth = baseWidth,
@@ -309,12 +310,8 @@ class PathParser: NodeParsing {
 
 class GroupParser: ParentParser<PathParser> {
     
-    override class var name: Element {
-        return  .group
-    }
-    
     override var name: Element {
-        return GroupParser.name
+        return .group
     }
     
     var groupName: String?
@@ -326,7 +323,11 @@ class GroupParser: ParentParser<PathParser> {
     var translationX: CGFloat = 0
     var translationY: CGFloat = 0
     
-    required init() {
+    init(groupName: String) {
+        self.groupName = groupName
+    }
+    
+    override init() {
         
     }
     
@@ -376,6 +377,13 @@ class GroupParser: ParentParser<PathParser> {
                                         paths: paths)
         } else {
             return nil
+        }
+    }
+    
+    override func childForElement(_ element: String) -> PathParser? {
+        switch Element(rawValue: element) {
+        case .some(.path): return PathParser()
+        default: return nil
         }
     }
     
@@ -494,16 +502,15 @@ func int() -> Parser<Int> {
 
 func coordinatePair() -> Parser<CGPoint> {
     return { stream, input in
-        return pair(of: pair(of: int(), literal(",")), int())(stream, input)
+        return pair(of:
+            pair(of: int(),
+                 or(literal(","), take(until: not(trivia())))),
+                    int())(stream, input)
             .map { (arg, index) -> (ParseResult<CGPoint>) in
                 let ((x, _), y) = arg
                 return .ok(CGPoint.init(x: x, y: y), index)
         }
     }
-}
-
-func createInt(from text: String) -> Int? { // necessary to prevent ambiguity, otherwise I'd use Int.init(_ description:)
-    return Int(text)
 }
 
 extension CGFloat {

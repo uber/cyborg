@@ -145,7 +145,8 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
                 case .ok(let result, let currentIndex):
                     results.append(result)
                     index = currentIndex
-                    continue checkAllParsers
+                    errors.removeAll()
+                    continue untilNoMatchFound
                 case .error(let error):
                     errors.append(error)
                 }
@@ -234,6 +235,24 @@ func not<T>(_ parser: @escaping Parser<T>) -> Parser<()> {
             index: index,
             stream: stream)
         case .error(_): return .ok((), index)
+        }
+    }
+}
+
+func or<T>(_ first: @escaping Parser<T>, _ second: @escaping Parser<T>) -> Parser<T> {
+    return { stream, index in
+        let result = first(stream, index)
+        if let error = result.asParseError {
+            let result = second(stream, index)
+            if let secondError = result.asParseError {
+                return ParseResult(error: "Or: Couldn't match either parser, errors were: \(error), \(secondError)",
+                                   index: index,
+                                   stream: stream)
+            } else {
+                return result
+            }
+        } else {
+            return result
         }
     }
 }
