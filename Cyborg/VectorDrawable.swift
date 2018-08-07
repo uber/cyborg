@@ -241,7 +241,7 @@ public struct Transform {
         let inversePivot = pivot.times(-1, -1)
         return CGAffineTransform(scaleX: scale.x, y: scale.y)
             .translatedBy(x: inversePivot.x, y: inversePivot.y)
-            .rotated(by: rotation)
+            .rotated(by: rotation * .pi / 180)
             .translatedBy(x: pivot.x, y: pivot.y)
             .translatedBy(x: translation.x, y: translation.y)
     }
