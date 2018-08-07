@@ -122,7 +122,8 @@ public final class VectorDrawable {
         
         func createPath(in size: CGSize) -> [CGPath] {
             return paths.map { path in
-                path.createPath(in: size)
+                var transform = self.transform.affineTransform(in: size)
+                return path.createPath(in: size).copy(using: &transform)! // TODO: idk how this could fail
             }
         }
         
@@ -177,9 +178,9 @@ public final class VectorDrawable {
         
         func createPath(in size: CGSize) -> CGPath {
             let path = CGMutablePath()
-            var lastPoint: CGPoint = .zero
+            var context: PriorContext = .zero
             for command in data {
-                lastPoint = command(lastPoint, path, size)
+                context = command(context, path, size)
             }
             return path // TODO: apply transform
         }

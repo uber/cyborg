@@ -8,7 +8,39 @@
 
 import Foundation
 
-typealias PathSegment = (CGPoint, CGMutablePath, CGSize) -> (CGPoint)
+enum PriorContext {
+    case last(CGPoint)
+    case lastAndControlPoint(CGPoint, CGPoint)
+    
+    var point: CGPoint {
+        switch self {
+        case .last(let point): return point
+        case .lastAndControlPoint(let point, _): return point
+        }
+    }
+    
+    var pointAndControlPoint: (point: CGPoint, controlPoint: CGPoint) {
+        switch self {
+        // per the spec, if there is no last control point, the
+        // control point is coincident to the last point
+        case .last(let point): return (point, point)
+        case .lastAndControlPoint(let point, let controlPoint): return (point, controlPoint)
+        }
+    }
+    
+    static let zero: PriorContext = .last(.zero)
+    
+}
+
+extension CGPoint {
+    
+    var asPriorContext: PriorContext {
+        return .last(self)
+    }
+    
+}
+
+typealias PathSegment = (PriorContext, CGMutablePath, CGSize) -> (PriorContext)
 
 func consumeTrivia(before lit: String , _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
     return consumeTrivia { stream, index in
@@ -33,14 +65,14 @@ func parseCurve() -> Parser<PathSegment> {
                         subparser: oneOrMore(of: n(3,
                                                    of: consumeTrivia(before: coordinatePair()))),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
-                            return { point, path, size in
-                                points.reduce(.zero) { (result, points) -> CGPoint in
-                                    let points = points.makeAbsolute(startingWith: point, in: size)
+                            return { prior, path, size in
+                                points.reduce(.zero) { (result, points) -> PriorContext in
+                                    let points = points.makeAbsolute(startingWith: prior.point, in: size)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
                                     path.addCurve(to: end, control1: control1, control2: control2)
-                                    return end
+                                    return end.asPriorContext
                                 }
                             }
     })
@@ -51,14 +83,14 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
                         subparser: oneOrMore(of: n(3,
                                                    of: consumeTrivia(before: coordinatePair()))),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
-                            return { point, path, size in
-                                points.reduce(.zero) { (result, points) -> CGPoint in
+                            return { prior, path, size in
+                                points.reduce(.zero) { (result, points) -> PriorContext in
                                     let points = points.makeAbsolute(startingWith: .zero, in: size)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
                                     path.addCurve(to: end, control1: control1, control2: control2)
-                                    return end
+                                    return end.asPriorContext
                                 }
                             }
     })
@@ -67,11 +99,11 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
 func parseMoveAbsolute() -> Parser<PathSegment> {
     return parseCommand(.moveAbsolute,
                         subparser: consumeTrivia(before: coordinatePair()),
-                        creator: { (point) -> (PathSegment) in
-                            return { _, path, size in
-                                let point = point.times(size.width, size.height)
+                        creator: { (prior) -> (PathSegment) in
+                            return { prior, path, size in
+                                let point = prior.point.times(size.width, size.height)
                                 path.move(to: point)
-                                return point
+                                return point.asPriorContext
                             }
     })
 }
@@ -80,11 +112,11 @@ func parseLine() -> Parser<PathSegment> {
     return parseCommand(.line,
                         subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
                         creator: { (points: [CGPoint]) -> (PathSegment) in
-                            return { (point: CGPoint, path: CGMutablePath, size: CGSize) -> CGPoint in
-                                let points = points.makeAbsolute(startingWith: point, in: size)
-                                return points.reduce(.zero) { result, point -> CGPoint in
+                            return { (prior: PriorContext, path: CGMutablePath, size: CGSize) -> PriorContext in
+                                let points = points.makeAbsolute(startingWith: prior.point, in: size)
+                                return points.reduce(CGPoint.zero.asPriorContext) { result, point -> PriorContext in
                                     path.addLine(to: point)
-                                    return point
+                                    return point.asPriorContext
                                 }
                             }
     })
@@ -94,9 +126,9 @@ func parseClosePath() -> Parser<PathSegment> {
     return parseCommand(.closePath,
                         subparser: empty(),
                         creator: { (_) -> (PathSegment) in
-                            return { point, path, _ in
+                            return { prior, path, _ in
                                 path.closeSubpath()
-                                return point
+                                return prior
                             }
     })
 }
@@ -105,9 +137,9 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
     return parseCommand(.closePathAbsolute,
                         subparser: empty(),
                         creator: { (_) -> (PathSegment) in
-                            return { point, path, _ in
+                            return { prior, path, _ in
                                 path.closeSubpath()
-                                return point
+                                return prior
                             }
     })
 }
