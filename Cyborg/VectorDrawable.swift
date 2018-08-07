@@ -133,7 +133,7 @@ public final class VectorDrawable {
     public class Path {
         
         /// The name of the group.
-        public let name: String
+        public let name: String?
         
         let fillColor: Color
         let data: [PathSegment]
@@ -148,7 +148,7 @@ public final class VectorDrawable {
         let strokeLineJoin: LineJoin
         let fillType: CGPathFillRule
         
-        init(name: String,
+        init(name: String?,
              fillColor: Color,
              fillAlpha: CGFloat,
              data: [PathSegment],

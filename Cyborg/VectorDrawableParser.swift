@@ -143,11 +143,11 @@ class VectorParser: ParentParser<GroupParser> {
     
     override func childForElement(_ element: String) -> GroupParser? {
         switch Element(rawValue: element) {
-        case .some(.path): return GroupParser()
             // The group parser already has all its elements filled out,
             // so it'll "fall through" directly to the path.
-            // All we need to do is give it a name for it to complete.
-        case .some(.group): return GroupParser(groupName: "anonymous")
+        // All we need to do is give it a name for it to complete.
+        case .some(.path): return GroupParser(groupName: "anonymous")
+        case .some(.group): return GroupParser()
         default: return nil
         }
     }
@@ -286,8 +286,7 @@ class PathParser: NodeParsing {
     }
     
     func createElement() -> VectorDrawable.Path? {
-        if let pathName = pathName,
-            let commands = commands {
+        if let commands = commands {
             return VectorDrawable.Path(name: pathName,
                                        fillColor: fillColor,
                                        fillAlpha: fillAlpha,
@@ -471,17 +470,33 @@ func trivia() -> Parser<String> {
     }
 }
 
-func int() -> Parser<Int> {
+let decimalDigits: CharacterSet = {
+    var digits = CharacterSet.decimalDigits
+    _ = digits.insert(".")
+    return digits
+}()
+
+func number() -> Parser<CGFloat> {
     return { (string: String, index: String.Index) in
-        var digits = CharacterSet.decimalDigits
-        let (result, _) = digits.insert("-")
-        assert(result)
+        let negative = optional(literal("-"))(string, index)
+        let multiple: CGFloat
         var next = index
+        switch negative {
+        case .ok(let result, let index):
+            next = index
+            multiple = result == nil ? 1 : -1
+        default:
+            multiple = 1
+        }
+        var digits = decimalDigits
         while next != string.endIndex {
             let character = string[next]
             if character.unicodeScalars.count == 1 {
                 let scalar = character.unicodeScalars[character.unicodeScalars.startIndex]
                 if digits.contains(scalar) {
+                    if scalar == "." {
+                        digits.remove(".")
+                    }
                     next = string.index(next, offsetBy: 1)
                 } else {
                     break
@@ -490,12 +505,13 @@ func int() -> Parser<Int> {
                 break
             }
         }
-        if let integer = Int(string[index..<next]) {
-            return .ok(integer, next)
+        let subString = string[index..<next]
+        if let double = Double(subString) {
+            return .ok(CGFloat(double) * multiple, next)
         } else {
-            return ParseResult(error: "Could not create Integer",
-                               index: next,
-                               stream: string)
+            return ParseResult(error: "Could not create number from \"\(subString)\"",
+                index: next,
+                stream: string)
         }
     }
 }
@@ -503,9 +519,9 @@ func int() -> Parser<Int> {
 func coordinatePair() -> Parser<CGPoint> {
     return { stream, input in
         return pair(of:
-            pair(of: int(),
+            pair(of: number(),
                  or(literal(","), take(until: not(trivia())))),
-                    int())(stream, input)
+                    number())(stream, input)
             .map { (arg, index) -> (ParseResult<CGPoint>) in
                 let ((x, _), y) = arg
                 return .ok(CGPoint.init(x: x, y: y), index)

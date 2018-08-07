@@ -132,12 +132,12 @@ class CyborgTests: XCTestCase {
     
     func test_int_parser() {
         let str = "-432"
-        switch Cyborg.int()(str, str.startIndex) {
+        switch Cyborg.number()(str, str.startIndex) {
         case .ok(let result, _):  XCTAssertEqual(result, -432)
         case .error(let error): XCTFail(error)
         }
         let str2 = "40"
-        switch Cyborg.int()(str2, str2.startIndex) {
+        switch Cyborg.number()(str2, str2.startIndex) {
         case .ok(let result, _):  XCTAssertEqual(result, 40)
         case .error(let error): XCTFail(error)
         }

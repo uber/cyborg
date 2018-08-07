@@ -77,6 +77,17 @@ func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
     }
 }
 
+func optional<T>(_ parser: @escaping Parser<T>) -> Parser<T?> {
+    return { stream, index in
+        switch parser(stream, index) {
+        case .ok(let result, let index):
+            return .ok(result, index)
+        case .error(_):
+            return .ok(nil, index)
+        }
+    }
+}
+
 func literal(_ text: String) -> Parser<String> {
     return { (stream: String, index: String.Index) in
         if let endOfRange = stream.index(index, offsetBy: text.count, limitedBy: stream.endIndex) {

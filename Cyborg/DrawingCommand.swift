@@ -109,6 +109,19 @@ func parseMoveAbsolute() -> Parser<PathSegment> {
     })
 }
 
+func parseMove() -> Parser<PathSegment> {
+    return parseCommand(.move,
+                        subparser: consumeTrivia(before: coordinatePair()),
+                        creator: { (prior) -> (PathSegment) in
+                            return { prior, path, size in
+                                let point = prior.point.times(size.width, size.height)
+                                path.move(to: point)
+                                return point.asPriorContext
+                            }
+    })
+}
+
+
 func parseLine() -> Parser<PathSegment> {
     return parseCommand(.line,
                         subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
@@ -147,11 +160,11 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
 
 func parseHorizontal() -> Parser<PathSegment> {
     return parseCommand(.horizontal,
-                        subparser: oneOrMore(of: consumeTrivia(before: int())),
-                        creator: { (xs: [Int]) -> (PathSegment) in
+                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        creator: { (xs: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = xs.map { x in
-                                    CGPoint(x: (CGFloat(x) + prior.point.x) * size.width, y: prior.point.y * size.height)
+                                    CGPoint(x: x * size.width + prior.point.x, y: prior.point.y * size.height)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
@@ -163,11 +176,11 @@ func parseHorizontal() -> Parser<PathSegment> {
 
 func parseHorizontalAbsolute() -> Parser<PathSegment> {
     return parseCommand(.horizontalAbsolute,
-                        subparser: oneOrMore(of: consumeTrivia(before: int())),
-                        creator: { (xs: [Int]) -> (PathSegment) in
+                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        creator: { (xs: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = xs.map { x in
-                                    CGPoint(x: CGFloat(x) * size.width, y: prior.point.y * size.height)
+                                    CGPoint(x: x * size.width, y: prior.point.y)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
@@ -179,11 +192,11 @@ func parseHorizontalAbsolute() -> Parser<PathSegment> {
 
 func parseVertical() -> Parser<PathSegment> {
     return parseCommand(.vertical,
-                        subparser: oneOrMore(of: consumeTrivia(before: int())),
-                        creator: { (ys: [Int]) -> (PathSegment) in
+                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        creator: { (ys: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = ys.map { y in
-                                    CGPoint(x: prior.point.x * size.width, y: (CGFloat(y) + prior.point.y) * size.height)
+                                    CGPoint(x: prior.point.x * size.width, y: y * size.height + prior.point.y)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
@@ -195,11 +208,11 @@ func parseVertical() -> Parser<PathSegment> {
 
 func parseVerticalAbsolute() -> Parser<PathSegment> {
     return parseCommand(.verticalAbsolute,
-                        subparser: oneOrMore(of: consumeTrivia(before: int())),
-                        creator: { (ys: [Int]) -> (PathSegment) in
+                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        creator: { (ys: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = ys.map { y in
-                                    CGPoint(x: prior.point.x * size.width, y: (CGFloat(y) + prior.point.y) * size.height)
+                                    CGPoint(x: prior.point.x, y: y * size.height + prior.point.y)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
@@ -352,6 +365,7 @@ enum DrawingCommand: String {
         case .curve: return parseCurve()
         case .curveAbsolute: return parseAbsoluteCurve()
         case .moveAbsolute: return parseMoveAbsolute()
+        case .move: return parseMove()
         case .line: return parseLine()
         case .closePath: return parseClosePath()
         case .closePathAbsolute: return parseClosePathAbsolute()
