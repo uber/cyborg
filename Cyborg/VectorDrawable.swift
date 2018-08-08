@@ -182,7 +182,8 @@ public final class VectorDrawable {
             for command in data {
                 context = command(context, path, size)
             }
-            return path // TODO: apply transform
+            print(path)
+            return path
         }
         
         func apply(to layer: CAShapeLayer) {

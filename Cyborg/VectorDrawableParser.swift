@@ -322,14 +322,10 @@ class GroupParser: ParentParser<PathParser> {
     var translationX: CGFloat = 0
     var translationY: CGFloat = 0
     
-    init(groupName: String) {
+    init(groupName: String? = nil) {
         self.groupName = groupName
     }
-    
-    override init() {
         
-    }
-    
     override func parseAttributes(_ attributes: [String : String]) -> ParseError? {
         for (key, value) in attributes {
             if let property = GroupProperty(rawValue: key) {
@@ -480,13 +476,16 @@ func number() -> Parser<CGFloat> {
     return { (string: String, index: String.Index) in
         let negative = optional(literal("-"))(string, index)
         let multiple: CGFloat
+        let startIndex: String.Index
         var next = index
         switch negative {
         case .ok(let result, let index):
             next = index
+            startIndex = next
             multiple = result == nil ? 1 : -1
         default:
             multiple = 1
+            startIndex = index
         }
         var digits = decimalDigits
         while next != string.endIndex {
@@ -505,7 +504,7 @@ func number() -> Parser<CGFloat> {
                 break
             }
         }
-        let subString = string[index..<next]
+        let subString = string[startIndex..<next]
         if let double = Double(subString) {
             return .ok(CGFloat(double) * multiple, next)
         } else {

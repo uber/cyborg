@@ -40,9 +40,10 @@ class CyborgTests: XCTestCase {
                 case .ok(let drawable):
                     XCTAssert(drawable.viewPortWidth == 600)
                     XCTAssert(drawable.viewPortHeight == 600)
-                    XCTAssert(drawable.commands.count != 0)
-                    let path = drawable.createPath()
-                    let expected = CGMutablePath()
+                    XCTAssert(drawable.groups[0].paths[0].data.count != 0)
+                    let noResizing = CGSize(width: 1, height: 1)
+                    let path = drawable.createPaths(in: noResizing)
+                    var expected = CGMutablePath()
                     var relativeTo = CGPoint(x: 300, y: 70)
                     expected.move(to: relativeTo)
                     let list = [
@@ -57,7 +58,13 @@ class CyborgTests: XCTestCase {
                         relativeTo = point
                     }
                     expected.closeSubpath()
-                    XCTAssertEqual(path, expected)
+                    var transform: CGAffineTransform = drawable
+                        .groups[0]
+                        .transform.affineTransform(in: noResizing)
+                    expected = expected
+                        .copy(using: &transform)!
+                        .mutableCopy()! // don't ask why this is necessary
+                    XCTAssertEqual(path[0], expected)
                 case .error(let error):
                     XCTFail(error)
                 }
@@ -70,11 +77,11 @@ class CyborgTests: XCTestCase {
         let result = parseMoveAbsolute()(move, move.startIndex)
         let path = CGMutablePath()
         let expected = CGMutablePath()
-        let movement = CGPoint(x: 300, y: 70)
-        expected.move(to: movement)
+        let movement: PriorContext = CGPoint(x: 300, y: 70).asPriorContext
+        expected.move(to: movement.point)
         switch result {
         case .ok(let pathSegment, _):
-            let next = pathSegment(.zero, path)
+            let next = pathSegment(.zero, path, .init(width: 1, height: 1))
             XCTAssertEqual(path, expected)
             XCTAssertEqual(next, movement)
         case .error(let error):
@@ -90,7 +97,7 @@ class CyborgTests: XCTestCase {
         switch result {
         case .ok(let wrapped, let index):
             let path = CGMutablePath()
-            _ = wrapped(.zero, path)
+            _ = wrapped(.zero, path, .zero)
             XCTAssertEqual(index, close.endIndex)
             XCTAssertEqual(path, expected)
         case .error(let error):
@@ -142,3 +149,14 @@ class CyborgTests: XCTestCase {
         case .error(let error): XCTFail(error)
         }
     }
+
+    func test_reflection() {
+        let first = CGPoint(x: 0, y: 0)
+        let second = CGPoint(x: 1, y: 1)
+        let point = CGPoint(x: 0.25, y: 0.25)
+        let result = point.reflected(across: first, second)
+        let expected = CGPoint(x: 0.75, y: 0.75)
+        XCTAssertEqual(result, expected)
+    }
+    
+}
