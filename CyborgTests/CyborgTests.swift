@@ -1,9 +1,5 @@
 //
-//  CyborgTests.swift
-//  CyborgTests
-//
-//  Created by Ben Pious on 7/25/18.
-//  Copyright © 2018 Ben Pious. All rights reserved.
+//  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
 import XCTest
@@ -105,6 +101,25 @@ class CyborgTests: XCTestCase {
         }
     }
     
+    func test_line() {
+        let lineData = "l 1,0 2,1 3,4"
+        let expected = CGMutablePath()
+        let points = [(1,0), (2,1), (3,4)].map(CGPoint.init)
+        var last: CGPoint = .zero
+        for point in points {
+            let point = point.add(last)
+            last = point
+            expected.addLine(to: point)
+        }
+        switch parseLine()(lineData, lineData.startIndex) {
+        case .ok(let result, _):
+            let path = createPath(from: result)
+            XCTAssertEqual(path, expected)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
+    
     func test_pair() {
         let first = "a"
         let second = "b"
@@ -149,14 +164,48 @@ class CyborgTests: XCTestCase {
         case .error(let error): XCTFail(error)
         }
     }
+    
+    func test_parse_curve() {
+        let curve = "c2,2 3,2 8,2"
+        let start = CGPoint(x: 6, y: 2)
+        let expected = CGMutablePath()
+        expected.move(to: start)
+        expected.addCurve(to: CGPoint(x: 8, y: 2).add(start),
+                          control1: CGPoint(x: 2, y: 2).add(start),
+                          control2: CGPoint(x: 3, y: 2).add(start))
+        switch parseCurve()(curve, curve.startIndex) {
+        case .ok(let wrapped, _):
+            let result = CGMutablePath()
+            result.move(to: start)
+            _ = wrapped(start.asPriorContext, result, CGSize(width: 1, height: 1))
+            XCTAssertEqual(result, expected)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
 
-    func test_reflection() {
-        let first = CGPoint(x: 0, y: 0)
-        let second = CGPoint(x: 1, y: 1)
-        let point = CGPoint(x: 0.25, y: 0.25)
-        let result = point.reflected(across: first, second)
-        let expected = CGPoint(x: 0.75, y: 0.75)
-        XCTAssertEqual(result, expected)
+//    func test_reflection() {
+//        let first = CGPoint(x: 0, y: 0)
+//        let second = CGPoint(x: 1, y: 1)
+//        let point = CGPoint(x: 0.25, y: 0.25)
+//        let result = point.reflected(across: first, second)
+//        let expected = CGPoint(x: 0.75, y: 0.75)
+//        XCTAssertEqual(result, expected)
+//    }
+    
+}
+
+extension CGPoint {
+    
+    init(_ xy: (CGFloat, CGFloat)) {
+        self.init(x: xy.0, y: xy.1)
     }
     
+}
+
+func createPath(from: PathSegment, start: PriorContext = .zero) -> CGMutablePath {
+    let path = CGMutablePath()
+    let identity = CGSize(width: 1, height: 1)
+    _ = from(start, path, identity)
+    return path
 }

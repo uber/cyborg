@@ -1,9 +1,5 @@
 //
-//  XMLSchema.swift
-//  Cyborg
-//
-//  Created by Ben Pious on 7/26/18.
-//  Copyright © 2018 Ben Pious. All rights reserved.
+//  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
 import Foundation
