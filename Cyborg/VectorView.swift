@@ -64,12 +64,14 @@ extension VectorDrawable {
         } else {
             let viewSpace = CGSize(width: bounds.width / viewPortWidth,
                                    height: bounds.height / viewPortHeight)
-            return createPaths(in: viewSpace).map { (path) in
-                let layer = CAShapeLayer()
-                layer.path = path
-                layer.strokeColor = UIColor.black.cgColor
-                layer.frame = bounds
-                return layer
+            return zip(layerConfigurations(),
+                       createPaths(in: viewSpace))
+                .map { (configuration, path) in
+                    let layer = CAShapeLayer()
+                    configuration(layer)
+                    layer.path = path
+                    layer.frame = bounds
+                    return layer
             }
         }
     }

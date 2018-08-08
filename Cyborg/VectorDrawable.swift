@@ -101,6 +101,16 @@ public final class VectorDrawable {
         )
     }
     
+    func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+        return Array(
+            groups
+                .map { group in
+                    group.layerConfigurations()
+                }
+                .joined()
+        )
+    }
+    
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group {
         
@@ -127,6 +137,12 @@ public final class VectorDrawable {
             }
         }
         
+        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+            return paths.map { path in
+                return path.apply(to: )
+            }
+        }
+        
     }
     
     /// Representation of a <path> element from a VectorDrawable document.
@@ -135,9 +151,9 @@ public final class VectorDrawable {
         /// The name of the group.
         public let name: String?
         
-        let fillColor: Color
+        let fillColor: Color?
         let data: [PathSegment]
-        let strokeColor: Color
+        let strokeColor: Color?
         let strokeWidth: CGFloat
         let strokeAlpha: CGFloat
         let fillAlpha: CGFloat
@@ -149,10 +165,10 @@ public final class VectorDrawable {
         let fillType: CGPathFillRule
         
         init(name: String?,
-             fillColor: Color,
+             fillColor: Color?,
              fillAlpha: CGFloat,
              data: [PathSegment],
-             strokeColor: Color,
+             strokeColor: Color?,
              strokeWidth: CGFloat,
              strokeAlpha: CGFloat,
              trimPathStart: CGFloat,
@@ -182,15 +198,14 @@ public final class VectorDrawable {
             for command in data {
                 context = command(context, path, size)
             }
-            print(path)
             return path
         }
         
         func apply(to layer: CAShapeLayer) {
-            layer.strokeColor = strokeColor.asUIColor.withAlphaComponent(strokeAlpha).cgColor
+            layer.strokeColor = strokeColor?.asUIColor.withAlphaComponent(strokeAlpha).cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
-            layer.fillColor = fillColor.asUIColor.withAlphaComponent(fillAlpha).cgColor
+            layer.fillColor = fillColor?.asUIColor.withAlphaComponent(fillAlpha).cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
         }

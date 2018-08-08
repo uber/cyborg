@@ -192,8 +192,8 @@ final class PathParser: NodeParsing {
     
     var pathName: String?
     var commands: [PathSegment]?
-    var fillColor: Color = .clear
-    var strokeColor: Color = .clear
+    var fillColor: Color?
+    var strokeColor: Color?
     var strokeWidth: CGFloat = 0
     var strokeAlpha: CGFloat = 1
     var fillAlpha: CGFloat = 1

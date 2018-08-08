@@ -207,7 +207,7 @@ func parseHorizontalAbsolute() -> Parser<PathSegment> {
                         creator: { (xs: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = xs.map { x in
-                                    CGPoint(x: x, y: prior.point.y)
+                                    CGPoint(x: x * size.width, y: prior.point.y)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
@@ -239,7 +239,7 @@ func parseVerticalAbsolute() -> Parser<PathSegment> {
                         creator: { (ys: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = ys.map { y in
-                                    CGPoint(x: prior.point.x, y: y + prior.point.y)
+                                    CGPoint(x: prior.point.x, y: y * size.height)
                                 }
                                 return points.reduce(.zero) { (result, point) -> PriorContext in
                                     path.addLine(to: point)
