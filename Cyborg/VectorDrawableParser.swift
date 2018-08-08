@@ -49,16 +49,7 @@ protocol NodeParsing: AnyObject {
     
     func parse(element: String, attributes: [String: String]) -> ParseError?
     
-    func ended(element: String)
-    
-}
-
-extension NodeParsing {
-    
-    func ended(element: String) {
-        
-    }
-    
+    func didEnd(element: String) -> Bool
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
@@ -88,17 +79,23 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
         return nil
     }
     
-    func ended(element: String) {
-        currentChild?.ended(element: element)
-    }
-    
     func childForElement(_ element: String) -> Child? {
         return nil
     }
     
+    func didEnd(element: String) -> Bool {
+        if let child = currentChild,
+            child.didEnd(element: element) {
+            currentChild = nil
+            return true
+        } else {
+            return element == name.rawValue
+        }
+    }
+    
 }
 
-class VectorParser: ParentParser<GroupParser> {
+final class VectorParser: ParentParser<GroupParser> {
     
     var baseWidth: CGFloat?
     var baseHeight: CGFloat?
@@ -158,7 +155,7 @@ class VectorParser: ParentParser<GroupParser> {
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
             let groups = children.map { group in
-                group.createPath()! // TODO
+                group.createPath()! // TODO: have a better way of propogating errors
             }
             return .ok(.init(baseWidth: baseWidth,
                              baseHeight: baseHeight,
@@ -189,13 +186,9 @@ class VectorParser: ParentParser<GroupParser> {
     
 }
 
-class PathParser: NodeParsing {
+final class PathParser: NodeParsing {
     
     static let name: Element = .path
-    
-    required init() {
-        
-    }
     
     var pathName: String?
     var commands: [PathSegment]?
@@ -275,14 +268,11 @@ class PathParser: NodeParsing {
                 return "Key \(key) is not a valid attribute of <path>."
             }
         }
-        let pathData = attributes["android:pathData"]! // TODO
-        switch consumeAll(using: parsers)(pathData, pathData.startIndex) {
-        case .ok(let result, _):
-            self.commands = result
-            return nil
-        case .error(let error):
-            return baseError + error
-        }
+        return nil
+    }
+    
+    func didEnd(element: String) -> Bool {
+        return element == Element.path.rawValue
     }
     
     func createElement() -> VectorDrawable.Path? {
@@ -307,7 +297,7 @@ class PathParser: NodeParsing {
     
 }
 
-class GroupParser: ParentParser<PathParser> {
+final class GroupParser: ParentParser<PathParser> {
     
     override var name: Element {
         return .group
@@ -419,6 +409,13 @@ final class DrawableParser: NSObject, XMLParserDelegate {
             parseError = errorMessage
             stop()
         }
+    }
+    
+    func parser(_ parser: XMLParser,
+                didEndElement elementName: String,
+                namespaceURI: String?,
+                qualifiedName qName: String?) {
+        _ = vector.didEnd(element: elementName)
     }
     
     func parserDidEndDocument(_ parser: XMLParser) {
