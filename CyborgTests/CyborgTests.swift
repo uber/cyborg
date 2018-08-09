@@ -54,12 +54,12 @@ class CyborgTests: XCTestCase {
                         relativeTo = point
                     }
                     expected.closeSubpath()
-                    var transform: CGAffineTransform = drawable
+                    let transform: CGAffineTransform = drawable
                         .groups[0]
                         .transform.affineTransform(in: noResizing)
                     expected = expected
-                        .copy(using: &transform)!
-                        .mutableCopy()! // don't ask why this is necessary
+                        .apply(transform: transform)
+                        .mutableCopy()!
                     XCTAssertEqual(path[0], expected)
                 case .error(let error):
                     XCTFail(error)

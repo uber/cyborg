@@ -136,8 +136,9 @@ public final class VectorDrawable {
         
         func createPath(in size: CGSize) -> [CGPath] {
             return paths.map { path in
-                var transform = self.transform.affineTransform(in: size)
-                return path.createPath(in: size).copy(using: &transform)! // TODO: idk how this could fail
+                return path
+                    .createPath(in: size)
+                    .apply(transform: transform.affineTransform(in: size))
             }
         }
         
@@ -264,6 +265,15 @@ public struct Transform {
             .rotated(by: rotation * .pi / 180)
             .translatedBy(x: pivot.x, y: pivot.y)
             .translatedBy(x: translation.x, y: translation.y)
+    }
+    
+}
+
+extension CGPath {
+    
+    func apply(transform: CGAffineTransform) -> CGPath {
+        var transform = transform
+        return copy(using: &transform) ?? self
     }
     
 }
