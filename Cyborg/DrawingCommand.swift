@@ -68,21 +68,20 @@ func parseCommand<T>(_ command: DrawingCommand,
 
 func parseCurve() -> Parser<PathSegment> {
     return parseCommand(.curve,
-                        subparser: oneOrMore(of: n(3,
-                                                   of: consumeTrivia(before: coordinatePair()))),
+                        subparser: 3.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
                                 points.reduce(.zero) { (result, points) -> PriorContext in
                                     let points = points.makeAbsolute(startingWith: prior.point,
                                                                      in: size,
-                                                                     elementSize: 3)
+                                                                     elementSize: 2)
                                     let control1 = points[0],
                                     control2 = points[1],
                                     end = points[2]
                                     path.addCurve(to: end,
                                                   control1: control1,
                                                   control2: control2)
-                                    return end.asPriorContext
+                                    return .lastAndControlPoint(end, control2)
                                 }
                             }
     })
@@ -90,8 +89,7 @@ func parseCurve() -> Parser<PathSegment> {
 
 func parseAbsoluteCurve() -> Parser<PathSegment> {
     return parseCommand(.curveAbsolute,
-                        subparser: oneOrMore(of: n(3,
-                                                   of: consumeTrivia(before: coordinatePair()))),
+                        subparser: 3.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
                                 points.reduce(.zero) { (result, points) -> PriorContext in
@@ -102,7 +100,7 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
                                     path.addCurve(to: end,
                                                   control1: control1,
                                                   control2: control2)
-                                    return end.asPriorContext
+                                    return .lastAndControlPoint(end, control2)
                                 }
                             }
     })
@@ -250,7 +248,7 @@ func parseVerticalAbsolute() -> Parser<PathSegment> {
 
 func parseSmoothCurve() -> Parser<PathSegment> {
     return parseCommand(.smoothCurve,
-                        subparser: oneOrMore(of: n(2, of: consumeTrivia(before: coordinatePair()))),
+                        subparser: 2.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
                                 let (lastPoint, lastControlPoint) = prior.pointAndControlPoint
@@ -268,6 +266,43 @@ func parseSmoothCurve() -> Parser<PathSegment> {
                             }
     })
 }
+
+func parseQuadratic() -> Parser<PathSegment> {
+    return parseCommand(.quadratic,
+                        subparser: 2.coordinatePairs(),
+                        creator: { (points: [[CGPoint]]) -> (PathSegment) in
+                            return { prior, path, size in
+                                return points.reduce(.zero, { (result, pair) -> PriorContext in
+                                    let points = pair.makeAbsolute(startingWith: prior.point,
+                                                                   in: size,
+                                                                   elementSize: 1)
+                                    let end = points[1]
+                                    let controlPointOne = points[0]
+                                    path.addQuadCurve(to: end,
+                                                      control: controlPointOne)
+                                    return end.asPriorContext
+                                })
+                            }
+    })
+}
+
+func parseQuadraticAbsolute() -> Parser<PathSegment> {
+    return parseCommand(.quadraticAbsolute,
+                        subparser: 2.coordinatePairs(),
+                        creator: { (points: [[CGPoint]]) -> (PathSegment) in
+                            return { prior, path, size in
+                                return points.reduce(.zero, { (result, pair) -> PriorContext in
+                                    let points = pair.scaleTo(size: size)
+                                    let end = points[1]
+                                    let controlPointOne = points[0]
+                                    path.addQuadCurve(to: end,
+                                                      control: controlPointOne)
+                                    return end.asPriorContext
+                                })
+                            }
+    })
+}
+
 
 enum DrawingCommand: String {
     
@@ -307,6 +342,8 @@ enum DrawingCommand: String {
         case .vertical: return parseVertical()
         case .verticalAbsolute: return parseVerticalAbsolute()
         case .smoothCurve: return parseSmoothCurve()
+        case .quadratic: return parseQuadratic()
+        case .quadraticAbsolute: return parseQuadraticAbsolute()
         default:
             return nil // TODO
         }
@@ -397,4 +434,11 @@ extension Array where Element == CGPoint {
         }
     }
     
+}
+
+extension Int {
+    func coordinatePairs() -> Parser<[[CGPoint]]> {
+        return oneOrMore(of: n(self,
+                               of: consumeTrivia(before: coordinatePair())))
+    }
 }
