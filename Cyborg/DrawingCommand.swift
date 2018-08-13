@@ -81,7 +81,8 @@ func parseCurve() -> Parser<PathSegment> {
                                     path.addCurve(to: end,
                                                   control1: control1,
                                                   control2: control2)
-                                    return .lastAndControlPoint(end, control2)
+                                    return .lastAndControlPoint(end,
+                                                                control2.reflected(across: end))
                                 }
                             }
     })
@@ -100,7 +101,8 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
                                     path.addCurve(to: end,
                                                   control1: control1,
                                                   control2: control2)
-                                    return .lastAndControlPoint(end, control2)
+                                    return .lastAndControlPoint(end,
+                                                                control2.reflected(across: end))
                                 }
                             }
     })
@@ -251,18 +253,19 @@ func parseSmoothCurve() -> Parser<PathSegment> {
                         subparser: 2.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
-                                let (lastPoint, lastControlPoint) = prior.pointAndControlPoint
-                                return points.reduce(.zero, { (result, pair) -> PriorContext in
+                                return points.reduce(prior) { (prior, pair) -> PriorContext in
+                                    let (lastPoint, priorControlPoint) = prior.pointAndControlPoint
                                     let points = pair.makeAbsolute(startingWith: lastPoint,
                                                                    in: size,
-                                                                   elementSize: 1)
+                                                                   elementSize: 2)
                                     let end = points[1]
                                     let controlPoint = points[0]
                                     path.addCurve(to: end,
-                                                  control1: lastControlPoint,
+                                                  control1: priorControlPoint,
                                                   control2: controlPoint)
-                                    return .lastAndControlPoint(end, controlPoint.reflected(across: end, lastPoint))
-                                })
+                                    return .lastAndControlPoint(end,
+                                                                controlPoint.reflected(across: end))
+                                }
                             }
     })
 }
@@ -395,16 +398,12 @@ extension CGPoint {
         return (x * other.x) + (y * other.y)
     }
     
-    func reflected(across first: CGPoint, _ second: CGPoint) -> CGPoint {
-        let p = CGPoint(x: x - first.x, y: y - first.y)
-        let q = CGPoint(x: second.x - first.x, y: second.y - first.y)
-        let quotient = pow(sqrt(pow(q.x - p.x, 2) + pow(q.y - p.y, 2)), 2)
-        let projection = (p.dot(q) / quotient) * 2
-        return q
-            .times(projection, projection)
-            .subtract(p)
-            .add(first)
+    func reflected(across current: CGPoint) -> CGPoint {
+        let newX = current.x * 2 - x
+        let newY = current.y * 2 - y
+        return CGPoint(x: newX, y: newY)
     }
+    
 }
 
 extension Array where Element == CGPoint {
@@ -437,8 +436,10 @@ extension Array where Element == CGPoint {
 }
 
 extension Int {
+    
     func coordinatePairs() -> Parser<[[CGPoint]]> {
         return oneOrMore(of: n(self,
                                of: consumeTrivia(before: coordinatePair())))
     }
+    
 }

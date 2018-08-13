@@ -32,12 +32,11 @@ android:viewportWidth="24"
 android:viewportHeight="24">
 
 <path
-android:pathData="M0 0h24v24H0z" />
-<path
 android:fillColor="#000000"
-<path
-android:fillColor="#000000"
-android:pathData="M1,1h4s2,2 3,3z" /></vector>
+android:pathData="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z
+M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z
+m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+</vector>
 """
 
 let baselinesplit = """
@@ -179,5 +178,18 @@ android:pathData="M0 0h24v24H0z" />
 <path
 android:fillColor="#000000"
 android:pathData="M7 24h2v-2H7v2zm4 0h2v-2h-2v2zm2-22h-2v10h2V2zm3.56 2.44l-1.45 1.45C16.84 6.94 18 8.83 18 11c0 3.31-2.69 6-6 6s-6-2.69-6-6c0-2.17 1.16-4.06 2.88-5.12L7.44 4.44C5.36 5.88 4 8.28 4 11c0 4.42 3.58 8 8 8s8-3.58 8-8c0-2.72-1.36-5.12-3.44-6.56zM15 24h2v-2h-2v2z" />
+</vector>
+"""
+
+let smoothCurveTest = """
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+android:width="100dp"
+android:height="100dp"
+android:viewportWidth="10"
+android:viewportHeight="10">
+<path
+android:fillColor="#000000"
+android:pathData="M1,1h4s1,-0.5 3,1 2,1 1,7z" />
 </vector>
 """

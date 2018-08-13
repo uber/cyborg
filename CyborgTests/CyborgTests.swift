@@ -183,15 +183,6 @@ class CyborgTests: XCTestCase {
             XCTFail(error)
         }
     }
-
-//    func test_reflection() {
-//        let first = CGPoint(x: 0, y: 0)
-//        let second = CGPoint(x: 1, y: 1)
-//        let point = CGPoint(x: 0.25, y: 0.25)
-//        let result = point.reflected(across: first, second)
-//        let expected = CGPoint(x: 0.75, y: 0.75)
-//        XCTAssertEqual(result, expected)
-//    }
     
 }
 
