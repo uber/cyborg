@@ -184,6 +184,18 @@ class CyborgTests: XCTestCase {
         }
     }
     
+    func test_complex_number() {
+        let text = "-2.38419e-08"
+        let expected: CGFloat = -2.38419e-08
+        switch number()(text, text.startIndex) {
+        case .ok(let result, let index):
+            XCTAssertEqual(result, expected)
+            XCTAssertEqual(index, text.endIndex)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
+    
 }
 
 extension CGPoint {
