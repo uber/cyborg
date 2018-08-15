@@ -346,19 +346,15 @@ final class GroupParser: ParentParser<PathParser> {
     }
     
     func createPath() -> VectorDrawable.Group? {
-        if let groupName = groupName {
-            let paths = children.map { (parser) in
-                parser.createElement()! // TODO
-            }
-            return VectorDrawable.Group(name: groupName,
-                                        transform: Transform(pivot: .init(x: pivotX, y: pivotY),
-                                                             rotation: rotation,
-                                                             scale: .init(x: scaleX, y: scaleY),
-                                                             translation: .init(x: translationX, y: translationY)),
-                                        paths: paths)
-        } else {
-            return nil
+        let paths = children.map { (parser) in
+            parser.createElement()! // TODO
         }
+        return VectorDrawable.Group(name: groupName,
+                                    transform: Transform(pivot: .init(x: pivotX, y: pivotY),
+                                                         rotation: rotation,
+                                                         scale: .init(x: scaleX, y: scaleY),
+                                                         translation: .init(x: translationX, y: translationY)),
+                                    paths: paths)
     }
     
     override func childForElement(_ element: String) -> PathParser? {
