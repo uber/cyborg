@@ -152,7 +152,7 @@ class CyborgTests: XCTestCase {
                        Array(repeating: str, count: 3))
     }
     
-    func test_int_parser() {
+    func test_number_parser() {
         let str = "-432"
         switch Cyborg.number()(str, str.startIndex) {
         case .ok(let result, _):  XCTAssertEqual(result, -432)
@@ -163,6 +163,33 @@ class CyborgTests: XCTestCase {
         case .ok(let result, _):  XCTAssertEqual(result, 40)
         case .error(let error): XCTFail(error)
         }
+        let str3 = "4"
+        switch Cyborg.number()(str3, str3.startIndex) {
+        case .ok(let result, _):  XCTAssertEqual(result, 4)
+        case .error(let error): XCTFail(error)
+        }
+        let str4 = "4.4 "
+        switch Cyborg.number()(str4, str4.startIndex) {
+        case .ok(let result, let index):
+            XCTAssertEqual(result, 4.4)
+            XCTAssertEqual(index, str4.index(before: str4.endIndex))
+        case .error(let error): XCTFail(error)
+        }
+        let str5 = ".9 "
+        switch Cyborg.number()(str5, str5.startIndex) {
+        case .ok(let result, let index):
+            XCTAssertEqual(result, 0.9)
+            XCTAssertEqual(index, str5.index(before: str5.endIndex))
+        case .error(let error): XCTFail(error)
+        }
+        let str6 = "-.9 "
+        switch Cyborg.number()(str6, str6.startIndex) {
+        case .ok(let result, let index):
+            XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
+            XCTAssertEqual(index, str6.index(before: str6.endIndex))
+        case .error(let error): XCTFail(error)
+        }
+
     }
     
     func test_parse_curve() {
@@ -189,7 +216,7 @@ class CyborgTests: XCTestCase {
         let expected: CGFloat = -2.38419e-08
         switch number()(text, text.startIndex) {
         case .ok(let result, let index):
-            XCTAssertEqual(result, expected)
+            XCTAssert(result == expected)
             XCTAssertEqual(index, text.endIndex)
         case .error(let error):
             XCTFail(error)

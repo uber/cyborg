@@ -455,51 +455,94 @@ func trivia() -> Parser<String> {
     }
 }
 
-let decimalDigits: CharacterSet = {
-    var digits = CharacterSet.decimalDigits
-    _ = digits.insert(".")
-    return digits
-}()
+func int() -> Parser<Int> {
+    let digits = CharacterSet.decimalDigits
+    return { stream, index in
+        var resultIndex = index
+        while resultIndex != stream.endIndex,
+            let firstScalar = stream[resultIndex].unicodeScalars.first,
+            digits.contains(firstScalar){
+                resultIndex = stream.index(after: resultIndex)
+        }
+        if resultIndex != index {
+            let substring = stream[index..<resultIndex]
+            if let int = Int(substring) {
+                return .ok(int, resultIndex)
+            } else {
+                return ParseResult(error: "Couldn't construct an integer from \(substring)", index: index, stream: stream)
+            }
+        } else {
+            return ParseResult(error: "Couldn't find a single digit", index: index, stream: stream)
+        }
+    }
+}
 
 func number() -> Parser<CGFloat> {
+    let parser: Parser<(String?, Int?, (String, Int, (String, String?, Int)?)?)> = seq(
+        optional(literal("-")),
+        optional(int()),
+        optional(
+            seq(
+                literal("."),
+                int(),
+                optional(
+                    seq(
+                        literal("e"),
+                        optional(literal("-")),
+                        int()
+                    )
+                )
+            )
+        )
+    )
     return { (string: String, index: String.Index) in
-        let negative = optional(literal("-"))(string, index)
-        let multiple: CGFloat
-        let startIndex: String.Index
-        var next = index
-        switch negative {
+        // TODO: this is probably extremely slow, and is inaccurate when there's exponents,
+        // as the currently failing unit test shows. 
+        switch parser(string, index) {
         case .ok(let result, let index):
-            next = index
-            startIndex = next
-            multiple = result == nil ? 1 : -1
-        default:
-            multiple = 1
-            startIndex = index
-        }
-        var digits = decimalDigits
-        while next != string.endIndex {
-            let character = string[next]
-            if character.unicodeScalars.count == 1 {
-                let scalar = character.unicodeScalars[character.unicodeScalars.startIndex]
-                if digits.contains(scalar) {
-                    if scalar == "." {
-                        digits.remove(".")
-                    }
-                    next = string.index(next, offsetBy: 1)
-                } else {
-                    break
-                }
-            } else {
-                break
+            var float: CGFloat = 0
+            var foundSomething = false
+            let (negative, lhs, afterDecimal) = result
+            let sign: CGFloat = (negative == nil ? 1 : -1)
+            if let lhs = lhs {
+                float += CGFloat(lhs) * sign
+                foundSomething = true
             }
+            if let afterDecimal = afterDecimal {
+                let (_, rhs, afterExponent) = afterDecimal
+                var decimal = CGFloat(rhs)
+                while Int(decimal) > 0 {
+                    decimal /= 10
+                }
+                foundSomething = true
+                float += decimal * sign
+                if let afterExponent = afterExponent {
+                    let (_, exponentNegative, exponent) = afterExponent
+                    let direction: CGFloat = exponentNegative == nil ? 1 : -1
+                    float *= pow(10, CGFloat(exponent) * direction)
+                }
+            }
+            if foundSomething {
+                return .ok(float, index)
+            } else {
+                return ParseResult(error: "Didn't find an rhs or lhs for the float", index: index, stream: string)
+            }
+        case .error(let error):
+            return .error(error)
         }
-        let subString = string[startIndex..<next]
-        if let double = Double(subString) {
-            return .ok(CGFloat(double) * multiple, next)
-        } else {
-            return ParseResult(error: "Could not create number from \"\(subString)\"",
-                index: next,
-                stream: string)
+    }
+}
+
+func seq<T, U, V>(_ first: @escaping Parser<T>,
+                  _ second: @escaping Parser<U>,
+                  _ third: @escaping Parser<V>) -> Parser<(T, U, V)> {
+    return { stream, index in
+        first(stream, index).map { result, index in
+            second(stream, index).map { secondResult, index in
+                third(stream, index).map { thirdResult, index in
+                    .ok((result, secondResult, thirdResult), index)
+                }
+            }
         }
     }
 }
