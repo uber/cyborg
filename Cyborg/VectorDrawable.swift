@@ -119,14 +119,14 @@ public final class VectorDrawable {
     public class Group {
         
         /// The name of the group.
-        public let name: String
+        public let name: String?
         
         /// The transform to apply to all children of the group.
         public let transform: Transform
         
         let paths: [Path]
         
-        init(name: String,
+        init(name: String?,
              transform: Transform,
              paths: [Path]) {
             self.name = name
