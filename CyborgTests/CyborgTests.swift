@@ -36,7 +36,7 @@ class CyborgTests: XCTestCase {
                 case .ok(let drawable):
                     XCTAssert(drawable.viewPortWidth == 600)
                     XCTAssert(drawable.viewPortHeight == 600)
-                    XCTAssert(drawable.groups[0].paths[0].data.count != 0)
+                    XCTAssert(((drawable.groups[0] as! VectorDrawable.Group).children[0] as! VectorDrawable.Path).data.count != 0)
                     let noResizing = CGSize(width: 1, height: 1)
                     let path = drawable.createPaths(in: noResizing)
                     var expected = CGMutablePath()
@@ -54,9 +54,10 @@ class CyborgTests: XCTestCase {
                         relativeTo = point
                     }
                     expected.closeSubpath()
-                    let transform: CGAffineTransform = drawable
-                        .groups[0]
-                        .transform.affineTransform(in: noResizing)
+                    let transform: CGAffineTransform = (drawable
+                        .groups[0] as! VectorDrawable.Group)
+                        .transform
+                        .affineTransform(in: noResizing)
                     expected = expected
                         .apply(transform: transform)
                         .mutableCopy()!

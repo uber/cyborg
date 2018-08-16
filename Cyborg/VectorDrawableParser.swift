@@ -52,6 +52,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     
     var currentChild: Child?
     var children: [Child] = []
+    var hasFoundElement = false
     
     var name: Element {
         return .vector
@@ -60,14 +61,20 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     func parse(element: String, attributes: [String : String]) -> ParseError? {
         if let currentChild = currentChild {
             return currentChild.parse(element: element, attributes: attributes)
-        } else if element == name.rawValue {
+        } else if element == name.rawValue,
+            !hasFoundElement {
+            hasFoundElement = true
             return parseAttributes(attributes)
         } else if let child = childForElement(element) {
             self.currentChild = child
             children.append(child)
             return child.parse(element: element, attributes: attributes)
         } else {
-            return "Element \"\(element)\" found, expected \(name.rawValue)."
+            if !hasFoundElement {
+                return "Element \"\(element)\" found, expected \(name.rawValue)."
+            } else {
+                return "Found element \"\(element)\" nested, when it is not an acceptable child node."
+            }
         }
     }
     
@@ -151,7 +158,7 @@ final class VectorParser: ParentParser<GroupParser> {
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
             let groups = children.map { group in
-                group.createPath()! // TODO: have a better way of propogating errors
+                group.createElement()! // TODO: have a better way of propogating errors
             }
             return .ok(.init(baseWidth: baseWidth,
                              baseHeight: baseHeight,
@@ -182,7 +189,7 @@ final class VectorParser: ParentParser<GroupParser> {
     
 }
 
-final class PathParser: NodeParsing {
+final class PathParser: GroupChildParser {
     
     static let name: Element = .path
     
@@ -271,7 +278,7 @@ final class PathParser: NodeParsing {
         return element == Element.path.rawValue
     }
     
-    func createElement() -> VectorDrawable.Path? {
+    func createElement() -> GroupChild? {
         if let commands = commands {
             return VectorDrawable.Path(name: pathName,
                                        fillColor: fillColor,
@@ -293,7 +300,37 @@ final class PathParser: NodeParsing {
     
 }
 
-final class GroupParser: ParentParser<PathParser> {
+protocol GroupChildParser: NodeParsing {
+    
+    func createElement() -> GroupChild?
+    
+}
+
+/// Necessary because we can't use a protocol to satisfy a generic with
+/// type bounds, as that would make it impossible to dispatch static functions.
+final class AnyGroupParserChild: GroupChildParser {
+    
+    let parser: GroupChildParser
+    
+    init(erasing parser: GroupChildParser) {
+        self.parser = parser
+    }
+    
+    func parse(element: String, attributes: [String : String]) -> ParseError? {
+        return parser.parse(element: element, attributes: attributes)
+    }
+    
+    func didEnd(element: String) -> Bool {
+        return parser.didEnd(element: element)
+    }
+    
+    func createElement() -> GroupChild? {
+        return parser.createElement()
+    }
+    
+}
+
+final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     
     override var name: Element {
         return .group
@@ -345,8 +382,8 @@ final class GroupParser: ParentParser<PathParser> {
         return nil
     }
     
-    func createPath() -> VectorDrawable.Group? {
-        let paths = children.map { (parser) in
+    func createElement() -> GroupChild? {
+        let childElements = children.map { (parser) in
             parser.createElement()! // TODO
         }
         return VectorDrawable.Group(name: groupName,
@@ -354,12 +391,13 @@ final class GroupParser: ParentParser<PathParser> {
                                                          rotation: rotation,
                                                          scale: .init(x: scaleX, y: scaleY),
                                                          translation: .init(x: translationX, y: translationY)),
-                                    paths: paths)
+                                    children: childElements)
     }
     
-    override func childForElement(_ element: String) -> PathParser? {
+    override func childForElement(_ element: String) -> AnyGroupParserChild? {
         switch Element(rawValue: element) {
-        case .some(.path): return PathParser()
+        case .some(.path): return AnyGroupParserChild(erasing: PathParser())
+        case .some(.group): return AnyGroupParserChild(erasing: GroupParser())
         default: return nil
         }
     }

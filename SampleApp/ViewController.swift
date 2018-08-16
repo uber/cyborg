@@ -10,16 +10,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            done,
-            work,
-            visibility,
-            baselinesplit,
-            androidDocsSampleTriangle,
-            person,
-            swapHorizontal,
-            translate,
-            timeline,
-            power,
+            nestedGroups
             ]
             .map { (data) in
                 data.data(using: .utf8)!

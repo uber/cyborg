@@ -53,6 +53,16 @@ enum BlendMode: String {
     case xor
 }
 
+/// Child of a group. Necessary because both Paths and Groups are allowed
+/// to be children of Groups, apparently.
+protocol GroupChild: AnyObject {
+    
+    func createPaths(in size: CGSize) -> [CGPath]
+    
+    func layerConfigurations() -> [(CAShapeLayer) -> ()]
+    
+}
+
 /// A VectorDrawable. This can be displayed in a `VectorView`.
 public final class VectorDrawable {
     
@@ -73,7 +83,7 @@ public final class VectorDrawable {
     /// The overall alpha to apply to the drawable.
     public let baseAlpha: CGFloat
     
-    let groups: [Group]
+    let groups: [GroupChild]
     
     public static func create(from data: Data,
                               whenComplete run: @escaping (Result) -> ()) {
@@ -86,7 +96,7 @@ public final class VectorDrawable {
          viewPortWidth: CGFloat,
          viewPortHeight: CGFloat,
          baseAlpha: CGFloat,
-         groups: [Group]) {
+         groups: [GroupChild]) {
         self.baseWidth = baseWidth
         self.baseHeight = baseHeight
         self.viewPortWidth = viewPortWidth
@@ -99,7 +109,7 @@ public final class VectorDrawable {
         return Array(
             groups
                 .map { (group) in
-                    group.createPath(in: size)
+                    group.createPaths(in: size)
                 }
                 .joined()
         )
@@ -116,7 +126,7 @@ public final class VectorDrawable {
     }
     
     /// Representation of a <group> element from a VectorDrawable document.
-    public class Group {
+    public class Group: GroupChild {
         
         /// The name of the group.
         public let name: String?
@@ -124,34 +134,40 @@ public final class VectorDrawable {
         /// The transform to apply to all children of the group.
         public let transform: Transform
         
-        let paths: [Path]
+        let children: [GroupChild]
         
         init(name: String?,
              transform: Transform,
-             paths: [Path]) {
+             children: [GroupChild]) {
             self.name = name
             self.transform = transform
-            self.paths = paths
+            self.children = children
         }
         
-        func createPath(in size: CGSize) -> [CGPath] {
-            return paths.map { path in
-                return path
-                    .createPath(in: size)
-                    .apply(transform: transform.affineTransform(in: size))
-            }
+        func createPaths(in size: CGSize) -> [CGPath] {
+            return Array(
+                children.map { child in
+                    return child
+                        .createPaths(in: size)
+                        .map { path in
+                            path.apply(transform: transform.affineTransform(in: size))
+                    }
+                    }
+                    .joined()
+            )
         }
         
         func layerConfigurations() -> [(CAShapeLayer) -> ()] {
-            return paths.map { path in
-                return path.apply(to: )
+            return Array(children.map { path in
+                return path.layerConfigurations()
             }
+            .joined())
         }
         
     }
     
     /// Representation of a <path> element from a VectorDrawable document.
-    public class Path {
+    public class Path: GroupChild {
         
         /// The name of the group.
         public let name: String?
@@ -197,13 +213,17 @@ public final class VectorDrawable {
             self.strokeWidth = strokeWidth
         }
         
-        func createPath(in size: CGSize) -> CGPath {
+        func createPaths(in size: CGSize) -> [CGPath] {
             let path = CGMutablePath()
             var context: PriorContext = .zero
             for command in data {
                 context = command(context, path, size)
             }
-            return path
+            return [path]
+        }
+        
+        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+            return [apply(to: )]
         }
         
         func apply(to layer: CAShapeLayer) {
