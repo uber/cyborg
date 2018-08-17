@@ -516,20 +516,20 @@ func int() -> Parser<Int> {
 }
 
 func number() -> Parser<CGFloat> {
-    let parser: Parser<(String?, Int?, (String, Int, (String, String?, Int)?)?)> = seq(
+    let parser: Parser<(String?, Int?, (String, Int)?, (String, String?, Int)?)> = seq(
         optional(literal("-")),
         optional(int()),
         optional(
             seq(
                 literal("."),
-                int(),
-                optional(
-                    seq(
-                        literal("e"),
-                        optional(literal("-")),
-                        int()
-                    )
-                )
+                int()
+            )
+        ),
+        optional(
+            seq(
+                literal("e"),
+                optional(literal("-")),
+                int()
             )
         )
     )
@@ -539,26 +539,28 @@ func number() -> Parser<CGFloat> {
         switch parser(string, index) {
         case .ok(let result, let index):
             var float: CGFloat = 0
+            // tracks whether we have found either a lhs or rhs. You can have `.3` or `3` or `3e5`, but not
+            // `e5`. 
             var foundSomething = false
-            let (negative, lhs, afterDecimal) = result
+            let (negative, lhs, afterDecimal, afterExponent) = result
             let sign: CGFloat = (negative == nil ? 1 : -1)
             if let lhs = lhs {
                 float += CGFloat(lhs) * sign
                 foundSomething = true
             }
             if let afterDecimal = afterDecimal {
-                let (_, rhs, afterExponent) = afterDecimal
+                let (_, rhs) = afterDecimal
                 var decimal = CGFloat(rhs)
                 while Int(decimal) > 0 {
                     decimal /= 10
                 }
                 foundSomething = true
                 float += decimal * sign
-                if let afterExponent = afterExponent {
-                    let (_, exponentNegative, exponent) = afterExponent
-                    let direction: CGFloat = exponentNegative == nil ? 1 : -1
-                    float *= pow(10, CGFloat(exponent) * direction)
-                }
+            }
+            if let afterExponent = afterExponent {
+                let (_, exponentNegative, exponent) = afterExponent
+                let direction: CGFloat = exponentNegative == nil ? 1 : -1
+                float *= pow(10, CGFloat(exponent) * direction)
             }
             if foundSomething {
                 return .ok(float, index)
@@ -570,6 +572,18 @@ func number() -> Parser<CGFloat> {
         }
     }
 }
+
+func seq<T, U>(_ first: @escaping Parser<T>,
+                  _ second: @escaping Parser<U>) -> Parser<(T, U)> {
+    return { stream, index in
+        first(stream, index).map { result, index in
+            second(stream, index).map { secondResult, index in
+                .ok((result, secondResult), index)
+            }
+        }
+    }
+}
+
 
 func seq<T, U, V>(_ first: @escaping Parser<T>,
                   _ second: @escaping Parser<U>,
@@ -584,6 +598,24 @@ func seq<T, U, V>(_ first: @escaping Parser<T>,
         }
     }
 }
+
+func seq<T, U, V, W>(_ first: @escaping Parser<T>,
+                     _ second: @escaping Parser<U>,
+                     _ third: @escaping Parser<V>,
+                     _ fourth: @escaping Parser<W>) -> Parser<(T, U, V, W)> {
+    return { stream, index in
+        first(stream, index).map { result, index in
+            second(stream, index).map { secondResult, index in
+                third(stream, index).map { thirdResult, index in
+                    fourth(stream, index).map { fourthResult, index in
+                        .ok((result, secondResult, thirdResult, fourthResult), index)
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 func coordinatePair() -> Parser<CGPoint> {
     return { stream, input in
