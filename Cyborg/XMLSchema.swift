@@ -69,7 +69,7 @@ enum Color {
     init?(_ string: String) {
         // TODO
         print("returning bogus hard coded color")
-        self = .hardCoded(.black)
+        self = .hardCoded(.random)
     }
     
     var asUIColor: UIColor {
@@ -82,6 +82,20 @@ enum Color {
     }
     
     static let clear: Color = .hardCoded(.clear)
+}
+
+extension UIColor {
+    
+    static var random: UIColor {
+        let rand = {
+            CGFloat(arc4random_uniform(256)) / 256
+        }
+        let r = rand(),
+        g =  rand(),
+        b =  rand()
+        return UIColor(red: r, green: g, blue: b, alpha: 1)
+    }
+    
 }
 
 enum LineCap: String {

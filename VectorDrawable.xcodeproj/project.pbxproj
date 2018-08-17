@@ -13,6 +13,7 @@
 		3B3BE3821FA016C20070D8B1 /* VectorDrawable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */; };
 		3B5338F4210F845400C1C16B /* VectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5338F3210F845400C1C16B /* VectorView.swift */; };
 		3B60ECFD211B66AC00177661 /* TestDrawables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B60ECFC211B66AC00177661 /* TestDrawables.swift */; };
+		3B9672AA212745D7004988F5 /* DebugDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B9672A9212745D7004988F5 /* DebugDiagnosticsView.swift */; };
 		3BA380742108E40F00F43697 /* CyborgTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA380732108E40F00F43697 /* CyborgTests.swift */; };
 		3BA380762108E40F00F43697 /* Cyborg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; };
 		3BA3807D2109571000F43697 /* ParserPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA3807C2109571000F43697 /* ParserPrimitives.swift */; };
@@ -64,6 +65,7 @@
 		3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorDrawable.swift; sourceTree = "<group>"; };
 		3B5338F3210F845400C1C16B /* VectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorView.swift; sourceTree = "<group>"; };
 		3B60ECFC211B66AC00177661 /* TestDrawables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDrawables.swift; sourceTree = "<group>"; };
+		3B9672A9212745D7004988F5 /* DebugDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDiagnosticsView.swift; sourceTree = "<group>"; };
 		3BA380712108E40F00F43697 /* CyborgTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyborgTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BA380732108E40F00F43697 /* CyborgTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyborgTests.swift; sourceTree = "<group>"; };
 		3BA380752108E40F00F43697 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 				3BA3807E210A471A00F43697 /* DrawingCommand.swift */,
 				3BA3807C2109571000F43697 /* ParserPrimitives.swift */,
 				3B5338F3210F845400C1C16B /* VectorView.swift */,
+				3B9672A9212745D7004988F5 /* DebugDiagnosticsView.swift */,
 				3B3BE3781FA016B60070D8B1 /* Info.plist */,
 			);
 			path = Cyborg;
@@ -320,6 +323,7 @@
 				3B5338F4210F845400C1C16B /* VectorView.swift in Sources */,
 				3BA38083210A47C900F43697 /* VectorDrawableParser.swift in Sources */,
 				3B3BE3821FA016C20070D8B1 /* VectorDrawable.swift in Sources */,
+				3B9672AA212745D7004988F5 /* DebugDiagnosticsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
