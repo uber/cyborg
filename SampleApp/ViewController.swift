@@ -10,7 +10,16 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            nestedGroups
+            done,
+            work,
+            visibility,
+            baselinesplit,
+            androidDocsSampleTriangle,
+            person,
+            swapHorizontal,
+            translate,
+            timeline,
+            power,
             ]
             .map { (data) in
                 data.data(using: .utf8)!
@@ -18,6 +27,8 @@ class ViewController: UIViewController {
         var lastAnchor = view.leadingAnchor
         for data in drawableData {
             let vectorView = VectorView(frame: .zero)
+            let debugView = DebugDiagnosticsView()
+            debugView.attach(to: vectorView)
             view.addSubview(vectorView)
             vectorView.translatesAutoresizingMaskIntoConstraints = false
             VectorDrawable
