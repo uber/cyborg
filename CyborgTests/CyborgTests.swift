@@ -156,39 +156,51 @@ class CyborgTests: XCTestCase {
     func test_number_parser() {
         let str = "-432"
         switch Cyborg.number()(str, str.startIndex) {
-        case .ok(let result, _):  XCTAssertEqual(result, -432)
-        case .error(let error): XCTFail(error)
+        case .ok(let result, let index):
+            XCTAssertEqual(result, -432)
+            XCTAssertEqual(index, str.endIndex)
+        case .error(let error):
+            XCTFail(error)
         }
         let str2 = "40"
         switch Cyborg.number()(str2, str2.startIndex) {
-        case .ok(let result, _):  XCTAssertEqual(result, 40)
-        case .error(let error): XCTFail(error)
+        case .ok(let result, let index):
+            XCTAssertEqual(result, 40)
+            XCTAssertEqual(index, str2.endIndex)
+        case .error(let error):
+            XCTFail(error)
         }
         let str3 = "4"
         switch Cyborg.number()(str3, str3.startIndex) {
-        case .ok(let result, _):  XCTAssertEqual(result, 4)
-        case .error(let error): XCTFail(error)
+        case .ok(let result, let index):
+            XCTAssertEqual(result, 4)
+            XCTAssertEqual(index, str3.endIndex)
+        case .error(let error):
+            XCTFail(error)
         }
         let str4 = "4.4 "
         switch Cyborg.number()(str4, str4.startIndex) {
         case .ok(let result, let index):
             XCTAssertEqual(result, 4.4)
             XCTAssertEqual(index, str4.index(before: str4.endIndex))
-        case .error(let error): XCTFail(error)
+        case .error(let error):
+            XCTFail(error)
         }
         let str5 = ".9 "
         switch Cyborg.number()(str5, str5.startIndex) {
         case .ok(let result, let index):
             XCTAssertEqual(result, 0.9)
             XCTAssertEqual(index, str5.index(before: str5.endIndex))
-        case .error(let error): XCTFail(error)
+        case .error(let error):
+            XCTFail(error)
         }
         let str6 = "-.9 "
         switch Cyborg.number()(str6, str6.startIndex) {
         case .ok(let result, let index):
             XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
             XCTAssertEqual(index, str6.index(before: str6.endIndex))
-        case .error(let error): XCTFail(error)
+        case .error(let error):
+            XCTFail(error)
         }
 
     }
@@ -202,11 +214,12 @@ class CyborgTests: XCTestCase {
                           control1: CGPoint(x: 2, y: 2).add(start),
                           control2: CGPoint(x: 3, y: 2).add(start))
         switch parseCurve()(curve, curve.startIndex) {
-        case .ok(let wrapped, _):
+        case .ok(let wrapped, let index):
             let result = CGMutablePath()
             result.move(to: start)
             _ = wrapped(start.asPriorContext, result, CGSize(width: 1, height: 1))
             XCTAssertEqual(result, expected)
+            XCTAssertEqual(index, curve.endIndex)
         case .error(let error):
             XCTFail(error)
         }
@@ -224,7 +237,32 @@ class CyborgTests: XCTestCase {
         }
     }
     
+    func test_make_absolute() {
+        let input = [(1, 1), (1, 1), (1, 1)].map(CGPoint.init)
+        let first = input.makeAbsolute(startingWith: .init((1, 1)),
+                                       in: .identity)
+        XCTAssertEqual(first, [(2, 2), (3, 3), (4, 4)].map(CGPoint.init))
+        let scaled = input.makeAbsolute(startingWith: .init((1, 1)),
+                                        in: .init(width: 0.5, height: 0.5))
+        XCTAssertEqual(scaled, [(1.5, 1.5), (2, 2), (2.5, 2.5)].map(CGPoint.init))
+        let skipOne = input.makeAbsolute(startingWith: .init((1, 1)),
+                                         in: .identity,
+                                         elementSize: 1)
+        XCTAssertEqual(skipOne, [(2, 2), (2, 2), (3, 3)].map(CGPoint.init))
+        let input2 = [(1, 1), (1, 1), (1, 1), (1, 1)].map(CGPoint.init)
+        let skipTwo = input2.makeAbsolute(startingWith: .init((1, 1)),
+                                         in: .identity,
+                                         elementSize: 2)
+        XCTAssertEqual(skipTwo, [(2, 2), (2, 2), (2, 2), (3, 3)].map(CGPoint.init))
+        let input3 = [(1, 1), (1, 1), (1, 1), (1, 1), (1, 1)].map(CGPoint.init)
+        let skipThree = input3.makeAbsolute(startingWith: .init((1, 1)),
+                                            in: .identity,
+                                            elementSize: 3)
+        XCTAssertEqual(skipThree, [(2, 2), (2, 2), (2, 2), (2, 2), (3, 3)].map(CGPoint.init))
+    }
+    
 }
+
 
 extension CGPoint {
     
@@ -234,9 +272,14 @@ extension CGPoint {
     
 }
 
+extension CGSize {
+    
+    static let identity = CGSize(width: 1, height: 1)
+    
+}
+
 func createPath(from: PathSegment, start: PriorContext = .zero) -> CGMutablePath {
     let path = CGMutablePath()
-    let identity = CGSize(width: 1, height: 1)
-    _ = from(start, path, identity)
+    _ = from(start, path, .identity)
     return path
 }
