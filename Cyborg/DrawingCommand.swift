@@ -48,7 +48,7 @@ extension CGPoint {
 
 typealias PathSegment = (PriorContext, CGMutablePath, CGSize) -> (PriorContext)
 
-func consumeTrivia(before lit: String , _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
+func consumeTrivia(before lit: String, _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
     return consumeTrivia { stream, index in
         return literal(lit)(stream, index)
             .chain(into: stream, next)
@@ -71,7 +71,7 @@ func parseCurve() -> Parser<PathSegment> {
                         subparser: 3.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
-                                points.reduce(.zero) { (result, points) -> PriorContext in
+                                points.reduce(prior) { (prior, points) -> PriorContext in
                                     let points = points.makeAbsolute(startingWith: prior.point,
                                                                      in: size,
                                                                      elementSize: 2)
@@ -93,7 +93,7 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
                         subparser: 3.coordinatePairs(),
                         creator: { (points: [[CGPoint]]) -> (PathSegment) in
                             return { prior, path, size in
-                                points.reduce(.zero) { (result, points) -> PriorContext in
+                                points.reduce(prior) { (prior, points) -> PriorContext in
                                     let points = points.scaleTo(size: size)
                                     let control1 = points[0],
                                     control2 = points[1],
@@ -168,7 +168,7 @@ func parseClosePath() -> Parser<PathSegment> {
                         creator: { (_) -> (PathSegment) in
                             return { prior, path, _ in
                                 path.closeSubpath()
-                                return prior
+                                return path.currentPoint.asPriorContext
                             }
     })
 }
@@ -179,7 +179,7 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
                         creator: { (_) -> (PathSegment) in
                             return { prior, path, _ in
                                 path.closeSubpath()
-                                return prior
+                                return path.currentPoint.asPriorContext
                             }
     })
 }
@@ -257,7 +257,7 @@ func parseSmoothCurve() -> Parser<PathSegment> {
                                     let (lastPoint, priorControlPoint) = prior.pointAndControlPoint
                                     let points = pair.makeAbsolute(startingWith: lastPoint,
                                                                    in: size,
-                                                                   elementSize: 2)
+                                                                   elementSize: 1)
                                     let end = points[1]
                                     let controlPoint = points[0]
                                     path.addCurve(to: end,
