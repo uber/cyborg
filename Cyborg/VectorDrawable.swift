@@ -219,6 +219,7 @@ public final class VectorDrawable {
             for command in data {
                 context = command(context, path, size)
             }
+            print(path)
             return [path]
         }
         

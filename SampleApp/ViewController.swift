@@ -10,21 +10,11 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            done,
-            work,
-            visibility,
-            baselinesplit,
-            androidDocsSampleTriangle,
-            person,
-            swapHorizontal,
-            translate,
-            timeline,
-            power,
+            argentina,
             ]
             .map { (data) in
                 data.data(using: .utf8)!
         }
-        var lastAnchor = view.leadingAnchor
         for data in drawableData {
             let vectorView = VectorView(frame: .zero)
             let debugView = DebugDiagnosticsView()
@@ -43,10 +33,11 @@ class ViewController: UIViewController {
             }
             NSLayoutConstraint
                 .activate([
-                    vectorView.leadingAnchor.constraint(equalTo: lastAnchor, constant: 8),
+                    vectorView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                     vectorView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+//                    vectorView.widthAnchor.constraint(equalToConstant: 300),
+//                    vectorView.heightAnchor.constraint(equalToConstant: 300)
                     ])
-            lastAnchor = vectorView.trailingAnchor
         }
         
     }
