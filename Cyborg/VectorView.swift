@@ -8,6 +8,22 @@ import UIKit
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
     
+    public var theme: Theme {
+        didSet {
+            updateLayers()
+        }
+    }
+    
+    public init(theme: Theme) {
+        self.theme = theme
+        super.init(frame: .zero)
+    }
+    
+    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
+    public required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     private var drawableLayers: [CALayer] = [] {
         didSet {
             for layer in oldValue {
@@ -36,7 +52,7 @@ open class VectorView: UIView {
     
     private func updateLayers() {
         if let drawable = drawable {
-            drawableLayers = drawable.layerRepresentation(in: bounds)
+            drawableLayers = drawable.layerRepresentation(in: bounds, using: theme)
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
@@ -53,7 +69,7 @@ open class VectorView: UIView {
 
 extension VectorDrawable {
     
-    func layerRepresentation(in bounds: CGRect) -> [CALayer] {
+    func layerRepresentation(in bounds: CGRect, using theme: Theme) -> [CALayer] {
         if bounds.width == 0.0 || bounds.height == 0.0 {
             // there is no point in showing anything for a view of size zero
             return []
@@ -64,7 +80,7 @@ extension VectorDrawable {
                        createPaths(in: viewSpace))
                 .map { (configuration, path) in
                     let layer = CAShapeLayer()
-                    configuration(layer)
+                    configuration(layer, theme)
                     layer.path = path
                     layer.frame = bounds
                     return layer
@@ -75,5 +91,11 @@ extension VectorDrawable {
     var intrinsicSize: CGSize {
         return .init(width: baseWidth, height: baseHeight)
     }
+    
+}
+
+public protocol Theme {
+    
+    func color(named string: String) -> UIColor
     
 }

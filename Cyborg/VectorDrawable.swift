@@ -59,7 +59,7 @@ protocol GroupChild: AnyObject {
     
     func createPaths(in size: CGSize) -> [CGPath]
     
-    func layerConfigurations() -> [(CAShapeLayer) -> ()]
+    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()]
     
 }
 
@@ -115,7 +115,7 @@ public final class VectorDrawable {
         )
     }
     
-    func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
         return Array(
             groups
                 .map { group in
@@ -157,7 +157,7 @@ public final class VectorDrawable {
             )
         }
         
-        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
             return Array(children.map { path in
                 return path.layerConfigurations()
             }
@@ -219,19 +219,24 @@ public final class VectorDrawable {
             for command in data {
                 context = command(context, path, size)
             }
-            print(path)
             return [path]
         }
         
-        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
-            return [apply(to: )]
+        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
+            return [apply(to: using:)]
         }
         
-        func apply(to layer: CAShapeLayer) {
-            layer.strokeColor = strokeColor?.asUIColor.withAlphaComponent(strokeAlpha).cgColor
+        func apply(to layer: CAShapeLayer, using theme: Theme) {
+            layer.strokeColor = strokeColor?
+                .color(from: theme)
+                .withAlphaComponent(strokeAlpha)
+                .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
-            layer.fillColor = fillColor?.asUIColor.withAlphaComponent(fillAlpha).cgColor
+            layer.fillColor = fillColor?
+                .color(from: theme)
+                .withAlphaComponent(fillAlpha)
+                .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
         }

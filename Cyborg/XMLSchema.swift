@@ -67,32 +67,39 @@ enum Color {
     case hardCoded(UIColor)
     
     init?(_ string: String) {
-        // munge the string into a form that Init.init(_:, radix:) can understand
-        var withoutLeadingHashTag = string.replacingOccurrences(of: "#", with: "")
-        if withoutLeadingHashTag.count == 3 {
-            // convert from shorthand hexadecimal form, which doesn't work with the init
-            withoutLeadingHashTag.append(withoutLeadingHashTag)
-        }
-        if let value = Int(withoutLeadingHashTag, radix: 16) {
-            func component(_ mask: Int, _ shift: Int) -> CGFloat {
-                return CGFloat((value & mask) >> shift) / 255
-            }
-            self = .hex(value: UIColor(red: component(0xFF0000, 16),
-                                       green: component(0xFF00, 8),
-                                       blue: component(0xFF, 0),
-                                       alpha: 1.0))
+        if string.hasPrefix("?") {
+            self = .theme(name: String(string[string.index(after: string.startIndex)..<string.endIndex]))
         } else {
-            print("returning bogus hard coded color")
-            self = .hardCoded(.random)
+            // munge the string into a form that Init.init(_:, radix:) can understand
+            var withoutLeadingHashTag = string
+            _ = withoutLeadingHashTag.remove(at: withoutLeadingHashTag.startIndex)
+            if withoutLeadingHashTag.count == 3 {
+                // convert from shorthand hexadecimal form, which doesn't work with the init
+                withoutLeadingHashTag.append(withoutLeadingHashTag)
+            }
+            if let value = Int(withoutLeadingHashTag, radix: 16) {
+                func component(_ mask: Int, _ shift: Int) -> CGFloat {
+                    return CGFloat((value & mask) >> shift) / 255
+                }
+                self = .hex(value: UIColor(red: component(0xFF0000, 16),
+                                           green: component(0xFF00, 8),
+                                           blue: component(0xFF, 0),
+                                           alpha: 1.0))
+            } else {
+                print("returning bogus hard coded color")
+                self = .hardCoded(.random)
+            }
         }
     }
     
-    var asUIColor: UIColor {
+    func color(from theme: Theme) -> UIColor {
         switch self {
         case .hardCoded(let color):
             return color
         case .hex(let value):
             return value
+        case .theme(let name):
+            return theme.color(named: name)
         default:
             fatalError()
         }
