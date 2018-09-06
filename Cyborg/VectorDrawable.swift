@@ -3,6 +3,7 @@
 //
 
 import UIKit
+import libxml2
 
 enum AndroidUnitOfMeasure: String {
     case px
@@ -30,7 +31,7 @@ enum AndroidUnitOfMeasure: String {
     
 }
 
-enum BlendMode: String {
+enum BlendMode: String, XMLStringRepresentable {
     
     // TODO: make these have values from the vector drawable spec, add conversion function
     case add
@@ -51,6 +52,7 @@ enum BlendMode: String {
     case srcOut
     case srcOver
     case xor
+    
 }
 
 /// Child of a group. Necessary because both Paths and Groups are allowed
@@ -59,12 +61,12 @@ protocol GroupChild: AnyObject {
     
     func createPaths(in size: CGSize) -> [CGPath]
     
-    func layerConfigurations() -> [(CAShapeLayer) -> ()]
+    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()]
     
 }
 
 /// A VectorDrawable. This can be displayed in a `VectorView`.
-public final class VectorDrawable {
+public final class VectorDrawable: CustomDebugStringConvertible {
     
     /// The intrinsic width in points.
     public let baseWidth: CGFloat
@@ -85,10 +87,89 @@ public final class VectorDrawable {
     
     let groups: [GroupChild]
     
+    public var debugDescription: String {
+        return """
+        <\(type(of: self)) \(ObjectIdentifier(self)))
+          viewPort: \(viewPortWidth), \(viewPortHeight),
+          baseDimensions: \(baseWidth), \(baseHeight)
+          alpha: \(baseAlpha)
+          groups: \(groups)
+        >
+        """
+    }
+    
+    public static func create(from url: URL,
+                              whenComplete run: @escaping (Result) -> ()) {
+        do {
+            let data = try Data(contentsOf: url)
+            create(from: data, whenComplete: run)
+        } catch let error {
+            run(.error(error.localizedDescription))
+        }
+    }
+    
     public static func create(from data: Data,
                               whenComplete run: @escaping (Result) -> ()) {
-        DrawableParser(data: data, onCompletion: run)
-            .start()
+        let parser = VectorParser()
+        data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> () in
+            let xml = xmlReaderForMemory(bytes,
+                                         Int32(data.count),
+                                         nil,
+                                         nil,
+                                         Int32(XML_PARSE_NOENT.rawValue))
+            var lastElement = ""
+            while xmlTextReaderRead(xml) == 1 {
+                let count = xmlTextReaderAttributeCount(xml)
+                if let namePointer = xmlTextReaderConstName(xml) {
+                    let elementName = String(cString: namePointer)
+                    lastElement = elementName
+                    let type = xmlTextReaderNodeType(xml)
+                    if type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
+                        // we don't care about these, they show up as "#text"
+                        // which disrupts the parsing
+                        continue
+                    }
+                    if type == XML_READER_TYPE_END_ELEMENT.rawValue {
+                        // TODO: check what to do with result here
+                        _ = parser.didEnd(element: lastElement)
+                        continue
+                    }
+                    var attributes = [(XMLString, XMLString)]()
+                    attributes.reserveCapacity(Int(count))
+                    for _ in 0..<count {
+                        if xmlTextReaderMoveToNextAttribute(xml) == 1 {
+                            if let namePointer = xmlTextReaderName(xml),
+                                let valuePointer = xmlTextReaderValue(xml) {
+                                attributes.append((XMLString(namePointer),
+                                                   XMLString(valuePointer)))
+                            } else {
+                                run(.error("failed to parse attribute"))
+                                return
+                            }
+                        } else {
+                            run(.error("failed to move to next attribute"))
+                            return
+                        }
+                    }
+                    if let parseError = parser.parse(element: elementName,
+                                                     attributes: attributes) {
+                        run(.error(parseError))
+                        return
+                    }
+                    // hack: end path elements manually, since they never have children (or do they)
+                    // After it's parsed.
+                    if String(elementName) == "path" {
+                        _ = parser.didEnd(element: lastElement)
+                        continue
+                    }
+                } else {
+                    run(.error("Failed to read element name"))
+                    return
+                }
+            }
+            run(parser.createElement())
+            return
+        }
     }
     
     init(baseWidth: CGFloat,
@@ -115,7 +196,7 @@ public final class VectorDrawable {
         )
     }
     
-    func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
         return Array(
             groups
                 .map { group in
@@ -126,7 +207,7 @@ public final class VectorDrawable {
     }
     
     /// Representation of a <group> element from a VectorDrawable document.
-    public class Group: GroupChild {
+    public class Group: GroupChild, CustomDebugStringConvertible {
         
         /// The name of the group.
         public let name: String?
@@ -135,6 +216,16 @@ public final class VectorDrawable {
         public let transform: Transform
         
         let children: [GroupChild]
+        
+        public var debugDescription: String {
+            return """
+            < \(type(of: self)) \(ObjectIdentifier(self))
+              name: \(name ?? "nil")
+              transform: \(transform)
+              children: \(children)
+            >
+            """
+        }
         
         init(name: String?,
              transform: Transform,
@@ -150,14 +241,14 @@ public final class VectorDrawable {
                     return child
                         .createPaths(in: size)
                         .map { path in
-                            path.apply(transform: transform.affineTransform(in: size))
+                            transform.apply(to: path, in: size)
                     }
                     }
                     .joined()
             )
         }
         
-        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
+        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
             return Array(children.map { path in
                 return path.layerConfigurations()
             }
@@ -219,19 +310,24 @@ public final class VectorDrawable {
             for command in data {
                 context = command(context, path, size)
             }
-            print(path)
             return [path]
         }
         
-        func layerConfigurations() -> [(CAShapeLayer) -> ()] {
-            return [apply(to: )]
+        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
+            return [apply(to: using:)]
         }
         
-        func apply(to layer: CAShapeLayer) {
-            layer.strokeColor = strokeColor?.asUIColor.withAlphaComponent(strokeAlpha).cgColor
+        func apply(to layer: CAShapeLayer, using theme: Theme) {
+            layer.strokeColor = strokeColor?
+                .color(from: theme)
+                .withAlphaComponent(strokeAlpha)
+                .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
-            layer.fillColor = fillColor?.asUIColor.withAlphaComponent(fillAlpha).cgColor
+            layer.fillColor = fillColor?
+                .color(from: theme)
+                .withAlphaComponent(fillAlpha)
+                .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
         }
@@ -240,7 +336,7 @@ public final class VectorDrawable {
 }
 
 /// A rigid body transformation as specced by VectorDrawable.
-public struct Transform {
+public struct Transform: CustomDebugStringConvertible {
     
     /// The offset from the origin to apply the rotation from. Specified in relative coordinates.
     public let pivot: CGPoint
@@ -253,6 +349,17 @@ public struct Transform {
     
     /// The translation, in relative terms.
     public let translation: CGPoint
+    
+    public var debugDescription: String {
+        return """
+        <\(type(of: self))
+          pivot: \(pivot)
+          rotation: \(rotation)
+          scale: \(scale)
+          translation: \(translation)
+        >
+        """
+    }
     
     /// Intializer.
     ///
@@ -277,15 +384,17 @@ public struct Transform {
                                                   scale: CGPoint(x: 1, y: 1),
                                                   translation: .zero)
     
-    func affineTransform(in size: CGSize) -> CGAffineTransform {
+    func apply(to path: CGPath, in size: CGSize) -> CGPath {
         let translation = self.translation.times(size.width, size.height)
-        let pivot = self.translation.times(size.width, size.height)
+        let pivot = self.pivot.times(size.width, size.height)
         let inversePivot = pivot.times(-1, -1)
-        return CGAffineTransform(scaleX: scale.x, y: scale.y)
-            .translatedBy(x: inversePivot.x, y: inversePivot.y)
-            .rotated(by: rotation * .pi / 180)
-            .translatedBy(x: pivot.x, y: pivot.y)
-            .translatedBy(x: translation.x, y: translation.y)
+        return path
+            .apply(transform: CGAffineTransform(scaleX: scale.x, y: scale.y))
+            .apply(transform: CGAffineTransform(translationX: inversePivot.x, y: inversePivot.y)
+                .rotated(by: rotation * .pi / 180)
+                .translatedBy(x: pivot.x, y: pivot.y)
+            )
+            .apply(transform: CGAffineTransform(translationX: translation.x, y: translation.y))
     }
     
 }

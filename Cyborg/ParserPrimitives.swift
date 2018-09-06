@@ -4,21 +4,21 @@
 
 import Foundation
 
-typealias Parser<T> = (String, String.Index) -> ParseResult<T>
+typealias Parser<T> = (XMLString, Int32) -> ParseResult<T>
 
 enum ParseResult<Wrapped> {
     
-    case ok(Wrapped, String.Index)
+    case ok(Wrapped, Int32)
     case error(String)
     
-    init(error: String, index: String.Index, stream: String) {
+    init(error: String, index: Int32, stream: XMLString) {
         self = .error("""
-            Error at \(index.encodedOffset): \(error)
-            \(stream[stream.startIndex..<index])⏏️\(stream[index..<stream.endIndex])
+            Error at \(index): \(error)
+            \(stream[0..<index])⏏️\(stream[index..<stream.count])
             """)
     }
     
-    var asOptional: (Wrapped, String.Index)? {
+    var asOptional: (Wrapped, Int32)? {
         switch self {
         case .ok(let wrapped): return wrapped
         case .error(_): return nil
@@ -32,7 +32,7 @@ enum ParseResult<Wrapped> {
         }
     }
     
-    func map<T>(_ transformer: (Wrapped, String.Index) -> (ParseResult<T>)) -> ParseResult<T> {
+    func map<T>(_ transformer: (Wrapped, Int32) -> (ParseResult<T>)) -> ParseResult<T> {
         switch self {
         case .ok(let value, let index):
             return transformer(value, index)
@@ -40,7 +40,7 @@ enum ParseResult<Wrapped> {
         }
     }
     
-    func chain<T>(into stream: String, _ transformer: Parser<T>) -> ParseResult<T> {
+    func chain<T>(into stream: XMLString, _ transformer: Parser<T>) -> ParseResult<T> {
         switch self {
         case .ok(_, let index):
             return transformer(stream, index)
@@ -84,71 +84,38 @@ func optional<T>(_ parser: @escaping Parser<T>) -> Parser<T?> {
     }
 }
 
-func literal(_ text: String) -> Parser<String> {
-    return { (stream: String, index: String.Index) in
-        if let endOfRange = stream.index(index, offsetBy: text.count, limitedBy: stream.endIndex) {
-            let potentialMatch = stream[index..<endOfRange]
-            if potentialMatch == text {
-                return .ok(String(potentialMatch), endOfRange)
-            } else {
-                return ParseResult(error: "Literal \(text)", index: index, stream: stream)
-            }
+func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XMLString> {
+    return { (stream: XMLString, index: Int32) in
+        if stream.isString(text, at: index) {
+            return .ok(text, index + text.count)
         } else {
-            return ParseResult(error: "Literal was too long for remaining stream", index: index, stream: stream)
-        }
-    }
-}
-
-func delimited(by delimiter: String) -> Parser<String> {
-    let delimiterParser = literal(delimiter)
-    return { (stream: String, index: String.Index) in
-        if let (_, index) = delimiterParser(stream, index).asOptional {
-            return take(until: delimiterParser)(stream, index)
-        } else {
-            return ParseResult(error: "Could not find second delimiter",
-                               index: index,
-                               stream: stream)
-        }
-    }
-}
-
-func take<T>(until match: @escaping Parser<T>) -> Parser<String> {
-    return { (stream: String, index: String.Index) in
-        let startIndex = index
-        var index = index
-        while true {
-            if let (_, index) = match(stream, index).asOptional {
-                return .ok(String(stream[startIndex..<index]), index)
+            if discardErrorMessage {
+                return .error("discarded " + String(text))
             } else {
-                if let endIndex = stream
-                    .index(stream.endIndex,
-                offsetBy: -1,
-                limitedBy: stream.startIndex),
-                    let nextIndex = stream
-                        .index(index,
-                               offsetBy: 1,
-                               limitedBy: endIndex) {
-                    index = nextIndex
-                } else {
-                    return ParseResult(error: "Stream ended before match",
-                                       index: index,
-                                       stream: stream)
-                }
+                return ParseResult(error: "Literal " + String(text), index: index, stream: stream)
             }
         }
     }
 }
 
 func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
+    return { (stream: XMLString, index: Int32) in
         var
         index = index,
         results: [T] = [],
         errors: [String] = []
         errors.reserveCapacity(parsers.count)
+        results.reserveCapacity(Int(stream.count) / 3)
         untilNoMatchFound: while true {
+            var next = index
+            while next != stream.count,
+                (stream[next] == 10 || stream[next] == 32) { // whitespace or newline
+                    // TODO: are these the the only whitespaces that are acceptable?
+                    // is there a more readable way to represent them?
+                    next += 1
+            }
             checkAllParsers: for parser in parsers {
-                switch parser(stream, index) {
+                switch parser(stream, next) {
                 case .ok(let result, let currentIndex):
                     results.append(result)
                     index = currentIndex
@@ -158,7 +125,7 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
                     errors.append(error)
                 }
             }
-            if index == stream.endIndex {
+            if index == stream.count {
                 return .ok(results, index)
             } else {
                 return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
@@ -170,7 +137,7 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
 }
 
 func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
+    return { (stream: XMLString, index: Int32) in
         var
         parsers = parsers,
         index = index,
@@ -184,7 +151,7 @@ func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
                     break
                 }
             }
-            if index == stream.endIndex {
+            if index == stream.count {
                 return .ok(results, index)
             } else {
                 return ParseResult(error: "Couldn't find a match for all parsers",
@@ -200,7 +167,7 @@ func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
 }
 
 func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) -> Parser<(T, U)> {
-    return { (stream: String, index: String.Index) in
+    return { (stream: XMLString, index: Int32) in
         first(stream, index).map { firstResult, index in
             second(stream, index).map { (secondResult, index) in
                 return .ok((firstResult, secondResult), index)
@@ -210,7 +177,7 @@ func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) ->
 }
 
 func n<T>(_ n: Int, of parser: @escaping Parser<T>) -> Parser<[T]> {
-    return { (stream: String, index: String.Index) in
+    return { (stream: XMLString, index: Int32) in
         var taken = 0,
         index = index,
         result = [T]()
@@ -235,13 +202,19 @@ func empty() -> Parser<()> {
     }
 }
 
-func not<T>(_ parser: @escaping Parser<T>) -> Parser<()> {
+func not<T>(_ parser: @escaping Parser<T>, discardError: Bool = false) -> Parser<()> {
     return { stream, index in
         switch parser(stream, index) {
-        case .ok(let result, let index): return ParseResult(error: "Expected Failure, but succeeded with result \(result)",
-            index: index,
-            stream: stream)
-        case .error(_): return .ok((), index)
+        case .ok(let result, let index): 
+        if discardError {
+            return .error("")
+        } else {
+            return ParseResult(error: "Expected Failure, but succeeded with result \(result)",
+                index: index,
+                stream: stream)
+        }
+        case .error(_):
+            return .ok((), index)
         }
     }
 }

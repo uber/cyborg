@@ -5,6 +5,14 @@
 import UIKit
 import Cyborg
 
+class Theme: Cyborg.Theme {
+    
+    func color(named string: String) -> UIColor {
+        return .black
+    }
+    
+}
+
 class ViewController: UIViewController {
     
     override func viewDidLoad() {
@@ -16,9 +24,9 @@ class ViewController: UIViewController {
                 data.data(using: .utf8)!
         }
         for data in drawableData {
-            let vectorView = VectorView(frame: .zero)
-            let debugView = DebugDiagnosticsView()
-            debugView.attach(to: vectorView)
+            let vectorView = VectorView(theme: Theme())
+//            let debugView = DebugDiagnosticsView()
+//            debugView.attach(to: vectorView)
             view.addSubview(vectorView)
             vectorView.translatesAutoresizingMaskIntoConstraints = false
             VectorDrawable

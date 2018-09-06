@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3B14B78121406CBE00C1C696 /* XmlParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B14B78021406CBE00C1C696 /* XmlParsing.swift */; };
 		3B3BE3791FA016B60070D8B1 /* Cyborg.h in Headers */ = {isa = PBXBuildFile; fileRef = 3B3BE3771FA016B60070D8B1 /* Cyborg.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3B3BE37C1FA016B60070D8B1 /* Cyborg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; };
 		3B3BE37D1FA016B60070D8B1 /* Cyborg.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3B3BE3821FA016C20070D8B1 /* VectorDrawable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */; };
 		3B5338F4210F845400C1C16B /* VectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5338F3210F845400C1C16B /* VectorView.swift */; };
 		3B60ECFD211B66AC00177661 /* TestDrawables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B60ECFC211B66AC00177661 /* TestDrawables.swift */; };
+		3B7659CC21405364000FC445 /* libxml2.2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B7659CB21405364000FC445 /* libxml2.2.tbd */; };
 		3B9672AA212745D7004988F5 /* DebugDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B9672A9212745D7004988F5 /* DebugDiagnosticsView.swift */; };
 		3BA380742108E40F00F43697 /* CyborgTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA380732108E40F00F43697 /* CyborgTests.swift */; };
 		3BA380762108E40F00F43697 /* Cyborg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; };
@@ -59,12 +61,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3B14B78021406CBE00C1C696 /* XmlParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XmlParsing.swift; sourceTree = "<group>"; };
 		3B3BE3751FA016B60070D8B1 /* Cyborg.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Cyborg.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3BE3771FA016B60070D8B1 /* Cyborg.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Cyborg.h; sourceTree = "<group>"; };
 		3B3BE3781FA016B60070D8B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorDrawable.swift; sourceTree = "<group>"; };
 		3B5338F3210F845400C1C16B /* VectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorView.swift; sourceTree = "<group>"; };
 		3B60ECFC211B66AC00177661 /* TestDrawables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDrawables.swift; sourceTree = "<group>"; };
+		3B7659CB21405364000FC445 /* libxml2.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxml2.2.tbd; path = usr/lib/libxml2.2.tbd; sourceTree = SDKROOT; };
 		3B9672A9212745D7004988F5 /* DebugDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDiagnosticsView.swift; sourceTree = "<group>"; };
 		3BA380712108E40F00F43697 /* CyborgTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyborgTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BA380732108E40F00F43697 /* CyborgTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyborgTests.swift; sourceTree = "<group>"; };
@@ -87,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B7659CC21405364000FC445 /* libxml2.2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -114,6 +119,7 @@
 			children = (
 				3B3BE3771FA016B60070D8B1 /* Cyborg.h */,
 				3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */,
+				3B14B78021406CBE00C1C696 /* XmlParsing.swift */,
 				3BA38082210A47C900F43697 /* VectorDrawableParser.swift */,
 				3BA38080210A475A00F43697 /* XMLSchema.swift */,
 				3BA3807E210A471A00F43697 /* DrawingCommand.swift */,
@@ -123,6 +129,14 @@
 				3B3BE3781FA016B60070D8B1 /* Info.plist */,
 			);
 			path = Cyborg;
+			sourceTree = "<group>";
+		};
+		3B7659CA21405364000FC445 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				3B7659CB21405364000FC445 /* libxml2.2.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		3BA380722108E40F00F43697 /* CyborgTests */ = {
@@ -141,6 +155,7 @@
 				3B3BE3761FA016B60070D8B1 /* Cyborg */,
 				3BA380722108E40F00F43697 /* CyborgTests */,
 				3BCCBFBE1F7D658C00404EFD /* Products */,
+				3B7659CA21405364000FC445 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -317,6 +332,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B14B78121406CBE00C1C696 /* XmlParsing.swift in Sources */,
 				3BA38081210A475A00F43697 /* XMLSchema.swift in Sources */,
 				3BA3807F210A471A00F43697 /* DrawingCommand.swift in Sources */,
 				3BA3807D2109571000F43697 /* ParserPrimitives.swift in Sources */,
@@ -405,6 +421,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				OTHER_SWIFT_FLAGS = "-I$(SDKROOT)/usr/include/libxml2";
 				PRODUCT_BUNDLE_IDENTIFIER = uber.Cyborg;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -441,6 +458,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				OTHER_SWIFT_FLAGS = "-I$(SDKROOT)/usr/include/libxml2";
 				PRODUCT_BUNDLE_IDENTIFIER = uber.Cyborg;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -630,7 +648,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = uber.SampleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
@@ -646,7 +664,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = uber.SampleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
 		};
