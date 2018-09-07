@@ -49,7 +49,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
     
     subscript (_ range: CountableRange<Int32>) -> XMLString {
-        if range.upperBound <= count {
+        if range.upperBound <= count && range.lowerBound >= 0 {
             let newUnderlying = underlying.advanced(by: Int(range.lowerBound))
             return XMLString(newUnderlying, count: range.upperBound - range.lowerBound)
         } else {
@@ -58,7 +58,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
     
     subscript (_ index: Int32) -> xmlChar {
-        if index < count {
+        if index < count && index >= 0 {
             return underlying.advanced(by: Int(index)).pointee
         } else {
             fatalError("Index out of bounds")
@@ -111,6 +111,12 @@ extension String {
                       encoding: .utf8,
                       freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge taht this can fail
     }
+    
+}
+
+extension Int8 {
+    
+    static let comma: Int8 = 44
     
 }
 

@@ -17,8 +17,8 @@ public typealias ParseError = String
 // MARK: - Element Parsers
 
 func assign<T>(_ string: XMLString,
-                  to path: inout T,
-                  creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
+               to path: inout T,
+               creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
     if let float = creator(string) {
         path = float
         return nil
@@ -29,16 +29,12 @@ func assign<T>(_ string: XMLString,
 
 func assignFloat(_ string: XMLString,
                  to path: inout CGFloat?) -> ParseError? {
-    return assign(string, to: &path, creatingWith: { (string) in
-        CGFloat(string)
-    })
+    return assign(string, to: &path, creatingWith: CGFloat.init)
 }
 
 func assignFloat(_ string: XMLString,
                  to path: inout CGFloat) -> ParseError? {
-    return assign(string, to: &path, creatingWith: { (string) in
-        CGFloat(string)
-    })
+    return assign(string, to: &path, creatingWith: CGFloat.init)
 }
 
 protocol NodeParsing: AnyObject {
@@ -53,6 +49,9 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     var currentChild: Child?
     var children: [Child] = []
     var hasFoundElement = false
+    // Hack: indicates whether this is just a shell we created for the case where there's a child
+    // at a high level. For example a vector node with a path elemement as its child: we make a fake
+    // group for it so it type checks.
     let isArtificial: Bool
     
     init(isArtificial: Bool = false) {
@@ -428,7 +427,7 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
                                             next == buffer {
                                             return ParseResult(error: "failed to make an int", index: index, stream: stream)
                                         } else if var final = next {
-                                            if final.pointee == 44 { // comma
+                                            if final.pointee == .comma { 
                                                 final = final.advanced(by: 1)
                                             }
                                             let index = index + Int32(buffer.distance(to: final))

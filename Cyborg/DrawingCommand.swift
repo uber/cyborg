@@ -477,9 +477,8 @@ extension Int {
             }
             if found % 2 == 0,
                 (found / 2) % self == 0 {
-                let pointsFound = (found / 2) / self
                 let numberOfCommandsFound = (found / 2) / self
-                var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: pointsFound)
+                var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: numberOfCommandsFound)
                 for i in 0..<numberOfCommandsFound {
                     for j in 0..<self {
                         results[i].insert(CGPoint(x: floats[(i * self + j) * 2],
