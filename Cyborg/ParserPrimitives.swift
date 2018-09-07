@@ -80,7 +80,7 @@ func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XML
             return .ok(text, index + text.count)
         } else {
             if discardErrorMessage {
-                return .error("discarded " + String(text))
+                return .error("")
             } else {
                 return ParseResult(error: "Literal " + String(text), index: index, stream: stream)
             }

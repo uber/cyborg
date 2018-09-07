@@ -109,7 +109,7 @@ extension String {
         self = String(bytesNoCopy: UnsafeMutableRawPointer(xmlString.underlying),
                       length: Int(xmlString.count),
                       encoding: .utf8,
-                      freeWhenDone: false) ?? "Invalid Data" // TODO: better error message, or acknowledge taht this can fail
+                      freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge taht this can fail
     }
     
 }
