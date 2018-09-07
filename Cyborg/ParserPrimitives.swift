@@ -47,6 +47,7 @@ enum ParseResult<Wrapped> {
         case .error(let error): return .error(error)
         }
     }
+    
 }
 
 func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
@@ -73,17 +74,6 @@ func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
     }
 }
 
-func optional<T>(_ parser: @escaping Parser<T>) -> Parser<T?> {
-    return { stream, index in
-        switch parser(stream, index) {
-        case .ok(let result, let index):
-            return .ok(result, index)
-        case .error(_):
-            return .ok(nil, index)
-        }
-    }
-}
-
 func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XMLString> {
     return { (stream: XMLString, index: Int32) in
         if stream.isString(text, at: index) {
@@ -106,93 +96,33 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
         errors: [String] = []
         errors.reserveCapacity(parsers.count)
         results.reserveCapacity(Int(stream.count) / 3)
-        untilNoMatchFound: while true {
-            var next = index
-            while next != stream.count,
-                (stream[next] == 10 || stream[next] == 32) { // whitespace or newline
-                    // TODO: are these the the only whitespaces that are acceptable?
-                    // is there a more readable way to represent them?
-                    next += 1
-            }
-            checkAllParsers: for parser in parsers {
-                switch parser(stream, next) {
-                case .ok(let result, let currentIndex):
-                    results.append(result)
-                    index = currentIndex
-                    errors.removeAll()
-                    continue untilNoMatchFound
-                case .error(let error):
-                    errors.append(error)
+        untilNoMatchFound:
+            while true {
+                var next = index
+                while next != stream.count,
+                    (stream[next] == .whitespace || stream[next] == .newline) {
+                        next += 1
                 }
-            }
-            if index == stream.count {
-                return .ok(results, index)
-            } else {
-                return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
-                    index: index,
-                    stream: stream)
-            }
-        }
-    }
-}
-
-func anyOrder<T>(of parsers: [Parser<T>]) -> Parser<[T]> {
-    return { (stream: XMLString, index: Int32) in
-        var
-        parsers = parsers,
-        index = index,
-        results: [T] = []
-        untilNoMatchFound: while true {
-            for (parserIndex, parser) in parsers.enumerated() {
-                if let (match, currentIndex) = parser(stream, index).asOptional {
-                    _ = parsers.remove(at: parserIndex)
-                    results.append(match)
-                    index = currentIndex
-                    break
+                checkAllParsers:
+                    for parser in parsers {
+                        switch parser(stream, next) {
+                        case .ok(let result, let currentIndex):
+                            results.append(result)
+                            index = currentIndex
+                            errors.removeAll()
+                            continue untilNoMatchFound
+                        case .error(let error):
+                            errors.append(error)
+                        }
                 }
-            }
-            if index == stream.count {
-                return .ok(results, index)
-            } else {
-                return ParseResult(error: "Couldn't find a match for all parsers",
-                                   index: index,
-                                   stream: stream)
-            }
+                if index == stream.count {
+                    return .ok(results, index)
+                } else {
+                    return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
+                        index: index,
+                        stream: stream)
+                }
         }
-    }
-}
-
-func anyOrder<T>(of parsers: Parser<T>...) -> Parser<[T]> {
-    return anyOrder(of: parsers)
-}
-
-func pair<T, U>(of first: @escaping Parser<T>, _ second: @escaping Parser<U>) -> Parser<(T, U)> {
-    return { (stream: XMLString, index: Int32) in
-        first(stream, index).map { firstResult, index in
-            second(stream, index).map { (secondResult, index) in
-                return .ok((firstResult, secondResult), index)
-            }
-        }
-    }
-}
-
-func n<T>(_ n: Int, of parser: @escaping Parser<T>) -> Parser<[T]> {
-    return { (stream: XMLString, index: Int32) in
-        var taken = 0,
-        index = index,
-        result = [T]()
-        while taken != n {
-            if let (currentResult, nextIndex) = parser(stream, index).asOptional {
-                result.append(currentResult)
-                index = nextIndex
-                taken += 1
-            } else {
-                return ParseResult(error: "Could not take until \(n), only found \(taken)",
-                    index: index,
-                    stream: stream)
-            }
-        }
-        return .ok(result, index)
     }
 }
 
@@ -218,22 +148,3 @@ func not<T>(_ parser: @escaping Parser<T>, discardError: Bool = false) -> Parser
         }
     }
 }
-
-func or<T>(_ first: @escaping Parser<T>, _ second: @escaping Parser<T>) -> Parser<T> {
-    return { stream, index in
-        let result = first(stream, index)
-        if let error = result.asParseError {
-            let result = second(stream, index)
-            if let secondError = result.asParseError {
-                return ParseResult(error: "Or: Couldn't match either parser, errors were: \(error), \(secondError)",
-                                   index: index,
-                                   stream: stream)
-            } else {
-                return result
-            }
-        } else {
-            return result
-        }
-    }
-}
-

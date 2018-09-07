@@ -6,6 +6,12 @@ import Foundation
 import libxml2
 
 /// Wrapper around a string returned by libxml2.
+/// Per the libxml2 spec, these are utf8 strings, and we take them at their word.
+///
+/// This string operates in UTF-8 code units. The strings we'll be parsing are
+/// ASCII only anyway, user facing ones that might have complex grapheme clusters
+/// will be immediately converting to `String` anyway, and we won't be processing them.
+///
 /// Note: These strings should never be stored. They are only valid
 /// for the scope of the `xmlReaderPointer` they were created from.
 struct XMLString: Equatable, CustomDebugStringConvertible {
@@ -80,6 +86,8 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
     
     static func ~=(lhs: String, rhs: XMLString) -> Bool {
+        // This function is used in switch statements to allow us to match using string literals.
+        // As ideas go, this is probably not the best.
         let count = lhs.count
         if count != rhs.count {
             return false
@@ -98,15 +106,20 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
 extension String {
     
     init(_ xmlString: XMLString) {
+        // *If* libXML is implemented correctly, this should never fail. If not, we return a string that we think will
+        // propogate the error in a reasonable way.
         self = String(bytesNoCopy: UnsafeMutableRawPointer(xmlString.underlying),
                       length: Int(xmlString.count),
                       encoding: .utf8,
-                      freeWhenDone: false) ?? "Invalid Data" // TODO: better error message
+                      freeWhenDone: false) ?? "Invalid Data" // TODO: better error message, or acknowledge taht this can fail
     }
     
-    init(copyingMutablePointer pointer: UnsafeMutablePointer<xmlChar>) {
-        self.init(cString: UnsafePointer(pointer))
-    }
+}
+
+extension UInt8 {
+    
+    static let whitespace: UInt8 = 10
+    static let newline: UInt8 = 32
     
 }
 

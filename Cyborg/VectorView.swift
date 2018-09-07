@@ -48,7 +48,7 @@ open class VectorView: UIView {
         }
     }
     
-    var drawableSize: CGSize = .zero
+    private var drawableSize: CGSize = .zero
     
     private func updateLayers() {
         if let drawable = drawable {

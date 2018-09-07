@@ -410,9 +410,7 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
     return { stream, index in
         var next = index
         while next != stream.count,
-            stream[next] == 10 || stream[next] == 32 { // whitespace or newline
-                // TODO: are these the the only whitespaces that are acceptable?
-                // is there a more readable way to represent them?
+            stream[next] == .whitespace || stream[next] == .newline {
             next += 1
         }
         return before(stream, next)
@@ -441,10 +439,6 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     }
 }
 
-fileprivate let whitespace = CharacterSet.whitespacesAndNewlines
-
-fileprivate let digits = CharacterSet.decimalDigits
-
 func numbers() -> Parser<[CGFloat]> {
     return { stream, index in
         var result = [CGFloat]()
@@ -457,49 +451,6 @@ func numbers() -> Parser<[CGFloat]> {
             return .ok(result, nextIndex)
         } else {
             return .error("")
-        }
-    }
-}
-
-func seq<T, U>(_ first: @escaping Parser<T>,
-                  _ second: @escaping Parser<U>) -> Parser<(T, U)> {
-    return { stream, index in
-        first(stream, index).map { result, index in
-            second(stream, index).map { secondResult, index in
-                .ok((result, secondResult), index)
-            }
-        }
-    }
-}
-
-
-func seq<T, U, V>(_ first: @escaping Parser<T>,
-                  _ second: @escaping Parser<U>,
-                  _ third: @escaping Parser<V>) -> Parser<(T, U, V)> {
-    return { stream, index in
-        first(stream, index).map { result, index in
-            second(stream, index).map { secondResult, index in
-                third(stream, index).map { thirdResult, index in
-                    .ok((result, secondResult, thirdResult), index)
-                }
-            }
-        }
-    }
-}
-
-func seq<T, U, V, W>(_ first: @escaping Parser<T>,
-                     _ second: @escaping Parser<U>,
-                     _ third: @escaping Parser<V>,
-                     _ fourth: @escaping Parser<W>) -> Parser<(T, U, V, W)> {
-    return { stream, index in
-        first(stream, index).map { result, index in
-            second(stream, index).map { secondResult, index in
-                third(stream, index).map { thirdResult, index in
-                    fourth(stream, index).map { fourthResult, index in
-                        .ok((result, secondResult, thirdResult, fourthResult), index)
-                    }
-                }
-            }
         }
     }
 }
