@@ -117,6 +117,9 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                                          nil,
                                          nil,
                                          Int32(XML_PARSE_NOENT.rawValue))
+            defer {
+                xmlFreeTextReader(xml)
+            }
             var lastElement = ""
             while xmlTextReaderRead(xml) == 1 {
                 let count = xmlTextReaderAttributeCount(xml)
@@ -138,8 +141,8 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                     attributes.reserveCapacity(Int(count))
                     for _ in 0..<count {
                         if xmlTextReaderMoveToNextAttribute(xml) == 1 {
-                            if let namePointer = xmlTextReaderName(xml),
-                                let valuePointer = xmlTextReaderValue(xml) {
+                            if let namePointer = xmlTextReaderConstName(xml),
+                                let valuePointer = xmlTextReaderConstValue(xml) {
                                 attributes.append((XMLString(namePointer),
                                                    XMLString(valuePointer)))
                             } else {

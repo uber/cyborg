@@ -21,12 +21,10 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     
     let underlying: UnsafeMutablePointer<xmlChar> // TODO: make fileprivate
     
-    init(char: xmlChar) {
-        underlying = UnsafeMutablePointer<xmlChar>.allocate(capacity: 1) // TODO: don't leak
-        underlying.pointee = char
-        count = 1
+    init(_ underlying: UnsafePointer<xmlChar>) {
+        self.init(UnsafeMutablePointer(mutating: underlying))
     }
-    
+
     init(_ underlying: UnsafeMutablePointer<xmlChar>) {
         count = xmlStrlen(underlying)
         self.underlying = underlying
@@ -120,6 +118,58 @@ extension UInt8 {
     
     static let whitespace: UInt8 = 10
     static let newline: UInt8 = 32
+    
+}
+
+extension XMLString {
+    
+    fileprivate static func globallyScoped(_ value: UInt8) -> XMLString {
+        // It's okay not to deallocate this because it's only ever used at a global scope.
+        // It is not recognized as a memory leak in instruments.
+        let globallyScopedBuffer = UnsafeMutablePointer<xmlChar>.allocate(capacity: 1)
+        globallyScopedBuffer.pointee = value
+        return XMLString(globallyScopedBuffer)
+    }
+    
+    static let m: XMLString = globallyScoped(109)
+    
+    static let M: XMLString = globallyScoped(77)
+    
+    static let l: XMLString = globallyScoped(108)
+    
+    static let L: XMLString = globallyScoped(76)
+    
+    static let v: XMLString = globallyScoped(118)
+    
+    static let V: XMLString = globallyScoped(86)
+    
+    static let h: XMLString = globallyScoped(104)
+    
+    static let H: XMLString = globallyScoped(72)
+    
+    static let c: XMLString = globallyScoped(99)
+    
+    static let C: XMLString = globallyScoped(67)
+    
+    static let s: XMLString = globallyScoped(115)
+    
+    static let S: XMLString = globallyScoped(83)
+    
+    static let q: XMLString = globallyScoped(113)
+    
+    static let Q: XMLString = globallyScoped(81)
+    
+    static let t: XMLString = globallyScoped(116)
+    
+    static let T: XMLString = globallyScoped(84)
+    
+    static let a: XMLString = globallyScoped(97)
+    
+    static let A: XMLString = globallyScoped(65)
+    
+    static let z: XMLString = globallyScoped(122)
+    
+    static let Z: XMLString = globallyScoped(90)
     
 }
 

@@ -334,7 +334,28 @@ enum DrawingCommand: String {
     case arcAbsolute = "A"
     
     var asXMLString: XMLString {
-        return XMLString(char: rawValue.utf8.first!) // TODO
+        switch self {
+        case .closePath: return .z
+        case .closePathAbsolute: return .Z
+        case .move: return .m
+        case .moveAbsolute: return .M
+        case .line: return .l
+        case .lineAbsolute: return .L
+        case .vertical: return .v
+        case .verticalAbsolute: return .V
+        case .horizontal: return .h
+        case .horizontalAbsolute: return .H
+        case .curve: return .c
+        case .curveAbsolute: return .C
+        case .smoothCurve: return .s
+        case .smoothCurveAbsolute: return .S
+        case .quadratic: return .q
+        case .quadraticAbsolute: return .Q
+        case .reflectedQuadratic: return .t
+        case .reflectedQuadraticAbsolute: return .T
+        case .arc: return .a
+        case .arcAbsolute: return .A
+        }
     }
     
     func parser() -> Parser<PathSegment>? { // TODO: should not be optional
