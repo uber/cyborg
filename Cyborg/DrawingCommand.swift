@@ -48,7 +48,7 @@ extension CGPoint {
 
 typealias PathSegment = (PriorContext, CGMutablePath, CGSize) -> (PriorContext)
 
-func consumeTrivia(before lit: String, _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
+func consumeTrivia(before lit: XMLString, _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
     return consumeTrivia { stream, index in
         return literal(lit)(stream, index)
             .chain(into: stream, next)
@@ -58,10 +58,14 @@ func consumeTrivia(before lit: String, _ next: @escaping Parser<PathSegment>) ->
 func parseCommand<T>(_ command: DrawingCommand,
                      subparser: @escaping Parser<T>,
                      creator: @escaping (T) -> (PathSegment)) -> Parser<PathSegment> {
-    return consumeTrivia(before: command.rawValue) { stream, index in
-        subparser(stream, index)
-            .map { result, index in
-                .ok(creator(result), index)
+    let command = command.asXMLString // TODO: don't capture this after it stops leaking
+    return { stream, index in
+        literal(command, discardErrorMessage: true)(stream, index)
+            .chain(into: stream) { stream, index in
+                subparser(stream, index)
+                    .map { result, index in
+                        .ok(creator(result), index)
+                }
         }
     }
 }
@@ -135,7 +139,7 @@ func parseMove() -> Parser<PathSegment> {
 
 func parseLine() -> Parser<PathSegment> {
     return parseCommand(.line,
-                        subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
+                        subparser: oneOrMore(of: coordinatePair()),
                         creator: { (points: [CGPoint]) -> (PathSegment) in
                             return { (prior: PriorContext, path: CGMutablePath, size: CGSize) -> PriorContext in
                                 let points = points.makeAbsolute(startingWith: prior.point, in: size)
@@ -149,7 +153,7 @@ func parseLine() -> Parser<PathSegment> {
 
 func parseLineAbsolute() -> Parser<PathSegment> {
     return parseCommand(.lineAbsolute,
-                        subparser: oneOrMore(of: consumeTrivia(before: coordinatePair())),
+                        subparser: oneOrMore(of: coordinatePair()),
                         creator: { (points: [CGPoint]) -> (PathSegment) in
                             return { (prior: PriorContext, path: CGMutablePath, size: CGSize) -> PriorContext in
                                 let points = points.scaleTo(size: size)
@@ -186,7 +190,7 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
 
 func parseHorizontal() -> Parser<PathSegment> {
     return parseCommand(.horizontal,
-                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        subparser: numbers(),
                         creator: { (xs: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = xs.map { x in
@@ -202,7 +206,7 @@ func parseHorizontal() -> Parser<PathSegment> {
 
 func parseHorizontalAbsolute() -> Parser<PathSegment> {
     return parseCommand(.horizontalAbsolute,
-                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        subparser: numbers(),
                         creator: { (xs: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = xs.map { x in
@@ -218,7 +222,7 @@ func parseHorizontalAbsolute() -> Parser<PathSegment> {
 
 func parseVertical() -> Parser<PathSegment> {
     return parseCommand(.vertical,
-                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        subparser: numbers(),
                         creator: { (ys: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = ys.map { y in
@@ -234,7 +238,7 @@ func parseVertical() -> Parser<PathSegment> {
 
 func parseVerticalAbsolute() -> Parser<PathSegment> {
     return parseCommand(.verticalAbsolute,
-                        subparser: oneOrMore(of: consumeTrivia(before: number())),
+                        subparser: numbers(),
                         creator: { (ys: [CGFloat]) -> (PathSegment) in
                             return { prior, path, size in
                                 let points = ys.map { y in
@@ -306,7 +310,6 @@ func parseQuadraticAbsolute() -> Parser<PathSegment> {
     })
 }
 
-
 enum DrawingCommand: String {
     
     case closePath = "z"
@@ -330,7 +333,32 @@ enum DrawingCommand: String {
     case arc = "a"
     case arcAbsolute = "A"
     
-    var parser: Parser<PathSegment>? { // TODO: should not be optional
+    var asXMLString: XMLString {
+        switch self {
+        case .closePath: return .z
+        case .closePathAbsolute: return .Z
+        case .move: return .m
+        case .moveAbsolute: return .M
+        case .line: return .l
+        case .lineAbsolute: return .L
+        case .vertical: return .v
+        case .verticalAbsolute: return .V
+        case .horizontal: return .h
+        case .horizontalAbsolute: return .H
+        case .curve: return .c
+        case .curveAbsolute: return .C
+        case .smoothCurve: return .s
+        case .smoothCurveAbsolute: return .S
+        case .quadratic: return .q
+        case .quadraticAbsolute: return .Q
+        case .reflectedQuadratic: return .t
+        case .reflectedQuadraticAbsolute: return .T
+        case .arc: return .a
+        case .arcAbsolute: return .A
+        }
+    }
+    
+    func parser() -> Parser<PathSegment>? { // TODO: should not be optional
         switch self {
         case .curve: return parseCurve()
         case .curveAbsolute: return parseAbsoluteCurve()
@@ -438,8 +466,30 @@ extension Array where Element == CGPoint {
 extension Int {
     
     func coordinatePairs() -> Parser<[[CGPoint]]> {
-        return oneOrMore(of: n(self,
-                               of: consumeTrivia(before: coordinatePair())))
+        return { stream, index in
+            var floats = [CGFloat](repeating: 0, count: self * 2)
+            var found = 0
+            var next = index
+            while case .ok(let value, let index) = number(from: stream, at: next) {
+                floats.insert(value, at: found)
+                next = index
+                found += 1
+            }
+            if found % 2 == 0 && (found / 2) % self == 0 {
+                let numberOfCommandsFound = (found / 2) / self
+                var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: numberOfCommandsFound)
+                for i in 0..<numberOfCommandsFound {
+                    for j in 0..<self {
+                        results[i].insert(CGPoint(x: floats[(i * self + j) * 2],
+                                                  y: floats[(i * self + j) * 2 + 1]),
+                                          at: j)
+                    }
+                }
+                return .ok(results, next)
+            } else {
+                return .error("")
+            }
+        }
     }
     
 }

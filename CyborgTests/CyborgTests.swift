@@ -54,12 +54,11 @@ class CyborgTests: XCTestCase {
                         relativeTo = point
                     }
                     expected.closeSubpath()
-                    let transform: CGAffineTransform = (drawable
+                    let transform = (drawable
                         .groups[0] as! VectorDrawable.Group)
                         .transform
-                        .affineTransform(in: noResizing)
-                    expected = expected
-                        .apply(transform: transform)
+                    expected = transform
+                        .apply(to: expected, in: noResizing)
                         .mutableCopy()!
                     XCTAssertEqual(path[0], expected)
                 case .error(let error):
@@ -70,8 +69,11 @@ class CyborgTests: XCTestCase {
     }
     
     func test_move() {
-        let move = "M300,70"
-        let result = parseMoveAbsolute()(move, move.startIndex)
+        let (move, buffer) = XMLString.create(from: "M300,70")
+        defer {
+            buffer.deallocate()
+        }
+        let result = parseMoveAbsolute()(move, 0)
         let path = CGMutablePath()
         let expected = CGMutablePath()
         let movement: PriorContext = CGPoint(x: 300, y: 70).asPriorContext
@@ -87,15 +89,18 @@ class CyborgTests: XCTestCase {
     }
     
     func test_closePath() {
-        let close = "   z"
-        let result = parseClosePath()(close, close.startIndex)
+        let (close, buffer) = XMLString.create(from: "   z")
+        defer {
+            buffer.deallocate()
+        }
+        let result = consumeTrivia(before: parseClosePath())(close, 0)
         let expected = CGMutablePath()
         expected.closeSubpath()
         switch result {
         case .ok(let wrapped, let index):
             let path = CGMutablePath()
             _ = wrapped(.zero, path, .zero)
-            XCTAssertEqual(index, close.endIndex)
+            XCTAssertEqual(index, close.count)
             XCTAssertEqual(path, expected)
         case .error(let error):
             XCTFail(error)
@@ -103,135 +108,129 @@ class CyborgTests: XCTestCase {
     }
     
     func test_line() {
-        let lineData = "l 1,0 2,1 3,4"
-        let expected = CGMutablePath()
-        let points = [(1,0), (2,1), (3,4)].map(CGPoint.init)
-        var last: CGPoint = .zero
-        for point in points {
-            let point = point.add(last)
-            last = point
-            expected.addLine(to: point)
-        }
-        switch parseLine()(lineData, lineData.startIndex) {
-        case .ok(let result, _):
-            let path = createPath(from: result)
-            XCTAssertEqual(path, expected)
-        case .error(let error):
-            XCTFail(error)
-        }
-    }
-    
-    func test_pair() {
-        let first = "a"
-        let second = "b"
-        let expected = first + second
-        let parser = pair(of: literal(first), literal(second))
-        var result = parser(expected, expected.startIndex)
-        switch result {
-        case .ok(let str, _):
-            XCTAssertEqual(str.0 + str.1, expected)
-        case .error(let error):
-            XCTFail(error)
-        }
-        for failureCase in [first, second] {
-            result = parser(failureCase, failureCase.startIndex)
-            switch result {
-            case .ok(let incorrectResult, _):
-                XCTFail("Succeeded: found \(incorrectResult)")
-            case .error(_): break
+        "l 1,0 2,1 3,4".withXMLString { (lineData) in
+            let expected = CGMutablePath()
+            let points = [(1,0), (2,1), (3,4)].map(CGPoint.init)
+            var last: CGPoint = .zero
+            for point in points {
+                let point = point.add(last)
+                last = point
+                expected.addLine(to: point)
+            }
+            switch parseLine()(lineData, 0) {
+            case .ok(let result, _):
+                let path = createPath(from: result)
+                XCTAssertEqual(path, expected)
+            case .error(let error):
+                XCTFail(error)
             }
         }
     }
     
     func test_oneorMoreOf() {
-        let str = "a"
-        let contents = "aaa"
-        XCTAssertEqual(oneOrMore(of: literal(str))(contents, contents.startIndex).asOptional?.0,
-                       Array(repeating: str, count: 3))
-        let contents2 = "   a a   a"
-        XCTAssertEqual(oneOrMore(of: consumeTrivia(before: literal(str)))(contents2, contents2.startIndex).asOptional?.0,
-                       Array(repeating: str, count: 3))
+        "a".withXMLString { (str) in
+            "aaa".withXMLString { (contents) in
+                XCTAssertEqual(oneOrMore(of: literal(str))(contents, 0).asOptional?.0,
+                               Array(repeating: str, count: 3))
+                "   a a   a".withXMLString { (contents2) in
+                    XCTAssertEqual(oneOrMore(of: consumeTrivia(before: literal(str)))(contents2, 0).asOptional?.0,
+                                   Array(repeating: str, count: 3))
+                }
+            }
+        }
     }
     
     func test_number_parser() {
-        let str = "-432"
-        switch Cyborg.number()(str, str.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, -432)
-            XCTAssertEqual(index, str.endIndex)
-        case .error(let error):
-            XCTFail(error)
+        "-432".withXMLString { (str) in
+            switch Cyborg.number(from: str, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, -432)
+                XCTAssertEqual(index, str.count)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
-        let str2 = "40"
-        switch Cyborg.number()(str2, str2.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, 40)
-            XCTAssertEqual(index, str2.endIndex)
-        case .error(let error):
-            XCTFail(error)
+        "40".withXMLString { (str2) in
+            switch Cyborg.number(from: str2, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, 40)
+                XCTAssertEqual(index, str2.count)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
-        let str3 = "4"
-        switch Cyborg.number()(str3, str3.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, 4)
-            XCTAssertEqual(index, str3.endIndex)
-        case .error(let error):
-            XCTFail(error)
+        "4".withXMLString { (str3) in
+            switch Cyborg.number(from: str3, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, 4)
+                XCTAssertEqual(index, str3.count)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
-        let str4 = "4.4 "
-        switch Cyborg.number()(str4, str4.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, 4.4)
-            XCTAssertEqual(index, str4.index(before: str4.endIndex))
-        case .error(let error):
-            XCTFail(error)
+        "4.4 ".withXMLString { (str4) in
+            switch Cyborg.number(from: str4, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, 4.4)
+                XCTAssertEqual(index, str4.count - 1)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
-        let str5 = ".9 "
-        switch Cyborg.number()(str5, str5.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, 0.9)
-            XCTAssertEqual(index, str5.index(before: str5.endIndex))
-        case .error(let error):
-            XCTFail(error)
+        ".9 ".withXMLString { (str5) in
+            switch Cyborg.number(from: str5, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, 0.9)
+                XCTAssertEqual(index, str5.count - 1)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
-        let str6 = "-.9 "
-        switch Cyborg.number()(str6, str6.startIndex) {
-        case .ok(let result, let index):
-            XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
-            XCTAssertEqual(index, str6.index(before: str6.endIndex))
-        case .error(let error):
-            XCTFail(error)
+        "-.9 ".withXMLString { (str6) in
+            switch Cyborg.number(from: str6, at: 0) {
+            case .ok(let result, let index):
+                XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
+                XCTAssertEqual(index, str6.count - 1)
+            case .error(let error):
+                XCTFail(error)
+            }
         }
 
     }
     
     func test_parse_curve() {
-        let curve = "c2,2 3,2 8,2"
+        let (curve, buffer) = XMLString.create(from: "c2,2 3,2 8,2")
+        defer {
+            buffer.deallocate()
+        }
         let start = CGPoint(x: 6, y: 2)
         let expected = CGMutablePath()
         expected.move(to: start)
         expected.addCurve(to: CGPoint(x: 8, y: 2).add(start),
                           control1: CGPoint(x: 2, y: 2).add(start),
                           control2: CGPoint(x: 3, y: 2).add(start))
-        switch parseCurve()(curve, curve.startIndex) {
+        switch parseCurve()(curve, 0) {
         case .ok(let wrapped, let index):
             let result = CGMutablePath()
             result.move(to: start)
             _ = wrapped(start.asPriorContext, result, CGSize(width: 1, height: 1))
             XCTAssertEqual(result, expected)
-            XCTAssertEqual(index, curve.endIndex)
+            XCTAssertEqual(index, curve.count)
         case .error(let error):
             XCTFail(error)
         }
     }
     
     func test_complex_number() {
-        let text = "-2.38419e-08"
+        let (text, buffer) = XMLString.create(from: "-2.38419e-08")
+        defer {
+            buffer.deallocate()
+        }
         let expected: CGFloat = -2.38419e-08
-        switch number()(text, text.startIndex) {
+        switch number(from: text, at: 0) {
         case .ok(let result, let index):
             XCTAssert(result == expected)
-            XCTAssertEqual(index, text.endIndex)
+            XCTAssertEqual(index, text.count)
         case .error(let error):
             XCTFail(error)
         }
@@ -282,4 +281,33 @@ func createPath(from: PathSegment, start: PriorContext = .zero) -> CGMutablePath
     let path = CGMutablePath()
     _ = from(start, path, .identity)
     return path
+}
+
+extension String {
+    
+    func withXMLString(_ function: (XMLString) -> ()) {
+        let (string, buffer) = XMLString.create(from: self)
+        defer {
+            buffer.deallocate()
+        }
+        function(string)
+    }
+    
+}
+
+extension XMLString {
+    
+    static func create(from string: String) -> (XMLString, UnsafeMutablePointer<UInt8>) {
+        return string.withCString { (pointer) in
+            pointer.withMemoryRebound(to: UInt8.self,
+                                      capacity: string.count + 1, { (pointer) in
+                                        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: string.count + 1)
+                                        for i in 0..<string.count + 1 {
+                                            buffer.advanced(by: i).pointee = pointer.advanced(by: i).pointee
+                                        }
+                                        return (XMLString(buffer, count: Int32(string.count)), buffer)
+            })
+        }
+    }
+    
 }

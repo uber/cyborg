@@ -14,6 +14,7 @@ enum Element: String {
 /// Elements of the <vector> element of a VectorDrawable document.
 enum VectorProperty: String {
     
+    case schema = "xmlns:android"
     case height = "android:height"
     case width = "android:width"
     case viewPortHeight = "android:viewportHeight"
@@ -66,7 +67,8 @@ enum Color {
     case resource(named: String)
     case hardCoded(UIColor)
     
-    init?(_ string: String) {
+    init?(_ string: XMLString) {
+        let string = String(string) // TODO: see if we can do this without allocating a string
         if string.hasPrefix("?") {
             self = .theme(name: String(string[string.index(after: string.startIndex)..<string.endIndex]))
         } else {
@@ -122,12 +124,12 @@ extension UIColor {
     
 }
 
-enum LineCap: String {
+enum LineCap: String, XMLStringRepresentable {
     
     case butt
     case round
     case square
-    
+        
     var intoCoreAnimation: String {
         switch self {
         case .butt: return kCALineCapButt
@@ -138,7 +140,7 @@ enum LineCap: String {
     
 }
 
-enum LineJoin: String {
+enum LineJoin: String, XMLStringRepresentable {
     
     case miter
     case round
@@ -151,4 +153,5 @@ enum LineJoin: String {
         case .miter: return kCALineJoinMiter
         }
     }
+    
 }
