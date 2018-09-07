@@ -69,7 +69,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
         return String(self)
     }
     
-    func isString(_ string: XMLString, at index: Int32) -> Bool {
+    func matches(_ string: XMLString, at index: Int32) -> Bool {
         let upperbound = index + string.count
         if upperbound <= count {
             for i in 0..<string.count {
@@ -86,8 +86,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     static func ~=(lhs: String, rhs: XMLString) -> Bool {
         // This function is used in switch statements to allow us to match using string literals.
         // As ideas go, this is probably not the best.
-        let count = lhs.count
-        if count != rhs.count {
+        if lhs.count != rhs.count {
             return false
         } else {
             for (index, character) in lhs.utf8.enumerated() {
@@ -194,8 +193,7 @@ extension CGFloat {
                                                                   count: 1)
                                 }
                                 let result = strtod(buffer, &next)
-                                if result == 0.0,
-                                    next == buffer {
+                                if result == 0.0 && next == buffer {
                                     return nil
                                 } else {
                                     return CGFloat(result)

@@ -76,7 +76,7 @@ func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
 
 func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XMLString> {
     return { (stream: XMLString, index: Int32) in
-        if stream.isString(text, at: index) {
+        if stream.matches(text, at: index) {
             return .ok(text, index + text.count)
         } else {
             if discardErrorMessage {

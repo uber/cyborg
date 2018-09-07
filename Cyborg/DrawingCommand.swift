@@ -475,8 +475,7 @@ extension Int {
                 next = index
                 found += 1
             }
-            if found % 2 == 0,
-                (found / 2) % self == 0 {
+            if found % 2 == 0 && (found / 2) % self == 0 {
                 let numberOfCommandsFound = (found / 2) / self
                 var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: numberOfCommandsFound)
                 for i in 0..<numberOfCommandsFound {
