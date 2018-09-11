@@ -347,8 +347,12 @@ final class PathParser: GroupChildParser {
                     }
                     result = subResult
                 case .fillColor:
-                    fillColor = Color(value)! // TODO:
-                    result = nil // TODO:
+                    if let color = Color(value) {
+                        fillColor = color
+                        result = nil
+                    } else {
+                        result = "Failed to create a color"
+                    }
                 case .strokeWidth:
                     result = assignFloat(value, to: &strokeWidth)
                 case .strokeColor:
@@ -595,24 +599,23 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     let substring = stream[index..<stream.count]
-    let pointer = substring.underlying
-    return pointer.withMemoryRebound(to: Int8.self,
-                                     capacity: Int(substring.count)) { buffer in
-        var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
-        let result = strtod(buffer, &next)
-        if result == 0.0,
-            next == buffer {
-            return ParseResult(error: "failed to make an int", index: index, stream: stream)
-        } else if var final = next {
-            if final.pointee == .comma {
-                final = final.advanced(by: 1)
+    return substring
+        .withSignedIntegers { (buffer) in
+            var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
+            let result = strtod(buffer, &next)
+            if result == 0.0,
+                next == buffer {
+                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+            } else if var final = next {
+                if final.pointee == .comma {
+                    final = final.advanced(by: 1)
+                }
+                let index = index + Int32(buffer.distance(to: final))
+                return .ok(CGFloat(result), index)
+            } else {
+                return ParseResult(error: "failed to make an int", index: index, stream: stream)
             }
-            let index = index + Int32(buffer.distance(to: final))
-            return .ok(CGFloat(result), index)
-        } else {
-            return ParseResult(error: "failed to make an int", index: index, stream: stream)
         }
-    }
 }
 
 func numbers() -> Parser<[CGFloat]> {

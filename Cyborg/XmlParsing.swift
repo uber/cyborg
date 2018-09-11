@@ -18,9 +18,9 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
 
     /// Count in UTF-8 code units.
     let count: Int32
-
-    let underlying: UnsafeMutablePointer<xmlChar> // TODO: make fileprivate
-
+    
+    fileprivate let underlying: UnsafeMutablePointer<xmlChar>
+    
     init(_ underlying: UnsafePointer<xmlChar>) {
         self.init(UnsafeMutablePointer(mutating: underlying))
     }
@@ -64,6 +64,14 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             fatalError("Index out of bounds")
         }
     }
+    
+    subscript(safeIndex index: Int32) -> xmlChar? {
+        if index < count && index >= 0 {
+            return underlying.advanced(by: Int(index)).pointee
+        } else {
+            return nil
+        }
+    }
 
     var debugDescription: String {
         return String(self)
@@ -83,9 +91,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
         }
     }
 
-    static func ~= (lhs: String, rhs: XMLString) -> Bool {
-        // This function is used in switch statements to allow us to match using string literals.
-        // As ideas go, this is probably not the best.
+    static func ~=(lhs: String, rhs: XMLString) -> Bool {
         if lhs.count != rhs.count {
             return false
         } else {
@@ -97,6 +103,14 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return true
         }
     }
+    
+    func withSignedIntegers<T>(_ function: (UnsafeMutablePointer<Int8>) -> (T)) -> T {
+        return underlying
+            .withMemoryRebound(to: Int8.self,
+                               capacity: Int(count),
+                               function)
+    }
+    
 }
 
 extension String {
@@ -107,7 +121,7 @@ extension String {
         self = String(bytesNoCopy: UnsafeMutableRawPointer(xmlString.underlying),
                       length: Int(xmlString.count),
                       encoding: .utf8,
-                      freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge taht this can fail
+                      freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge that this can fail
     }
 
 }
@@ -123,7 +137,9 @@ extension UInt8 {
     static let whitespace: UInt8 = 10
 
     static let newline: UInt8 = 32
-
+    
+    static let questionMark: UInt8 = 64
+    
 }
 
 extension XMLString {
@@ -181,9 +197,7 @@ extension CGFloat {
     init?(_ xmlString: XMLString) {
         let count = Int(xmlString.count)
         if let float = (xmlString
-            .underlying
-            .withMemoryRebound(to: Int8.self,
-                               capacity: count) { (buffer) -> (CGFloat?) in
+            .withSignedIntegers { (buffer) -> (CGFloat?) in
                 var next: UnsafeMutablePointer<Int8>? = buffer
                 for i in 0..<count {
                     var current = Int8(xmlString.underlying.advanced(by: i).pointee)

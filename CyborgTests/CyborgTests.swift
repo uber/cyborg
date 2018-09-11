@@ -188,7 +188,7 @@ class CyborgTests: XCTestCase {
         "-.9 ".withXMLString { str6 in
             switch Cyborg.number(from: str6, at: 0) {
             case .ok(let result, let index):
-                XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
+                XCTAssertEqual(result, -0.9)
                 XCTAssertEqual(index, str6.count - 1)
             case .error(let error):
                 XCTFail(error)

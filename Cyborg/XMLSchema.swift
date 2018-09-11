@@ -69,12 +69,11 @@ enum Color {
     case hardCoded(UIColor)
 
     init?(_ string: XMLString) {
-        let string = String(string) // TODO: see if we can do this without allocating a string
-        if string.hasPrefix("?") {
-            self = .theme(name: String(string[string.index(after: string.startIndex)..<string.endIndex]))
+        if string[safeIndex: 0] == .questionMark {
+            self = .theme(name: String(string[1..<string.count]))
         } else {
             // munge the string into a form that Init.init(_:, radix:) can understand
-            var withoutLeadingHashTag = string
+            var withoutLeadingHashTag = String(string)
             _ = withoutLeadingHashTag.remove(at: withoutLeadingHashTag.startIndex)
             if withoutLeadingHashTag.count == 3 {
                 // convert from shorthand hexadecimal form, which doesn't work with the init
