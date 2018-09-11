@@ -14,7 +14,7 @@ enum ParseResult<Wrapped> {
     init(error: String, index: Int32, stream: XMLString) {
         self = .error("""
             Error at \(index): \(error)
-            \(stream[0..<index])⏏️\(stream[index..<stream.count])
+            \(stream[0..<index])🔥\(stream[index..<stream.count])
             """)
     }
     
@@ -91,37 +91,44 @@ func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XML
 func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
     return { (stream: XMLString, index: Int32) in
         var
-        index = index,
+        next = index,
         results: [T] = [],
         errors: [String] = []
         errors.reserveCapacity(parsers.count)
         results.reserveCapacity(Int(stream.count) / 3)
-        untilNoMatchFound:
-            while true {
-                var next = index
-                while next != stream.count,
-                    (stream[next] == .whitespace || stream[next] == .newline) {
-                        next += 1
+
+        // If errors is ever not empty at this point, this means we have not found a parser
+        // which matches the current command
+        while errors.isEmpty {
+            // Ignore all whitespace
+            while next != stream.count,
+                (stream[next] == .whitespace || stream[next] == .newline) {
+                    next += 1
+            }
+
+            var parserIndex = 0
+            var hasFoundResult = false
+            while parserIndex < parsers.count && !hasFoundResult {
+                let parser = parsers[parserIndex]
+                switch parser(stream, next) {
+                case .ok(let result, let currentIndex):
+                    results.append(result)
+                    next = currentIndex
+                    errors.removeAll()
+                    hasFoundResult = true
+                case .error(let error):
+                    errors.append(error)
                 }
-                checkAllParsers:
-                    for parser in parsers {
-                        switch parser(stream, next) {
-                        case .ok(let result, let currentIndex):
-                            results.append(result)
-                            index = currentIndex
-                            errors.removeAll()
-                            continue untilNoMatchFound
-                        case .error(let error):
-                            errors.append(error)
-                        }
-                }
-                if index == stream.count {
-                    return .ok(results, index)
-                } else {
-                    return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
-                        index: index,
-                        stream: stream)
-                }
+                parserIndex += 1
+            }
+        }
+
+        if next == stream.count {
+            return .ok(results, index)
+        } else {
+            return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.joined(separator: "\n"))",
+                index: index,
+                stream: stream)
         }
     }
 }
