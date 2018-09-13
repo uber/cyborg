@@ -9,6 +9,7 @@ enum Element: String {
     case vector = "vector"
     case path = "path"
     case group = "group"
+    case clipPath = "clip-path"
 }
 
 /// Elements of the <vector> element of a VectorDrawable document.
@@ -44,6 +45,12 @@ enum PathProperty: String {
     case strokeMiterLimit = "android:strokeMiterLimit"
     case fillType = "android:fillType"
     
+}
+
+enum ClipPathProperty: String {
+    
+    case name = "android:name"
+    case pathData = "android:pathData"
 }
 
 /// Elements of the <group> element of a VectorDrawable document
