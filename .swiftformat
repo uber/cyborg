@@ -6,4 +6,4 @@
 --empty tuple
 --wrapcollections preserve
 --patternlet inline
---disable emptyBraces
+--disable emptyBraces,blankLinesAtStartOfScope,blankLinesAtEndOfScope

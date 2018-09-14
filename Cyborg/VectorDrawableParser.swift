@@ -44,6 +44,7 @@ protocol NodeParsing: AnyObject {
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
+
     var currentChild: Child?
     var children: [Child] = []
     var hasFoundElement = false
@@ -101,9 +102,11 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             return element == name.rawValue
         }
     }
+
 }
 
 final class VectorParser: ParentParser<GroupParser> {
+
     var baseWidth: CGFloat?
     var baseHeight: CGFloat?
     var viewPortWidth: CGFloat?
@@ -184,9 +187,11 @@ final class VectorParser: ParentParser<GroupParser> {
             return nil
         }
     }
+
 }
 
 final class PathParser: GroupChildParser {
+
     static let name: Element = .path
 
     var pathName: String?
@@ -293,10 +298,13 @@ final class PathParser: GroupChildParser {
             return nil
         }
     }
+
 }
 
 protocol GroupChildParser: NodeParsing {
+
     func createElement() -> GroupChild?
+
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
@@ -352,6 +360,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
 /// Necessary because we can't use a protocol to satisfy a generic with
 /// type bounds, as that would make it impossible to dispatch static functions.
 final class AnyGroupParserChild: GroupChildParser {
+
     let parser: GroupChildParser
 
     init(erasing parser: GroupChildParser) {
@@ -369,9 +378,11 @@ final class AnyGroupParserChild: GroupChildParser {
     func createElement() -> GroupChild? {
         return parser.createElement()
     }
+
 }
 
 final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
+
     override var name: Element {
         return .group
     }
@@ -448,6 +459,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         default: return nil
         }
     }
+
 }
 
 // MARK: - Parser Combinators

@@ -7,6 +7,7 @@ import UIKit
 
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
+
     public var theme: Theme {
         didSet {
             updateLayers()
@@ -66,6 +67,7 @@ open class VectorView: UIView {
     open override var intrinsicContentSize: CGSize {
         return drawableSize
     }
+
 }
 
 extension VectorDrawable {
@@ -88,10 +90,13 @@ extension VectorDrawable {
     var intrinsicSize: CGSize {
         return .init(width: baseWidth, height: baseHeight)
     }
+
 }
 
 public protocol Theme {
+
     func color(named string: String) -> UIColor
+
 }
 
 final class ChildResizingLayer: CALayer {

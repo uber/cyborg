@@ -6,6 +6,7 @@ import libxml2
 import UIKit
 
 enum AndroidUnitOfMeasure: String {
+
     case px
     case inch = "in"
     case mm
@@ -28,6 +29,7 @@ enum AndroidUnitOfMeasure: String {
         .pt,
         .sp,
     ]
+
 }
 
 enum BlendMode: String, XMLStringRepresentable {
@@ -64,6 +66,7 @@ protocol GroupChild: AnyObject {
 
 /// A VectorDrawable. This can be displayed in a `VectorView`.
 public final class VectorDrawable: CustomDebugStringConvertible {
+
     /// The intrinsic width in points.
     public let baseWidth: CGFloat
 
@@ -345,6 +348,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
         }
     }
+
 }
 
 extension Array where Element == Transform {
@@ -358,6 +362,7 @@ extension Array where Element == Transform {
 }
 /// A rigid body transformation as specced by VectorDrawable.
 public struct Transform: CustomDebugStringConvertible {
+
     /// The offset from the origin to apply the rotation from. Specified in relative coordinates.
     public let pivot: CGPoint
 
@@ -415,13 +420,16 @@ public struct Transform: CustomDebugStringConvertible {
                 .translatedBy(x: pivot.x, y: pivot.y))
             .apply(transform: CGAffineTransform(translationX: translation.x, y: translation.y))
     }
+
 }
 
 extension CGPath {
+
     func apply(transform: CGAffineTransform) -> CGPath {
         var transform = transform
         return copy(using: &transform) ?? self
     }
+
 }
 
 protocol PathCreating: AnyObject {

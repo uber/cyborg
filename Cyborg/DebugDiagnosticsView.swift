@@ -10,6 +10,7 @@ import UIKit
 /// its host view, and uses inefficient core graphics APIs.
 /// **Do not use it in production**.
 public final class DebugDiagnosticsView: UIView {
+
     private var view: VectorView?
     private let padding: CGFloat = 10
     private var lastLaidOutSize: CGSize = .zero
@@ -108,4 +109,5 @@ public final class DebugDiagnosticsView: UIView {
             }
         }
     }
+
 }

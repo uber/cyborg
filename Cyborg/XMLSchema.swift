@@ -123,6 +123,7 @@ extension UIColor {
 }
 
 enum LineCap: String, XMLStringRepresentable {
+
     case butt
     case round
     case square
@@ -137,6 +138,7 @@ enum LineCap: String, XMLStringRepresentable {
 }
 
 enum LineJoin: String, XMLStringRepresentable {
+
     case miter
     case round
     case bevel

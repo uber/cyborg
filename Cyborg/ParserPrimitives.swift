@@ -7,6 +7,7 @@ import Foundation
 typealias Parser<T> = (XMLString, Int32) -> ParseResult<T>
 
 enum ParseResult<Wrapped> {
+
     case ok(Wrapped, Int32)
     case error(String)
 
@@ -88,8 +89,7 @@ func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XML
 
 func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
     return { (stream: XMLString, index: Int32) in
-        var
-            index = index,
+        var index = index,
             results: [T] = [],
             errors: [String] = []
         errors.reserveCapacity(parsers.count)

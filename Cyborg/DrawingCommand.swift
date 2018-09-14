@@ -5,6 +5,7 @@
 import Foundation
 
 enum PriorContext: Equatable {
+
     case last(CGPoint)
     case lastAndControlPoint(CGPoint, CGPoint)
 
@@ -34,6 +35,7 @@ enum PriorContext: Equatable {
         default: return false
         }
     }
+
 }
 
 extension CGPoint {
@@ -290,6 +292,7 @@ func parseQuadraticAbsolute() -> Parser<PathSegment> {
 }
 
 enum DrawingCommand: String {
+
     case closePath = "z"
     case closePathAbsolute = "Z"
     case move = "m"
@@ -435,9 +438,11 @@ extension Array where Element == CGPoint {
             return result
         }
     }
+
 }
 
 extension Int {
+
     func coordinatePairs() -> Parser<[[CGPoint]]> {
         return { stream, index in
             var floats = [CGFloat](repeating: 0, count: self * 2)
@@ -464,4 +469,5 @@ extension Int {
             }
         }
     }
+
 }

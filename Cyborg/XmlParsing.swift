@@ -15,6 +15,7 @@ import libxml2
 /// Note: These strings should never be stored. They are only valid
 /// for the scope of the `xmlReaderPointer` they were created from.
 struct XMLString: Equatable, CustomDebugStringConvertible {
+
     /// Count in UTF-8 code units.
     let count: Int32
 
@@ -99,6 +100,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
 }
 
 extension String {
+
     init(_ xmlString: XMLString) {
         // *If* libXML is implemented correctly, this should never fail. If not, we return a string that we think will
         // propogate the error in a reasonable way.
@@ -107,15 +109,21 @@ extension String {
                       encoding: .utf8,
                       freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge taht this can fail
     }
+
 }
 
 extension Int8 {
+
     static let comma: Int8 = 44
+
 }
 
 extension UInt8 {
+
     static let whitespace: UInt8 = 10
+
     static let newline: UInt8 = 32
+
 }
 
 extension XMLString {
@@ -169,6 +177,7 @@ extension XMLString {
 }
 
 extension CGFloat {
+
     init?(_ xmlString: XMLString) {
         let count = Int(xmlString.count)
         if let float = (xmlString
@@ -193,18 +202,23 @@ extension CGFloat {
             return nil
         }
     }
+
 }
 
 extension Bool {
+
     init?(_ xmlString: XMLString) {
         self.init(String(xmlString))
     }
+
 }
 
 protocol XMLStringRepresentable: RawRepresentable where RawValue == String {}
 
 extension XMLStringRepresentable {
+
     init?(_ xmlString: XMLString) {
         self.init(rawValue: String(xmlString))
     }
+
 }
