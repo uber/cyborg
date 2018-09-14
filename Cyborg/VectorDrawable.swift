@@ -57,11 +57,11 @@ enum BlendMode: String, XMLStringRepresentable {
 /// Child of a group. Necessary because both Paths and Groups are allowed
 /// to be children of Groups, apparently.
 protocol GroupChild: AnyObject {
-    
+
     func createLayers(using theme: Theme,
                       drawableSize: CGSize,
                       transform: [Transform]) -> [CALayer]
-    
+
 }
 
 /// A VectorDrawable. This can be displayed in a `VectorView`.
@@ -189,7 +189,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         self.baseAlpha = baseAlpha
         self.groups = groups
     }
-    
+
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group: GroupChild, CustomDebugStringConvertible {
         /// The name of the group.
@@ -199,9 +199,9 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         public let transform: Transform
 
         let children: [GroupChild]
-        
+
         let clipPaths: [ClipPath]
-        
+
         public var debugDescription: String {
             return """
             < \(type(of: self)) \(ObjectIdentifier(self))
@@ -221,11 +221,11 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.children = children
             self.clipPaths = clipPaths
         }
-        
+
         func createLayers(using theme: Theme,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
-            var clipPathLayers = clipPaths.map { (clipPath) in
+            var clipPathLayers = clipPaths.map { clipPath in
                 clipPath.createLayer(drawableSize: drawableSize,
                                      transform: transform + [self.transform])
             }
@@ -234,11 +234,11 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                     child.createLayers(using: theme,
                                        drawableSize: drawableSize,
                                        transform: transform + [self.transform])
-                    }
-                    .joined()
+                }
+                .joined()
             )
             if clipPathLayers.isEmpty {
-             return pathLayers
+                return pathLayers
             } else {
                 let superLayer = ChildResizingLayer()
                 let maskParent = clipPathLayers.remove(at: 0)
@@ -252,20 +252,20 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                 return [superLayer]
             }
         }
-        
+
     }
-    
+
     public class ClipPath: PathCreating {
-        
+
         public let name: String?
         let data: [PathSegment]
-        
+
         init(name: String?,
              path: [PathSegment]) {
             self.name = name
             data = path
         }
-        
+
         func createLayer(drawableSize size: CGSize,
                          transform: [Transform]) -> CALayer {
             let layer = ShapeLayer(pathData: self,
@@ -278,7 +278,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
 
     /// Representation of a <path> element from a VectorDrawable document.
     public class Path: GroupChild, PathCreating {
-        
+
         /// The name of the group.
         public let name: String?
 
@@ -322,7 +322,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.fillType = fillType
             self.strokeWidth = strokeWidth
         }
-        
+
         func createLayers(using theme: Theme,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
@@ -331,7 +331,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                                         drawableSize: drawableSize,
                                         transform: transform)]
         }
-        
+
         func apply(to layer: CAShapeLayer,
                    using theme: Theme) {
             layer.strokeColor = strokeColor?
@@ -352,14 +352,15 @@ public final class VectorDrawable: CustomDebugStringConvertible {
 }
 
 extension Array where Element == Transform {
-    
+
     func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
-        return reduce(path) { (path, transform) in
+        return reduce(path) { path, transform in
             transform.apply(to: path, relativeTo: size)
         }
     }
 
 }
+
 /// A rigid body transformation as specced by VectorDrawable.
 public struct Transform: CustomDebugStringConvertible {
 
@@ -408,7 +409,7 @@ public struct Transform: CustomDebugStringConvertible {
                                                   rotation: 0,
                                                   scale: CGPoint(x: 1, y: 1),
                                                   translation: .zero)
-    
+
     func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
         let translation = self.translation.times(size.width, size.height)
         let pivot = self.pivot.times(size.width, size.height)
@@ -433,13 +434,13 @@ extension CGPath {
 }
 
 protocol PathCreating: AnyObject {
-    
+
     var data: [PathSegment] { get }
-    
+
 }
 
 extension PathCreating {
-    
+
     func createPaths(in size: CGSize) -> CGPath {
         let path = CGMutablePath()
         var context: PriorContext = .zero

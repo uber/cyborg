@@ -69,7 +69,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             hasFoundElement = true
             return parseAttributes(attributes)
         } else if let (child, assignment) = childForElement(element) {
-            self.currentChild = child
+            currentChild = child
             assignment(child)
             return child.parse(element: element, attributes: attributes)
         } else {
@@ -84,12 +84,12 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     func parseAttributes(_: [(XMLString, XMLString)]) -> ParseError? {
         return nil
     }
-    
+
     func appendChild(_ child: Child) {
         children.append(child)
     }
-    
-    func childForElement(_ element: String) -> (Child, (Child) -> ())? {
+
+    func childForElement(_: String) -> (Child, (Child) -> ())? {
         return nil
     }
 
@@ -148,7 +148,7 @@ final class VectorParser: ParentParser<GroupParser> {
         }
         return nil
     }
-    
+
     override func childForElement(_ element: String) -> (GroupParser, (GroupParser) -> ())? {
         switch Element(rawValue: element) {
         // The group parser already has all its elements filled out,
@@ -308,15 +308,15 @@ protocol GroupChildParser: NodeParsing {
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
-    
+
     func createElement() -> GroupChild? {
         return createElement()
     }
-    
+
     var name: String?
     var commands: [PathSegment]?
-    
-    func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+
+    func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
             if let property = ClipPathProperty(rawValue: String(key)) {
                 switch property {
@@ -326,10 +326,10 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                         .all
                         .compactMap { (command) -> Parser<PathSegment>? in
                             command.parser()
-                    }
+                        }
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
-                        self.commands = result
+                        commands = result
                     case .error(let error):
                         let baseError = "Error parsing the <android:clipPath> tag: "
                         return baseError + error
@@ -341,11 +341,11 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
         }
         return nil
     }
-    
-    func didEnd(element: String) -> Bool {
+
+    func didEnd(element _: String) -> Bool {
         return true
     }
-    
+
     func createElement() -> VectorDrawable.ClipPath? {
         if let commands = commands {
             return .init(name: name,
@@ -354,7 +354,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
             return nil
         }
     }
-    
+
 }
 
 /// Necessary because we can't use a protocol to satisfy a generic with
@@ -396,7 +396,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     var translationX: CGFloat = 0
     var translationY: CGFloat = 0
     var clipPaths = [ClipPathParser]()
-    
+
     init(groupName: String? = nil, isArtificial: Bool = false) {
         self.groupName = groupName
         super.init(isArtificial: isArtificial)
@@ -436,7 +436,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     }
 
     func createElement() -> GroupChild? {
-        let childElements = children.map { (parser) in
+        let childElements = children.map { parser in
             parser.createElement()! // TODO: handle failure cases
         }
         let clipPaths: [VectorDrawable.ClipPath] = self.clipPaths.map { $0.createElement()! } // TODO: handle failure cases
@@ -448,7 +448,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
                                     children: childElements,
                                     clipPaths: clipPaths)
     }
-    
+
     override func childForElement(_ element: String) -> (AnyGroupParserChild, (AnyGroupParserChild) -> ())? {
         switch Element(rawValue: element) {
         case .some(.path): return (AnyGroupParserChild(erasing: PathParser()), appendChild)

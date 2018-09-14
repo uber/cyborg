@@ -6,9 +6,9 @@ import Foundation
 
 /// Elements of a VectorDrawable document.
 enum Element: String {
-    case vector = "vector"
-    case path = "path"
-    case group = "group"
+    case vector
+    case path
+    case group
     case clipPath = "clip-path"
 }
 
@@ -44,7 +44,7 @@ enum PathProperty: String {
 }
 
 enum ClipPathProperty: String {
-    
+
     case name = "android:name"
     case pathData = "android:pathData"
 }
