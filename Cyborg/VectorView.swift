@@ -7,23 +7,22 @@ import UIKit
 
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
-    
     public var theme: Theme {
         didSet {
             updateLayers()
         }
     }
-    
+
     public init(theme: Theme) {
         self.theme = theme
         super.init(frame: .zero)
     }
-    
+
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
-    public required init?(coder aDecoder: NSCoder) {
+    public required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private var drawableLayers: [CALayer] = [] {
         didSet {
             for layer in oldValue {
@@ -34,7 +33,7 @@ open class VectorView: UIView {
             }
         }
     }
-    
+
     open override func layoutSubviews() {
         super.layoutSubviews()
         if bounds.size != .zero {
@@ -43,7 +42,7 @@ open class VectorView: UIView {
             }
         }
     }
-    
+
     /// The drawable to display.
     open var drawable: VectorDrawable? {
         didSet {
@@ -51,9 +50,9 @@ open class VectorView: UIView {
             invalidateIntrinsicContentSize()
         }
     }
-    
+
     private var drawableSize: CGSize = .zero
-    
+
     private func updateLayers() {
         if let drawable = drawable {
             drawableLayers = drawable.layerRepresentation(in: bounds, using: theme)
@@ -63,13 +62,11 @@ open class VectorView: UIView {
             drawableSize = .zero
         }
     }
-    
+
     open override var intrinsicContentSize: CGSize {
         return drawableSize
     }
-    
 }
-
 
 extension VectorDrawable {
     
@@ -87,17 +84,14 @@ extension VectorDrawable {
                 .joined()
         )
     }
-    
+
     var intrinsicSize: CGSize {
         return .init(width: baseWidth, height: baseHeight)
     }
-    
 }
 
 public protocol Theme {
-    
     func color(named string: String) -> UIColor
-    
 }
 
 final class ChildResizingLayer: CALayer {

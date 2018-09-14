@@ -5,5 +5,5 @@
 --ranges nospace
 --empty tuple
 --wrapcollections preserve
---disable closingparen,emptyBraces
 --patternlet inline
+--disable emptyBraces

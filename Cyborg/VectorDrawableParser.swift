@@ -38,14 +38,12 @@ func assignFloat(_ string: XMLString,
 }
 
 protocol NodeParsing: AnyObject {
-    
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError?
-    
+
     func didEnd(element: String) -> Bool
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
-    
     var currentChild: Child?
     var children: [Child] = []
     var hasFoundElement = false
@@ -53,15 +51,15 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     // at a high level. For example a vector node with a path elemement as its child: we make a fake
     // group for it so it type checks.
     let isArtificial: Bool
-    
+
     init(isArtificial: Bool = false) {
         self.isArtificial = isArtificial
     }
-    
+
     var name: Element {
         return .vector
     }
-    
+
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         if let currentChild = currentChild {
             return currentChild.parse(element: element, attributes: attributes)
@@ -81,8 +79,8 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             }
         }
     }
-    
-    func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
+
+    func parseAttributes(_: [(XMLString, XMLString)]) -> ParseError? {
         return nil
     }
     
@@ -93,7 +91,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     func childForElement(_ element: String) -> (Child, (Child) -> ())? {
         return nil
     }
-    
+
     func didEnd(element: String) -> Bool {
         if let child = currentChild,
             child.didEnd(element: element) {
@@ -103,11 +101,9 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             return element == name.rawValue
         }
     }
-    
 }
 
 final class VectorParser: ParentParser<GroupParser> {
-    
     var baseWidth: CGFloat?
     var baseHeight: CGFloat?
     var viewPortWidth: CGFloat?
@@ -116,7 +112,7 @@ final class VectorParser: ParentParser<GroupParser> {
     var tintColor: Color?
     var autoMirrored: Bool = false
     var alpha: CGFloat = 1
-    
+
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
             if let property = VectorProperty(rawValue: String(key)) {
@@ -125,8 +121,8 @@ final class VectorParser: ParentParser<GroupParser> {
                 case .schema:
                     // TODO: fail if schema not found
                     result = nil
-                case .height: result = assign(value, to: &baseHeight, creatingWith: parseAndroidMeasurement(from: ))
-                case .width: result = assign(value, to: &baseWidth,  creatingWith: parseAndroidMeasurement(from: ))
+                case .height: result = assign(value, to: &baseHeight, creatingWith: parseAndroidMeasurement(from:))
+                case .width: result = assign(value, to: &baseWidth, creatingWith: parseAndroidMeasurement(from:))
                 case .viewPortHeight: result = assignFloat(value, to: &viewPortHeight)
                 case .viewPortWidth: result = assignFloat(value, to: &viewPortWidth)
                 case .tint: result = assign(value, to: &tintColor, creatingWith: Color.init)
@@ -152,15 +148,15 @@ final class VectorParser: ParentParser<GroupParser> {
     
     override func childForElement(_ element: String) -> (GroupParser, (GroupParser) -> ())? {
         switch Element(rawValue: element) {
-            // The group parser already has all its elements filled out,
-            // so it'll "fall through" directly to the path.
+        // The group parser already has all its elements filled out,
+        // so it'll "fall through" directly to the path.
         // All we need to do is give it a name for it to complete.
         case .some(.path): return (GroupParser(groupName: "anonymous", isArtificial: true), appendChild)
         case .some(.group): return (GroupParser(), appendChild)
         default: return nil
         }
     }
-    
+
     func createElement() -> Result {
         if let baseWidth = baseWidth,
             let baseHeight = baseHeight,
@@ -179,22 +175,20 @@ final class VectorParser: ParentParser<GroupParser> {
             return .error("Could not parse a <vector> element, but there was no error. This is a bug in the VectorDrawable Library.")
         }
     }
-    
+
     func parseAndroidMeasurement(from text: XMLString) -> CGFloat? {
-        if case .ok(let number, let index) = number(from: text, at: 0),
-            let _ = AndroidUnitOfMeasure(rawValue: String(text[index..<text.count])) {
+        if case let .ok(number, index) = number(from: text, at: 0),
+            let _ = AndroidUnitOfMeasure(rawValue: String(text[index ..< text.count])) {
             return number
         } else {
             return nil
         }
     }
-    
 }
 
 final class PathParser: GroupChildParser {
-    
     static let name: Element = .path
-    
+
     var pathName: String?
     var commands: [PathSegment]?
     var fillColor: Color?
@@ -209,8 +203,8 @@ final class PathParser: GroupChildParser {
     var strokeMiterLimit: CGFloat = 4
     var strokeLineJoin: LineJoin = .miter
     var fillType: CGPathFillRule = .winding
-    
-    func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+
+    func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         for (key, value) in attributes {
             if let property = PathProperty(rawValue: String(key)) {
@@ -225,18 +219,18 @@ final class PathParser: GroupChildParser {
                         .all
                         .compactMap { (command) -> Parser<PathSegment>? in
                             command.parser()
-                    }
+                        }
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
-                        self.commands = result
+                        commands = result
                         subResult = nil
-                    case .error(let error):
+                    case let .error(error):
                         subResult = baseError + error
                     }
                     result = subResult
                 case .fillColor:
-                    fillColor = Color(value)! // TODO
-                    result = nil // TODO
+                    fillColor = Color(value)! // TODO:
+                    result = nil // TODO:
                 case .strokeWidth:
                     result = assignFloat(value, to: &strokeWidth)
                 case .strokeColor:
@@ -275,11 +269,11 @@ final class PathParser: GroupChildParser {
         }
         return nil
     }
-    
+
     func didEnd(element: String) -> Bool {
         return element == Element.path.rawValue
     }
-    
+
     func createElement() -> GroupChild? {
         if let commands = commands {
             return VectorDrawable.Path(name: pathName,
@@ -299,13 +293,10 @@ final class PathParser: GroupChildParser {
             return nil
         }
     }
-    
 }
 
 protocol GroupChildParser: NodeParsing {
-    
     func createElement() -> GroupChild?
-    
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
@@ -361,33 +352,30 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
 /// Necessary because we can't use a protocol to satisfy a generic with
 /// type bounds, as that would make it impossible to dispatch static functions.
 final class AnyGroupParserChild: GroupChildParser {
-    
     let parser: GroupChildParser
-    
+
     init(erasing parser: GroupChildParser) {
         self.parser = parser
     }
-    
+
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         return parser.parse(element: element, attributes: attributes)
     }
-    
+
     func didEnd(element: String) -> Bool {
         return parser.didEnd(element: element)
     }
-    
+
     func createElement() -> GroupChild? {
         return parser.createElement()
     }
-    
 }
 
 final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
-    
     override var name: Element {
         return .group
     }
-    
+
     var groupName: String?
     var pivotX: CGFloat = 0
     var pivotY: CGFloat = 0
@@ -402,7 +390,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         self.groupName = groupName
         super.init(isArtificial: isArtificial)
     }
-        
+
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
             if let property = GroupProperty(rawValue: String(key)) {
@@ -435,7 +423,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         }
         return nil
     }
-    
+
     func createElement() -> GroupChild? {
         let childElements = children.map { (parser) in
             parser.createElement()! // TODO: handle failure cases
@@ -460,7 +448,6 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         default: return nil
         }
     }
-    
 }
 
 // MARK: - Parser Combinators
@@ -477,24 +464,24 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 }
 
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
-    let substring = stream[index..<stream.count]
+    let substring = stream[index ..< stream.count]
     let pointer = substring.underlying
     return pointer.withMemoryRebound(to: Int8.self,
-                                     capacity: Int(substring.count)) { (buffer) in
-                                        var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
-                                        let result = strtod(buffer, &next)
-                                        if result == 0.0,
-                                            next == buffer {
-                                            return ParseResult(error: "failed to make an int", index: index, stream: stream)
-                                        } else if var final = next {
-                                            if final.pointee == .comma { 
-                                                final = final.advanced(by: 1)
-                                            }
-                                            let index = index + Int32(buffer.distance(to: final))
-                                            return .ok(CGFloat(result), index)
-                                        } else {
-                                            return ParseResult(error: "failed to make an int", index: index, stream: stream)
-                                        }
+                                     capacity: Int(substring.count)) { buffer in
+        var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
+        let result = strtod(buffer, &next)
+        if result == 0.0,
+            next == buffer {
+            return ParseResult(error: "failed to make an int", index: index, stream: stream)
+        } else if var final = next {
+            if final.pointee == .comma {
+                final = final.advanced(by: 1)
+            }
+            let index = index + Int32(buffer.distance(to: final))
+            return .ok(CGFloat(result), index)
+        } else {
+            return ParseResult(error: "failed to make an int", index: index, stream: stream)
+        }
     }
 }
 
@@ -502,7 +489,7 @@ func numbers() -> Parser<[CGFloat]> {
     return { stream, index in
         var result = [CGFloat]()
         var nextIndex = index
-        while case .ok(let value, let index) = number(from: stream, at: nextIndex) {
+        while case let .ok(value, index) = number(from: stream, at: nextIndex) {
             result.append(value)
             nextIndex = index
         }
@@ -518,13 +505,13 @@ func coordinatePair() -> Parser<CGPoint> {
     return { stream, index in
         var point: CGPoint = .zero
         var next = index
-        if case .ok(let found, let index) = number(from: stream, at: next) {
+        if case let .ok(found, index) = number(from: stream, at: next) {
             point.x = CGFloat(found)
             next = index
         } else {
             return .error("")
         }
-        if case .ok(let found, let index) = number(from: stream, at: next) {
+        if case let .ok(found, index) = number(from: stream, at: next) {
             point.y = CGFloat(found)
             next = index
         } else {
