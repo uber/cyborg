@@ -87,7 +87,7 @@ public final class DebugDiagnosticsView: UIView {
                 let linesY = Int(drawable.intrinsicSize.height)
                 let scaleX = size.width / drawable.intrinsicSize.width
                 let scaleY = size.height / drawable.intrinsicSize.height
-                for i in 0 ..< linesY {
+                for i in 0..<linesY {
                     let view = HorizontalDividerView(number: i)
                     addSubview(view)
                     let height = view.label.sizeThatFits(size).height
@@ -96,7 +96,7 @@ public final class DebugDiagnosticsView: UIView {
                                         width: size.width,
                                         height: height)
                 }
-                for i in 0 ..< linesX {
+                for i in 0..<linesX {
                     let view = VerticalDividerView(number: i)
                     addSubview(view)
                     let width = view.label.sizeThatFits(size).width

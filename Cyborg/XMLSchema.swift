@@ -70,7 +70,7 @@ enum Color {
     init?(_ string: XMLString) {
         let string = String(string) // TODO: see if we can do this without allocating a string
         if string.hasPrefix("?") {
-            self = .theme(name: String(string[string.index(after: string.startIndex) ..< string.endIndex]))
+            self = .theme(name: String(string[string.index(after: string.startIndex)..<string.endIndex]))
         } else {
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = string
@@ -96,11 +96,11 @@ enum Color {
 
     func color(from theme: Theme) -> UIColor {
         switch self {
-        case let .hardCoded(color):
+        case .hardCoded(let color):
             return color
-        case let .hex(value):
+        case .hex(let value):
             return value
-        case let .theme(name):
+        case .theme(let name):
             return theme.color(named: name)
         default:
             fatalError()

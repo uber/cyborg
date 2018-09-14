@@ -10,7 +10,7 @@ enum PriorContext: Equatable {
 
     var point: CGPoint {
         switch self {
-        case let .last(point): return point
+        case .last(let point): return point
         case .lastAndControlPoint(let point, _): return point
         }
     }
@@ -19,8 +19,8 @@ enum PriorContext: Equatable {
         switch self {
         // per the spec, if there is no last control point, the
         // control point is coincident to the last point
-        case let .last(point): return (point, point)
-        case let .lastAndControlPoint(point, controlPoint): return (point, controlPoint)
+        case .last(let point): return (point, point)
+        case .lastAndControlPoint(let point, let controlPoint): return (point, controlPoint)
         }
     }
 
@@ -28,9 +28,9 @@ enum PriorContext: Equatable {
 
     static func == (lhs: PriorContext, rhs: PriorContext) -> Bool {
         switch (lhs, rhs) {
-        case let (.last(lhs), .last(rhs)): return lhs == rhs
-        case let (.lastAndControlPoint(lhsPoint, lhsControl),
-                  .lastAndControlPoint(rhsPoint, rhsControl)): return lhsPoint == rhsPoint && lhsControl == rhsControl
+        case (.last(let lhs), .last(let rhs)): return lhs == rhs
+        case (.lastAndControlPoint(let lhsPoint, let lhsControl),
+              .lastAndControlPoint(let rhsPoint, let rhsControl)): return lhsPoint == rhsPoint && lhsControl == rhsControl
         default: return false
         }
     }
@@ -443,7 +443,7 @@ extension Int {
             var floats = [CGFloat](repeating: 0, count: self * 2)
             var found = 0
             var next = index
-            while case let .ok(value, index) = number(from: stream, at: next) {
+            while case .ok(let value, let index) = number(from: stream, at: next) {
                 floats.insert(value, at: found)
                 next = index
                 found += 1
@@ -451,8 +451,8 @@ extension Int {
             if found % 2 == 0 && (found / 2) % self == 0 {
                 let numberOfCommandsFound = (found / 2) / self
                 var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: numberOfCommandsFound)
-                for i in 0 ..< numberOfCommandsFound {
-                    for j in 0 ..< self {
+                for i in 0..<numberOfCommandsFound {
+                    for j in 0..<self {
                         results[i].insert(CGPoint(x: floats[(i * self + j) * 2],
                                                   y: floats[(i * self + j) * 2 + 1]),
                                           at: j)

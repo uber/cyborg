@@ -177,8 +177,8 @@ final class VectorParser: ParentParser<GroupParser> {
     }
 
     func parseAndroidMeasurement(from text: XMLString) -> CGFloat? {
-        if case let .ok(number, index) = number(from: text, at: 0),
-            let _ = AndroidUnitOfMeasure(rawValue: String(text[index ..< text.count])) {
+        if case .ok(let number, let index) = number(from: text, at: 0),
+            let _ = AndroidUnitOfMeasure(rawValue: String(text[index..<text.count])) {
             return number
         } else {
             return nil
@@ -224,7 +224,7 @@ final class PathParser: GroupChildParser {
                     case .ok(let result, _):
                         commands = result
                         subResult = nil
-                    case let .error(error):
+                    case .error(let error):
                         subResult = baseError + error
                     }
                     result = subResult
@@ -464,7 +464,7 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 }
 
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
-    let substring = stream[index ..< stream.count]
+    let substring = stream[index..<stream.count]
     let pointer = substring.underlying
     return pointer.withMemoryRebound(to: Int8.self,
                                      capacity: Int(substring.count)) { buffer in
@@ -489,7 +489,7 @@ func numbers() -> Parser<[CGFloat]> {
     return { stream, index in
         var result = [CGFloat]()
         var nextIndex = index
-        while case let .ok(value, index) = number(from: stream, at: nextIndex) {
+        while case .ok(let value, let index) = number(from: stream, at: nextIndex) {
             result.append(value)
             nextIndex = index
         }
@@ -505,13 +505,13 @@ func coordinatePair() -> Parser<CGPoint> {
     return { stream, index in
         var point: CGPoint = .zero
         var next = index
-        if case let .ok(found, index) = number(from: stream, at: next) {
+        if case .ok(let found, let index) = number(from: stream, at: next) {
             point.x = CGFloat(found)
             next = index
         } else {
             return .error("")
         }
-        if case let .ok(found, index) = number(from: stream, at: next) {
+        if case .ok(let found, let index) = number(from: stream, at: next) {
             point.y = CGFloat(found)
             next = index
         } else {

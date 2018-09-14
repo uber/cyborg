@@ -95,7 +95,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     }
 
     public static func create(from url: URL,
-                              whenComplete run: @escaping (Result) -> Void) {
+                              whenComplete run: @escaping (Result) -> ()) {
         do {
             let data = try Data(contentsOf: url)
             create(from: data, whenComplete: run)
@@ -105,9 +105,9 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     }
 
     public static func create(from data: Data,
-                              whenComplete run: @escaping (Result) -> Void) {
+                              whenComplete run: @escaping (Result) -> ()) {
         let parser = VectorParser()
-        data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> Void in
+        data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> () in
             let xml = xmlReaderForMemory(bytes,
                                          Int32(data.count),
                                          nil,
@@ -135,7 +135,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                     }
                     var attributes = [(XMLString, XMLString)]()
                     attributes.reserveCapacity(Int(count))
-                    for _ in 0 ..< count {
+                    for _ in 0..<count {
                         if xmlTextReaderMoveToNextAttribute(xml) == 1 {
                             if let namePointer = xmlTextReaderConstName(xml),
                                 let valuePointer = xmlTextReaderConstValue(xml) {

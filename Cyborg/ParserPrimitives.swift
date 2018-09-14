@@ -13,37 +13,37 @@ enum ParseResult<Wrapped> {
     init(error: String, index: Int32, stream: XMLString) {
         self = .error("""
         Error at \(index): \(error)
-        \(stream[0 ..< index])⏏️\(stream[index ..< stream.count])
+        \(stream[0..<index])⏏️\(stream[index..<stream.count])
         """)
     }
 
     var asOptional: (Wrapped, Int32)? {
         switch self {
-        case let .ok(wrapped): return wrapped
+        case .ok(let wrapped): return wrapped
         case .error: return nil
         }
     }
 
     var asParseError: ParseError? {
         switch self {
-        case let .error(error): return error
+        case .error(let error): return error
         case .ok: return nil
         }
     }
 
     func map<T>(_ transformer: (Wrapped, Int32) -> (ParseResult<T>)) -> ParseResult<T> {
         switch self {
-        case let .ok(value, index):
+        case .ok(let value, let index):
             return transformer(value, index)
-        case let .error(error): return .error(error)
+        case .error(let error): return .error(error)
         }
     }
 
     func chain<T>(into stream: XMLString, _ transformer: Parser<T>) -> ParseResult<T> {
         switch self {
-        case let .ok(_, index):
+        case .ok(_, let index):
             return transformer(stream, index)
-        case let .error(error): return .error(error)
+        case .error(let error): return .error(error)
         }
     }
 }
@@ -51,12 +51,12 @@ enum ParseResult<Wrapped> {
 func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
     return { stream, index in
         switch parser(stream, index) {
-        case let .ok(result, index):
+        case .ok(let result, let index):
             var nextIndex = index
             var results = [result]
             findMoreMatches: while true {
                 switch parser(stream, nextIndex) {
-                case let .ok(result, index):
+                case .ok(let result, let index):
                     nextIndex = index
                     results.append(result)
                 case .error:
@@ -64,7 +64,7 @@ func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
                 }
             }
             return .ok(results, nextIndex)
-        case let .error(error):
+        case .error(let error):
             return ParseResult(error: "Could not find one match: subparser error was: \(error)",
                                index: index,
                                stream: stream)
@@ -104,12 +104,12 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
             checkAllParsers:
                 for parser in parsers {
                 switch parser(stream, next) {
-                case let .ok(result, currentIndex):
+                case .ok(let result, let currentIndex):
                     results.append(result)
                     index = currentIndex
                     errors.removeAll()
                     continue untilNoMatchFound
-                case let .error(error):
+                case .error(let error):
                     errors.append(error)
                 }
             }
@@ -133,7 +133,7 @@ func empty() -> Parser<()> {
 func not<T>(_ parser: @escaping Parser<T>, discardError: Bool = false) -> Parser<()> {
     return { stream, index in
         switch parser(stream, index) {
-        case let .ok(result, index):
+        case .ok(let result, let index):
             if discardError {
                 return .error("")
             } else {

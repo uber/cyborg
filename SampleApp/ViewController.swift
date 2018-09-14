@@ -29,9 +29,9 @@ class ViewController: UIViewController {
             VectorDrawable
                 .create(from: data) { result in
                     switch result {
-                    case let .ok(drawable):
+                    case .ok(let drawable):
                         vectorView.drawable = drawable
-                    case let .error(error):
+                    case .error(let error):
                         print(error)
                         fatalError(error)
                     }

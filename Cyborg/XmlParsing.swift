@@ -38,7 +38,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
         if lhs.count != rhs.count {
             return false
         } else {
-            for i in 0 ..< Int(lhs.count) {
+            for i in 0..<Int(lhs.count) {
                 if lhs.underlying.advanced(by: i).pointee != rhs.underlying.advanced(by: i).pointee {
                     return false
                 }
@@ -71,7 +71,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     func matches(_ string: XMLString, at index: Int32) -> Bool {
         let upperbound = index + string.count
         if upperbound <= count {
-            for i in 0 ..< string.count {
+            for i in 0..<string.count {
                 if underlying.advanced(by: Int(i + index)).pointee != string.underlying.advanced(by: Int(i)).pointee {
                     return false
                 }
@@ -176,7 +176,7 @@ extension CGFloat {
             .withMemoryRebound(to: Int8.self,
                                capacity: count) { (buffer) -> (CGFloat?) in
                 var next: UnsafeMutablePointer<Int8>? = buffer
-                for i in 0 ..< count {
+                for i in 0..<count {
                     var current = Int8(xmlString.underlying.advanced(by: i).pointee)
                     buffer.advanced(by: i).assign(from: &current,
                                                   count: 1)

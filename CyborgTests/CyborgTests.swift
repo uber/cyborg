@@ -32,7 +32,7 @@ class CyborgTests: XCTestCase {
             .create(from: data) { result in
                 callbackIsCalled.fulfill()
                 switch result {
-                case let .ok(drawable):
+                case .ok(let drawable):
                     XCTAssert(drawable.viewPortWidth == 600)
                     XCTAssert(drawable.viewPortHeight == 600)
                     XCTAssert(((drawable.groups[0] as! VectorDrawable.Group).children[0] as! VectorDrawable.Path).data.count != 0)
@@ -60,7 +60,7 @@ class CyborgTests: XCTestCase {
                         .apply(to: expected, in: noResizing)
                         .mutableCopy()!
                     XCTAssertEqual(path[0], expected)
-                case let .error(error):
+                case .error(let error):
                     XCTFail(error)
                 }
             }
@@ -82,7 +82,7 @@ class CyborgTests: XCTestCase {
             let next = pathSegment(.zero, path, .init(width: 1, height: 1))
             XCTAssertEqual(path, expected)
             XCTAssertEqual(next, movement)
-        case let .error(error):
+        case .error(let error):
             XCTFail(error)
         }
     }
@@ -96,12 +96,12 @@ class CyborgTests: XCTestCase {
         let expected = CGMutablePath()
         expected.closeSubpath()
         switch result {
-        case let .ok(wrapped, index):
+        case .ok(let wrapped, let index):
             let path = CGMutablePath()
             _ = wrapped(.zero, path, .zero)
             XCTAssertEqual(index, close.count)
             XCTAssertEqual(path, expected)
-        case let .error(error):
+        case .error(let error):
             XCTFail(error)
         }
     }
@@ -120,7 +120,7 @@ class CyborgTests: XCTestCase {
             case .ok(let result, _):
                 let path = createPath(from: result)
                 XCTAssertEqual(path, expected)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
@@ -142,55 +142,55 @@ class CyborgTests: XCTestCase {
     func test_number_parser() {
         "-432".withXMLString { str in
             switch Cyborg.number(from: str, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, -432)
                 XCTAssertEqual(index, str.count)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
         "40".withXMLString { str2 in
             switch Cyborg.number(from: str2, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, 40)
                 XCTAssertEqual(index, str2.count)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
         "4".withXMLString { str3 in
             switch Cyborg.number(from: str3, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, 4)
                 XCTAssertEqual(index, str3.count)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
         "4.4 ".withXMLString { str4 in
             switch Cyborg.number(from: str4, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, 4.4)
                 XCTAssertEqual(index, str4.count - 1)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
         ".9 ".withXMLString { str5 in
             switch Cyborg.number(from: str5, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, 0.9)
                 XCTAssertEqual(index, str5.count - 1)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
         "-.9 ".withXMLString { str6 in
             switch Cyborg.number(from: str6, at: 0) {
-            case let .ok(result, index):
+            case .ok(let result, let index):
                 XCTAssertEqual(result, -0.9) // TODO: is this actually valid? Swift doesn't accept this
                 XCTAssertEqual(index, str6.count - 1)
-            case let .error(error):
+            case .error(let error):
                 XCTFail(error)
             }
         }
@@ -208,13 +208,13 @@ class CyborgTests: XCTestCase {
                           control1: CGPoint(x: 2, y: 2).add(start),
                           control2: CGPoint(x: 3, y: 2).add(start))
         switch parseCurve()(curve, 0) {
-        case let .ok(wrapped, index):
+        case .ok(let wrapped, let index):
             let result = CGMutablePath()
             result.move(to: start)
             _ = wrapped(start.asPriorContext, result, CGSize(width: 1, height: 1))
             XCTAssertEqual(result, expected)
             XCTAssertEqual(index, curve.count)
-        case let .error(error):
+        case .error(let error):
             XCTFail(error)
         }
     }
@@ -226,10 +226,10 @@ class CyborgTests: XCTestCase {
         }
         let expected: CGFloat = -2.38419e-08
         switch number(from: text, at: 0) {
-        case let .ok(result, index):
+        case .ok(let result, let index):
             XCTAssert(result == expected)
             XCTAssertEqual(index, text.count)
-        case let .error(error):
+        case .error(let error):
             XCTFail(error)
         }
     }
@@ -276,7 +276,7 @@ func createPath(from: PathSegment, start: PriorContext = .zero) -> CGMutablePath
 }
 
 extension String {
-    func withXMLString(_ function: (XMLString) -> Void) {
+    func withXMLString(_ function: (XMLString) -> ()) {
         let (string, buffer) = XMLString.create(from: self)
         defer {
             buffer.deallocate()
@@ -291,7 +291,7 @@ extension XMLString {
             pointer.withMemoryRebound(to: UInt8.self,
                                       capacity: string.count + 1, { pointer in
                                           let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: string.count + 1)
-                                          for i in 0 ..< string.count + 1 {
+                                          for i in 0..<string.count + 1 {
                                               buffer.advanced(by: i).pointee = pointer.advanced(by: i).pointee
                                           }
                                           return (XMLString(buffer, count: Int32(string.count)), buffer)
