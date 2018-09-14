@@ -37,7 +37,11 @@ open class VectorView: UIView {
     
     open override func layoutSubviews() {
         super.layoutSubviews()
-        updateLayers()
+        if bounds.size != .zero {
+            for layer in (layer.sublayers ?? []) {
+                layer.frame = bounds
+            }
+        }
     }
     
     /// The drawable to display.
@@ -69,23 +73,19 @@ open class VectorView: UIView {
 
 extension VectorDrawable {
     
-    func layerRepresentation(in bounds: CGRect, using theme: Theme) -> [CALayer] {
-        if bounds.width == 0.0 || bounds.height == 0.0 {
-            // there is no point in showing anything for a view of size zero
-            return []
-        } else {
-            let viewSpace = CGSize(width: bounds.width / viewPortWidth,
-                                   height: bounds.height / viewPortHeight)
-            return zip(layerConfigurations(),
-                       createPaths(in: viewSpace))
-                .map { (configuration, path) in
-                    let layer = CAShapeLayer()
-                    configuration(layer, theme)
-                    layer.path = path
-                    layer.frame = bounds
-                    return layer
-            }
-        }
+    func layerRepresentation(in bounds: CGRect,
+                             using theme: Theme) -> [CALayer] {
+        let viewSpace = CGSize(width: viewPortWidth,
+                               height: viewPortHeight)
+        return Array(
+            groups
+                .map { (group) in
+                    group.createLayers(using: theme,
+                                       drawableSize: viewSpace,
+                                       transform: [.identity])
+                }
+                .joined()
+        )
     }
     
     var intrinsicSize: CGSize {
@@ -97,5 +97,100 @@ extension VectorDrawable {
 public protocol Theme {
     
     func color(named string: String) -> UIColor
+    
+}
+
+final class ChildResizingLayer: CALayer {
+    
+    override func layoutSublayers() {
+        super.layoutSublayers()
+        mask?.frame = bounds
+        if let sublayers = sublayers {
+            for layer in sublayers {
+                layer.frame = bounds
+            }
+        }
+    }
+    
+}
+
+
+class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
+    
+    fileprivate let pathData: T
+    
+    fileprivate let pathTransform: [Transform]
+
+    fileprivate var drawableSize: CGSize {
+        didSet {
+            updateRatio()
+        }
+    }
+    
+    fileprivate var ratio: CGSize = .init(width: 1, height: 1) {
+        didSet {
+            path = pathTransform
+                .apply(to: pathData.createPaths(in: ratio),
+                       relativeTo: ratio)
+        }
+    }
+
+    
+    private func updateRatio() {
+        ratio = CGSize(width: bounds.width / drawableSize.width,
+                       height: bounds.height / drawableSize.height)
+    }
+    
+    init(pathData: T,
+         drawableSize: CGSize,
+         transform: [Transform]) {
+        self.pathData = pathData
+        self.drawableSize = drawableSize
+        self.pathTransform = transform
+        super.init()
+    }
+    
+    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    
+    override func layoutSublayers() {
+        super.layoutSublayers()
+        if let sublayers = sublayers {
+            for layer in sublayers {
+                layer.frame = bounds
+            }
+        }
+        updateRatio()
+        path = pathData.createPaths(in: ratio)
+    }
+
+}
+
+final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
+    
+    fileprivate var theme: Theme {
+        didSet {
+            updateTheme()
+        }
+    }
+    
+    private func updateTheme() {
+        pathData.apply(to: self,
+                       using: theme)
+    }
+    
+    init(pathData: VectorDrawable.Path,
+         theme: Theme,
+         drawableSize: CGSize,
+         transform: [Transform]) {
+        self.theme = theme
+        super.init(pathData: pathData,
+                   drawableSize: drawableSize,
+                   transform: transform)
+        updateTheme()
+    }
     
 }

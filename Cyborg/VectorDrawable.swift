@@ -59,9 +59,9 @@ enum BlendMode: String, XMLStringRepresentable {
 /// to be children of Groups, apparently.
 protocol GroupChild: AnyObject {
     
-    func createPaths(in size: CGSize) -> [CGPath]
-    
-    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()]
+    func createLayers(using theme: Theme,
+                      drawableSize: CGSize,
+                      transform: [Transform]) -> [CALayer]
     
 }
 
@@ -161,7 +161,9 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                     }
                     // hack: end path elements manually, since they never have children (or do they)
                     // After it's parsed.
-                    if String(elementName) == "path" {
+                    let stringName = String(elementName)
+                    if stringName == Element.path.rawValue ||
+                        stringName == Element.clipPath.rawValue {
                         _ = parser.didEnd(element: lastElement)
                         continue
                     }
@@ -189,26 +191,6 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         self.groups = groups
     }
     
-    func createPaths(in size: CGSize) -> [CGPath] {
-        return Array(
-            groups
-                .map { (group) in
-                    group.createPaths(in: size)
-                }
-                .joined()
-        )
-    }
-    
-    func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
-        return Array(
-            groups
-                .map { group in
-                    group.layerConfigurations()
-                }
-                .joined()
-        )
-    }
-    
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group: GroupChild, CustomDebugStringConvertible {
         
@@ -219,6 +201,8 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         public let transform: Transform
         
         let children: [GroupChild]
+        
+        let clipPaths: [ClipPath]
         
         public var debugDescription: String {
             return """
@@ -232,36 +216,71 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         
         init(name: String?,
              transform: Transform,
-             children: [GroupChild]) {
+             children: [GroupChild],
+             clipPaths: [ClipPath]) {
             self.name = name
             self.transform = transform
             self.children = children
+            self.clipPaths = clipPaths
         }
         
-        func createPaths(in size: CGSize) -> [CGPath] {
-            return Array(
+        func createLayers(using theme: Theme,
+                          drawableSize: CGSize,
+                          transform: [Transform]) -> [CALayer] {
+            var clipPathLayers = clipPaths.map { (clipPath) in
+                clipPath.createLayer(drawableSize: drawableSize,
+                                     transform: transform + [self.transform])
+            }
+            let pathLayers = Array(
                 children.map { child in
-                    return child
-                        .createPaths(in: size)
-                        .map { path in
-                            transform.apply(to: path, in: size)
-                    }
+                    child.createLayers(using: theme,
+                                       drawableSize: drawableSize,
+                                       transform: transform + [self.transform])
                     }
                     .joined()
             )
+            if clipPathLayers.isEmpty {
+             return pathLayers
+            } else {
+                let superLayer = ChildResizingLayer()
+                let maskParent = clipPathLayers.remove(at: 0)
+                for layer in clipPathLayers {
+                    maskParent.addSublayer(layer)
+                }
+                superLayer.mask = maskParent
+                for child in pathLayers {
+                    superLayer.addSublayer(child)
+                }
+                return [superLayer]
+            }
         }
         
-        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
-            return Array(children.map { path in
-                return path.layerConfigurations()
-            }
-            .joined())
+    }
+    
+    public class ClipPath: PathCreating {
+        
+        public let name: String?
+        let data: [PathSegment]
+        
+        init(name: String?,
+             path: [PathSegment]) {
+            self.name = name
+            data = path
+        }
+        
+        func createLayer(drawableSize size: CGSize,
+                         transform: [Transform]) -> CALayer {
+            let layer = ShapeLayer(pathData: self,
+                                   drawableSize: size,
+                                   transform: transform)
+            layer.fillColor = UIColor.black.cgColor
+            return layer
         }
         
     }
     
     /// Representation of a <path> element from a VectorDrawable document.
-    public class Path: GroupChild {
+    public class Path: GroupChild, PathCreating {
         
         /// The name of the group.
         public let name: String?
@@ -307,20 +326,17 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.strokeWidth = strokeWidth
         }
         
-        func createPaths(in size: CGSize) -> [CGPath] {
-            let path = CGMutablePath()
-            var context: PriorContext = .zero
-            for command in data {
-                context = command(context, path, size)
-            }
-            return [path]
+        func createLayers(using theme: Theme,
+                          drawableSize: CGSize,
+                          transform: [Transform]) -> [CALayer] {
+            return [ThemeableShapeLayer(pathData: self,
+                                        theme: theme,
+                                        drawableSize: drawableSize,
+                                        transform: transform)]
         }
         
-        func layerConfigurations() -> [(CAShapeLayer, Theme) -> ()] {
-            return [apply(to: using:)]
-        }
-        
-        func apply(to layer: CAShapeLayer, using theme: Theme) {
+        func apply(to layer: CAShapeLayer,
+                   using theme: Theme) {
             layer.strokeColor = strokeColor?
                 .color(from: theme)
                 .withAlphaComponent(strokeAlpha)
@@ -338,6 +354,15 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     
 }
 
+extension Array where Element == Transform {
+    
+    func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
+        return reduce(path) { (path, transform) in
+            transform.apply(to: path, relativeTo: size)
+        }
+    }
+
+}
 /// A rigid body transformation as specced by VectorDrawable.
 public struct Transform: CustomDebugStringConvertible {
     
@@ -387,7 +412,7 @@ public struct Transform: CustomDebugStringConvertible {
                                                   scale: CGPoint(x: 1, y: 1),
                                                   translation: .zero)
     
-    func apply(to path: CGPath, in size: CGSize) -> CGPath {
+    func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
         let translation = self.translation.times(size.width, size.height)
         let pivot = self.pivot.times(size.width, size.height)
         let inversePivot = pivot.times(-1, -1)
@@ -409,4 +434,23 @@ extension CGPath {
         return copy(using: &transform) ?? self
     }
     
+}
+
+protocol PathCreating: AnyObject {
+    
+    var data: [PathSegment] { get }
+    
+}
+
+extension PathCreating {
+    
+    func createPaths(in size: CGSize) -> CGPath {
+        let path = CGMutablePath()
+        var context: PriorContext = .zero
+        for command in data {
+            context = command(context, path, size)
+        }
+        return path
+    }
+
 }

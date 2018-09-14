@@ -69,9 +69,9 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             !hasFoundElement {
             hasFoundElement = true
             return parseAttributes(attributes)
-        } else if let child = childForElement(element) {
+        } else if let (child, assignment) = childForElement(element) {
             self.currentChild = child
-            children.append(child)
+            assignment(child)
             return child.parse(element: element, attributes: attributes)
         } else {
             if !hasFoundElement {
@@ -86,7 +86,11 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
         return nil
     }
     
-    func childForElement(_ element: String) -> Child? {
+    func appendChild(_ child: Child) {
+        children.append(child)
+    }
+    
+    func childForElement(_ element: String) -> (Child, (Child) -> ())? {
         return nil
     }
     
@@ -146,13 +150,13 @@ final class VectorParser: ParentParser<GroupParser> {
         return nil
     }
     
-    override func childForElement(_ element: String) -> GroupParser? {
+    override func childForElement(_ element: String) -> (GroupParser, (GroupParser) -> ())? {
         switch Element(rawValue: element) {
             // The group parser already has all its elements filled out,
             // so it'll "fall through" directly to the path.
         // All we need to do is give it a name for it to complete.
-        case .some(.path): return GroupParser(groupName: "anonymous", isArtificial: true)
-        case .some(.group): return GroupParser()
+        case .some(.path): return (GroupParser(groupName: "anonymous", isArtificial: true), appendChild)
+        case .some(.group): return (GroupParser(), appendChild)
         default: return nil
         }
     }
@@ -304,6 +308,56 @@ protocol GroupChildParser: NodeParsing {
     
 }
 
+final class ClipPathParser: NodeParsing, GroupChildParser {
+    
+    func createElement() -> GroupChild? {
+        return createElement()
+    }
+    
+    var name: String?
+    var commands: [PathSegment]?
+    
+    func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+        for (key, value) in attributes {
+            if let property = ClipPathProperty(rawValue: String(key)) {
+                switch property {
+                case .name: name = String(value)
+                case .pathData:
+                    let parsers = DrawingCommand
+                        .all
+                        .compactMap { (command) -> Parser<PathSegment>? in
+                            command.parser()
+                    }
+                    switch consumeAll(using: parsers)(value, 0) {
+                    case .ok(let result, _):
+                        self.commands = result
+                    case .error(let error):
+                        let baseError = "Error parsing the <android:clipPath> tag: "
+                        return baseError + error
+                    }
+                }
+            } else {
+                return "Key \"\(key)\" is not a valid property of ClipPath."
+            }
+        }
+        return nil
+    }
+    
+    func didEnd(element: String) -> Bool {
+        return true
+    }
+    
+    func createElement() -> VectorDrawable.ClipPath? {
+        if let commands = commands {
+            return .init(name: name,
+                         path: commands)
+        } else {
+            return nil
+        }
+    }
+    
+}
+
 /// Necessary because we can't use a protocol to satisfy a generic with
 /// type bounds, as that would make it impossible to dispatch static functions.
 final class AnyGroupParserChild: GroupChildParser {
@@ -342,6 +396,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     var scaleY: CGFloat = 1
     var translationX: CGFloat = 0
     var translationY: CGFloat = 0
+    var clipPaths = [ClipPathParser]()
     
     init(groupName: String? = nil, isArtificial: Bool = false) {
         self.groupName = groupName
@@ -383,20 +438,25 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     
     func createElement() -> GroupChild? {
         let childElements = children.map { (parser) in
-            parser.createElement()! // TODO
+            parser.createElement()! // TODO: handle failure cases
         }
+        let clipPaths: [VectorDrawable.ClipPath] = self.clipPaths.map { $0.createElement()! } // TODO: handle failure cases
         return VectorDrawable.Group(name: groupName,
                                     transform: Transform(pivot: .init(x: pivotX, y: pivotY),
                                                          rotation: rotation,
                                                          scale: .init(x: scaleX, y: scaleY),
                                                          translation: .init(x: translationX, y: translationY)),
-                                    children: childElements)
+                                    children: childElements,
+                                    clipPaths: clipPaths)
     }
     
-    override func childForElement(_ element: String) -> AnyGroupParserChild? {
+    override func childForElement(_ element: String) -> (AnyGroupParserChild, (AnyGroupParserChild) -> ())? {
         switch Element(rawValue: element) {
-        case .some(.path): return AnyGroupParserChild(erasing: PathParser())
-        case .some(.group): return AnyGroupParserChild(erasing: GroupParser())
+        case .some(.path): return (AnyGroupParserChild(erasing: PathParser()), appendChild)
+        case .some(.group): return (AnyGroupParserChild(erasing: GroupParser()), appendChild)
+        case .some(.clipPath):
+            let parser = ClipPathParser()
+            return (AnyGroupParserChild(erasing: parser), { _ in self.clipPaths.append(parser) })
         default: return nil
         }
     }
