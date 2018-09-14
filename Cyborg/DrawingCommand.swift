@@ -111,22 +111,30 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
 func parseMoveAbsolute() -> Parser<PathSegment> {
     return parse(command: .moveAbsolute,
                  followedBy: consumeTrivia(before: coordinatePair()),
-                 convertToPathCommandsWith: { (point) -> PathSegment in { _, path, size in
-                     let point = point.times(size.width, size.height)
-                     path.move(to: point)
-                     return point.asPriorContext
-                 }
+                 convertToPathCommandsWith: { (points) -> (PathSegment) in
+                            return { _, path, size in
+                                return points.reduce(.zero) { result, points -> PriorContext in
+                                    let points = points.scaleTo(size: size)
+                                    let point = points[0]
+                                    path.move(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
     })
 }
 
 func parseMove() -> Parser<PathSegment> {
     return parse(command: .move,
                  followedBy: consumeTrivia(before: coordinatePair()),
-                 convertToPathCommandsWith: { (point) -> PathSegment in { prior, path, size in
-                     let point = point.times(size.width, size.height).add(prior.point)
-                     path.move(to: point)
-                     return point.asPriorContext
-                 }
+                 convertToPathCommandsWith: { (points) -> (PathSegment) in
+                            return { prior, path, size in
+                                return points.reduce(.zero) { result, points -> PriorContext in
+                                    let points = points.makeAbsolute(startingWith: prior.point, in: size)
+                                    let point = points[0]
+                                    path.move(to: point)
+                                    return point.asPriorContext
+                                }
+                            }
     })
 }
 
