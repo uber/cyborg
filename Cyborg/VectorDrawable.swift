@@ -356,9 +356,9 @@ public final class VectorDrawable: CustomDebugStringConvertible {
 
 extension Array where Element == Transform {
     
-    func apply(to path: CGPath, in size: CGSize) -> CGPath {
+    func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
         return reduce(path) { (path, transform) in
-            transform.apply(to: path, in: size)
+            transform.apply(to: path, relativeTo: size)
         }
     }
 
@@ -412,7 +412,7 @@ public struct Transform: CustomDebugStringConvertible {
                                                   scale: CGPoint(x: 1, y: 1),
                                                   translation: .zero)
     
-    func apply(to path: CGPath, in size: CGSize) -> CGPath {
+    func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
         let translation = self.translation.times(size.width, size.height)
         let pivot = self.pivot.times(size.width, size.height)
         let inversePivot = pivot.times(-1, -1)

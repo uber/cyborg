@@ -79,7 +79,7 @@ extension VectorDrawable {
                                height: viewPortHeight)
         return Array(
             groups
-                .map{ (group) in
+                .map { (group) in
                     group.createLayers(using: theme,
                                        drawableSize: viewSpace,
                                        transform: [.identity])
@@ -131,7 +131,7 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
         didSet {
             path = pathTransform
                 .apply(to: pathData.createPaths(in: ratio),
-                       in: ratio)
+                       relativeTo: ratio)
         }
     }
 
