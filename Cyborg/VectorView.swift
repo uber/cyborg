@@ -7,23 +7,23 @@ import UIKit
 
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
-    
+
     public var theme: Theme {
         didSet {
             updateLayers()
         }
     }
-    
+
     public init(theme: Theme) {
         self.theme = theme
         super.init(frame: .zero)
     }
-    
+
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
-    public required init?(coder aDecoder: NSCoder) {
+    public required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private var drawableLayers: [CALayer] = [] {
         didSet {
             for layer in oldValue {
@@ -34,16 +34,16 @@ open class VectorView: UIView {
             }
         }
     }
-    
+
     open override func layoutSubviews() {
         super.layoutSubviews()
         if bounds.size != .zero {
-            for layer in (layer.sublayers ?? []) {
+            for layer in layer.sublayers ?? [] {
                 layer.frame = bounds
             }
         }
     }
-    
+
     /// The drawable to display.
     open var drawable: VectorDrawable? {
         didSet {
@@ -51,9 +51,9 @@ open class VectorView: UIView {
             invalidateIntrinsicContentSize()
         }
     }
-    
+
     private var drawableSize: CGSize = .zero
-    
+
     private func updateLayers() {
         if let drawable = drawable {
             drawableLayers = drawable.layerRepresentation(in: bounds, using: theme)
@@ -63,23 +63,22 @@ open class VectorView: UIView {
             drawableSize = .zero
         }
     }
-    
+
     open override var intrinsicContentSize: CGSize {
         return drawableSize
     }
-    
+
 }
 
-
 extension VectorDrawable {
-    
-    func layerRepresentation(in bounds: CGRect,
+
+    func layerRepresentation(in _: CGRect,
                              using theme: Theme) -> [CALayer] {
         let viewSpace = CGSize(width: viewPortWidth,
                                height: viewPortHeight)
         return Array(
             groups
-                .map { (group) in
+                .map { group in
                     group.createLayers(using: theme,
                                        drawableSize: viewSpace,
                                        transform: [.identity])
@@ -87,21 +86,21 @@ extension VectorDrawable {
                 .joined()
         )
     }
-    
+
     var intrinsicSize: CGSize {
         return .init(width: baseWidth, height: baseHeight)
     }
-    
+
 }
 
 public protocol Theme {
-    
+
     func color(named string: String) -> UIColor
-    
+
 }
 
 final class ChildResizingLayer: CALayer {
-    
+
     override func layoutSublayers() {
         super.layoutSublayers()
         mask?.frame = bounds
@@ -111,14 +110,13 @@ final class ChildResizingLayer: CALayer {
             }
         }
     }
-    
+
 }
 
-
 class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
-    
+
     fileprivate let pathData: T
-    
+
     fileprivate let pathTransform: [Transform]
 
     fileprivate var drawableSize: CGSize {
@@ -126,7 +124,7 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
             updateRatio()
         }
     }
-    
+
     fileprivate var ratio: CGSize = .init(width: 1, height: 1) {
         didSet {
             path = pathTransform
@@ -135,27 +133,25 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
         }
     }
 
-    
     private func updateRatio() {
         ratio = CGSize(width: bounds.width / drawableSize.width,
                        height: bounds.height / drawableSize.height)
     }
-    
+
     init(pathData: T,
          drawableSize: CGSize,
          transform: [Transform]) {
         self.pathData = pathData
         self.drawableSize = drawableSize
-        self.pathTransform = transform
+        pathTransform = transform
         super.init()
     }
-    
+
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
-    required init?(coder aDecoder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    
     override func layoutSublayers() {
         super.layoutSublayers()
         if let sublayers = sublayers {
@@ -170,18 +166,18 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
 }
 
 final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
-    
+
     fileprivate var theme: Theme {
         didSet {
             updateTheme()
         }
     }
-    
+
     private func updateTheme() {
         pathData.apply(to: self,
                        using: theme)
     }
-    
+
     init(pathData: VectorDrawable.Path,
          theme: Theme,
          drawableSize: CGSize,
@@ -192,5 +188,5 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
                    transform: transform)
         updateTheme()
     }
-    
+
 }

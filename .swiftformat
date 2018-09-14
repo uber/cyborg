@@ -1,0 +1,9 @@
+--indent spaces
+--indent 4
+--allman false
+--trimwhitespace always
+--ranges nospace
+--empty tuple
+--wrapcollections preserve
+--patternlet inline
+--disable emptyBraces,blankLinesAtStartOfScope,blankLinesAtEndOfScope

@@ -4,23 +4,21 @@
 
 import UIKit
 
-
 /// For Debug purposes only.
 /// This view is implemented ease of use, *not* correctness.
 /// It deliberately creates reference cycles and modifies the internals
 /// its host view, and uses inefficient core graphics APIs.
 /// **Do not use it in production**.
 public final class DebugDiagnosticsView: UIView {
-    
+
     private var view: VectorView?
     private let padding: CGFloat = 10
     private var lastLaidOutSize: CGSize = .zero
-    
+
     fileprivate class HorizontalDividerView: UIView {
-        
         let label = UILabel()
         let divider = UIView()
-        
+
         init(number: Int) {
             super.init(frame: .zero)
             label.text = String(number)
@@ -32,7 +30,7 @@ public final class DebugDiagnosticsView: UIView {
             divider.translatesAutoresizingMaskIntoConstraints = false
             createConstraints()
         }
-        
+
         func createConstraints() {
             NSLayoutConstraint
                 .activate([
@@ -41,17 +39,16 @@ public final class DebugDiagnosticsView: UIView {
                     divider.leadingAnchor.constraint(equalTo: label.trailingAnchor),
                     divider.trailingAnchor.constraint(equalTo: trailingAnchor),
                     divider.centerYAnchor.constraint(equalTo: label.centerYAnchor),
-                    divider.heightAnchor.constraint(equalToConstant: 1)
-                    ])
+                    divider.heightAnchor.constraint(equalToConstant: 1),
+                ])
         }
-        
+
         @available(*, unavailable, message: "Not Supported.")
-        required init?(coder aDecoder: NSCoder) {
+        required init?(coder _: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
-        
     }
-    
+
     fileprivate class VerticalDividerView: HorizontalDividerView {
         override func createConstraints() {
             NSLayoutConstraint
@@ -61,11 +58,11 @@ public final class DebugDiagnosticsView: UIView {
                     divider.topAnchor.constraint(equalTo: label.bottomAnchor),
                     divider.bottomAnchor.constraint(equalTo: bottomAnchor),
                     divider.centerXAnchor.constraint(equalTo: label.centerXAnchor),
-                    divider.widthAnchor.constraint(equalToConstant: 1)
-                    ])
+                    divider.widthAnchor.constraint(equalToConstant: 1),
+                ])
         }
     }
-    
+
     public func attach(to view: VectorView) {
         self.view = view
         view.addSubview(self)
@@ -76,9 +73,9 @@ public final class DebugDiagnosticsView: UIView {
                 centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -padding),
                 widthAnchor.constraint(equalTo: view.widthAnchor, constant: padding),
                 heightAnchor.constraint(equalTo: view.heightAnchor, constant: padding),
-                ])
+            ])
     }
-    
+
     public override func layoutSubviews() {
         super.layoutSubviews()
         let size = bounds.size
@@ -112,5 +109,5 @@ public final class DebugDiagnosticsView: UIView {
             }
         }
     }
-    
+
 }

@@ -6,15 +6,14 @@ import Foundation
 
 /// Elements of a VectorDrawable document.
 enum Element: String {
-    case vector = "vector"
-    case path = "path"
-    case group = "group"
+    case vector
+    case path
+    case group
     case clipPath = "clip-path"
 }
 
 /// Elements of the <vector> element of a VectorDrawable document.
 enum VectorProperty: String {
-    
     case schema = "xmlns:android"
     case height = "android:height"
     case width = "android:width"
@@ -24,12 +23,10 @@ enum VectorProperty: String {
     case tintMode = "android:tintMode"
     case autoMirrored = "android:autoMirrored"
     case alpha = "android:alpha"
-       
 }
 
 /// Elements of the <path> element of a VectorDrawable document
 enum PathProperty: String {
-    
     case name = "android:name"
     case pathData = "android:pathData"
     case fillColor = "android:fillColor"
@@ -44,18 +41,16 @@ enum PathProperty: String {
     case strokeLineJoin = "android:strokeLineJoin"
     case strokeMiterLimit = "android:strokeMiterLimit"
     case fillType = "android:fillType"
-    
 }
 
 enum ClipPathProperty: String {
-    
+
     case name = "android:name"
     case pathData = "android:pathData"
 }
 
 /// Elements of the <group> element of a VectorDrawable document
 enum GroupProperty: String {
-    
     case name = "android:name"
     case rotation = "android:rotation"
     case pivotX = "android:pivotX"
@@ -64,16 +59,14 @@ enum GroupProperty: String {
     case scaleY = "android:scaleY"
     case translateX = "android:translateX"
     case translateY = "android:translateY"
-    
 }
 
 enum Color {
-    
     case theme(name: String)
     case hex(value: UIColor)
     case resource(named: String)
     case hardCoded(UIColor)
-    
+
     init?(_ string: XMLString) {
         let string = String(string) // TODO: see if we can do this without allocating a string
         if string.hasPrefix("?") {
@@ -100,7 +93,7 @@ enum Color {
             }
         }
     }
-    
+
     func color(from theme: Theme) -> UIColor {
         switch self {
         case .hardCoded(let color):
@@ -113,30 +106,28 @@ enum Color {
             fatalError()
         }
     }
-    
+
     static let clear: Color = .hardCoded(.clear)
 }
 
 extension UIColor {
-    
     static var random: UIColor {
         let rand = {
             CGFloat(arc4random_uniform(256)) / 256
         }
         let r = rand(),
-        g =  rand(),
-        b =  rand()
+            g = rand(),
+            b = rand()
         return UIColor(red: r, green: g, blue: b, alpha: 1)
     }
-    
 }
 
 enum LineCap: String, XMLStringRepresentable {
-    
+
     case butt
     case round
     case square
-        
+
     var intoCoreAnimation: String {
         switch self {
         case .butt: return kCALineCapButt
@@ -144,15 +135,14 @@ enum LineCap: String, XMLStringRepresentable {
         case .square: return kCALineCapSquare
         }
     }
-    
 }
 
 enum LineJoin: String, XMLStringRepresentable {
-    
+
     case miter
     case round
     case bevel
-    
+
     var intoCoreAnimation: String {
         switch self {
         case .bevel: return kCALineJoinBevel
@@ -160,5 +150,4 @@ enum LineJoin: String, XMLStringRepresentable {
         case .miter: return kCALineJoinMiter
         }
     }
-    
 }

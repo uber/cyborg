@@ -15,12 +15,12 @@ import libxml2
 /// Note: These strings should never be stored. They are only valid
 /// for the scope of the `xmlReaderPointer` they were created from.
 struct XMLString: Equatable, CustomDebugStringConvertible {
-    
+
     /// Count in UTF-8 code units.
     let count: Int32
-    
+
     let underlying: UnsafeMutablePointer<xmlChar> // TODO: make fileprivate
-    
+
     init(_ underlying: UnsafePointer<xmlChar>) {
         self.init(UnsafeMutablePointer(mutating: underlying))
     }
@@ -29,13 +29,13 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
         count = xmlStrlen(underlying)
         self.underlying = underlying
     }
-    
+
     init(_ underlying: UnsafeMutablePointer<xmlChar>, count: Int32) {
         self.underlying = underlying
         self.count = count
     }
-    
-    static func ==(lhs: XMLString, rhs: XMLString) -> Bool {
+
+    static func == (lhs: XMLString, rhs: XMLString) -> Bool {
         if lhs.count != rhs.count {
             return false
         } else {
@@ -47,8 +47,8 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return true
         }
     }
-    
-    subscript (_ range: CountableRange<Int32>) -> XMLString {
+
+    subscript(_ range: CountableRange<Int32>) -> XMLString {
         if range.upperBound <= count && range.lowerBound >= 0 {
             let newUnderlying = underlying.advanced(by: Int(range.lowerBound))
             return XMLString(newUnderlying, count: range.upperBound - range.lowerBound)
@@ -56,19 +56,19 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             fatalError("Index out of bounds")
         }
     }
-    
-    subscript (_ index: Int32) -> xmlChar {
+
+    subscript(_ index: Int32) -> xmlChar {
         if index < count && index >= 0 {
             return underlying.advanced(by: Int(index)).pointee
         } else {
             fatalError("Index out of bounds")
         }
     }
-    
+
     var debugDescription: String {
         return String(self)
     }
-    
+
     func matches(_ string: XMLString, at index: Int32) -> Bool {
         let upperbound = index + string.count
         if upperbound <= count {
@@ -82,8 +82,8 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return false
         }
     }
-    
-    static func ~=(lhs: String, rhs: XMLString) -> Bool {
+
+    static func ~= (lhs: String, rhs: XMLString) -> Bool {
         // This function is used in switch statements to allow us to match using string literals.
         // As ideas go, this is probably not the best.
         if lhs.count != rhs.count {
@@ -97,11 +97,10 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return true
         }
     }
-    
 }
 
 extension String {
-    
+
     init(_ xmlString: XMLString) {
         // *If* libXML is implemented correctly, this should never fail. If not, we return a string that we think will
         // propogate the error in a reasonable way.
@@ -110,24 +109,24 @@ extension String {
                       encoding: .utf8,
                       freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge taht this can fail
     }
-    
+
 }
 
 extension Int8 {
-    
+
     static let comma: Int8 = 44
-    
+
 }
 
 extension UInt8 {
-    
+
     static let whitespace: UInt8 = 10
+
     static let newline: UInt8 = 32
-    
+
 }
 
 extension XMLString {
-    
     fileprivate static func globallyScoped(_ value: UInt8) -> XMLString {
         // It's okay not to deallocate this because it's only ever used at a global scope.
         // It is not recognized as a memory leak in instruments.
@@ -135,88 +134,86 @@ extension XMLString {
         globallyScopedBuffer.pointee = value
         return XMLString(globallyScopedBuffer)
     }
-    
+
     static let m: XMLString = globallyScoped(109)
-    
+
     static let M: XMLString = globallyScoped(77)
-    
+
     static let l: XMLString = globallyScoped(108)
-    
+
     static let L: XMLString = globallyScoped(76)
-    
+
     static let v: XMLString = globallyScoped(118)
-    
+
     static let V: XMLString = globallyScoped(86)
-    
+
     static let h: XMLString = globallyScoped(104)
-    
+
     static let H: XMLString = globallyScoped(72)
-    
+
     static let c: XMLString = globallyScoped(99)
-    
+
     static let C: XMLString = globallyScoped(67)
-    
+
     static let s: XMLString = globallyScoped(115)
-    
+
     static let S: XMLString = globallyScoped(83)
-    
+
     static let q: XMLString = globallyScoped(113)
-    
+
     static let Q: XMLString = globallyScoped(81)
-    
+
     static let t: XMLString = globallyScoped(116)
-    
+
     static let T: XMLString = globallyScoped(84)
-    
+
     static let a: XMLString = globallyScoped(97)
-    
+
     static let A: XMLString = globallyScoped(65)
-    
+
     static let z: XMLString = globallyScoped(122)
-    
+
     static let Z: XMLString = globallyScoped(90)
-    
 }
 
 extension CGFloat {
-    
+
     init?(_ xmlString: XMLString) {
         let count = Int(xmlString.count)
         if let float = (xmlString
             .underlying
             .withMemoryRebound(to: Int8.self,
                                capacity: count) { (buffer) -> (CGFloat?) in
-                                var next: UnsafeMutablePointer<Int8>? = buffer
-                                for i in 0..<count {
-                                    var current = Int8(xmlString.underlying.advanced(by: i).pointee)
-                                    buffer.advanced(by: i).assign(from: &current,
-                                                                  count: 1)
-                                }
-                                let result = strtod(buffer, &next)
-                                if result == 0.0 && next == buffer {
-                                    return nil
-                                } else {
-                                    return CGFloat(result)
-                                }
+                var next: UnsafeMutablePointer<Int8>? = buffer
+                for i in 0..<count {
+                    var current = Int8(xmlString.underlying.advanced(by: i).pointee)
+                    buffer.advanced(by: i).assign(from: &current,
+                                                  count: 1)
+                }
+                let result = strtod(buffer, &next)
+                if result == 0.0 && next == buffer {
+                    return nil
+                } else {
+                    return CGFloat(result)
+                }
         }) {
             self = float
         } else {
             return nil
         }
     }
+
 }
 
 extension Bool {
-    
+
     init?(_ xmlString: XMLString) {
         self.init(String(xmlString))
     }
-    
-}
-
-protocol XMLStringRepresentable: RawRepresentable where RawValue == String {
 
 }
+
+protocol XMLStringRepresentable: RawRepresentable where RawValue == String {}
 
 extension XMLStringRepresentable {
 
