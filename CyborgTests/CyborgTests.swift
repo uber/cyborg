@@ -5,6 +5,14 @@
 @testable import Cyborg
 import XCTest
 
+class NoTheme: Theme {
+
+    func color(named _: String) -> UIColor {
+        return .black
+    }
+
+}
+
 class CyborgTests: XCTestCase {
     let string = """
      <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -37,7 +45,6 @@ class CyborgTests: XCTestCase {
                     XCTAssert(drawable.viewPortHeight == 600)
                     XCTAssert(((drawable.groups[0] as! VectorDrawable.Group).children[0] as! VectorDrawable.Path).data.count != 0)
                     let noResizing = CGSize(width: 1, height: 1)
-                    let path = drawable.createPaths(in: noResizing)
                     var expected = CGMutablePath()
                     var relativeTo = CGPoint(x: 300, y: 70)
                     expected.move(to: relativeTo)
@@ -57,9 +64,17 @@ class CyborgTests: XCTestCase {
                         .groups[0] as! VectorDrawable.Group)
                         .transform
                     expected = transform
-                        .apply(to: expected, in: noResizing)
+                        .apply(to: expected,
+                               relativeTo: .init(width: 64 / 600, height: 64 / 600))
                         .mutableCopy()!
-                    XCTAssertEqual(path[0], expected)
+                    let layers = drawable.layerRepresentation(in: CGRect(origin: .zero,
+                                                                         size: noResizing),
+                                                              using: NoTheme())
+                    let layer = layers[0] as! ThemeableShapeLayer
+                    layer.frame = .init(origin: .zero,
+                                        size: .init(width: 64, height: 64))
+                    layer.layoutSublayers()
+                    XCTAssertEqual(layer.path, expected)
                 case .error(let error):
                     XCTFail(error)
                 }
