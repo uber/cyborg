@@ -43,6 +43,7 @@ enum PathProperty: String {
     case fillType = "android:fillType"
 }
 
+/// Elements of the <clip-path> element of a VectorDrawable document.
 enum ClipPathProperty: String {
 
     case name = "android:name"
