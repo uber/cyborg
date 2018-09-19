@@ -445,7 +445,8 @@ extension Int {
 
     func coordinatePairs() -> Parser<[[CGPoint]]> {
         return { stream, index in
-            var floats = [CGFloat](repeating: 0, count: self * 2)
+            var floats = [CGFloat]()
+            floats.reserveCapacity(self * 2)
             var found = 0
             var next = index
             while case .ok(let value, let index) = number(from: stream, at: next) {
@@ -458,9 +459,8 @@ extension Int {
                 var results = [[CGPoint]](repeating: [CGPoint](repeating: .zero, count: self), count: numberOfCommandsFound)
                 for i in 0..<numberOfCommandsFound {
                     for j in 0..<self {
-                        results[i].insert(CGPoint(x: floats[(i * self + j) * 2],
-                                                  y: floats[(i * self + j) * 2 + 1]),
-                                          at: j)
+                        results[i][j] = CGPoint(x: floats[(i * self + j) * 2],
+                                                y: floats[(i * self + j) * 2 + 1])
                     }
                 }
                 return .ok(results, next)
