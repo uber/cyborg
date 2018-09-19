@@ -3,16 +3,127 @@
 //
 
 import Foundation
+import libxml2
 
-/// Contains either a `VectorDrawable`, or an `error` if the `VectorDrawable` could not be deserialized.
-public enum Result {
-    case ok(VectorDrawable)
+/// Contains either an instance of  `Wrapped`,
+/// or an `error` if the instance could not be deserialized.
+public enum Result<Wrapped> {
+
+    case ok(Wrapped)
     case error(ParseError)
+
+    func flatMap<T>(_ function: (Wrapped) -> Result<T>) -> Result<T> {
+        switch self {
+        case .ok(let wrapped): return function(wrapped)
+        case .error(let error): return .error(error)
+        }
+    }
+
+}
+
+extension Sequence {
+
+    func mapAllOrFail<T>(_ function: (Element) -> Result<T>) -> Result<[T]> {
+        var result = [T]()
+        result.reserveCapacity(underestimatedCount)
+        for element in self {
+            switch function(element) {
+            case .ok(let wrapped): result.append(wrapped)
+            case .error(let error): return .error(error)
+            }
+        }
+        return .ok(result)
+    }
+
 }
 
 /// An Error encountered when parsing. Generally optional, the presence of a value indicates that
 /// an error occurred.
 public typealias ParseError = String
+
+public extension VectorDrawable {
+
+    /// Attempts to create a new `VectorDrawable` by opening the file in `url`.
+    ///
+    /// - parameter url: The `URL` to load.
+    /// - returns: The `VectorDrawable`, or an error if parsing failed.
+    public static func create(from url: URL) -> Result<VectorDrawable> {
+        do {
+            let data = try Data(contentsOf: url)
+            return create(from: data)
+        } catch let error {
+            return .error(error.localizedDescription)
+        }
+    }
+
+    /// Attempts to create a new `VectorDrawable` by parsing `data`.
+    ///
+    /// - parameter data: The `Data` to parse.
+    /// - returns: The `VectorDrawable`, or an error if parsing failed.
+    public static func create(from data: Data) -> Result<VectorDrawable> {
+        let parser = VectorParser()
+        return data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
+            let xml = xmlReaderForMemory(bytes,
+                                         Int32(data.count),
+                                         nil,
+                                         nil,
+                                         Int32(XML_PARSE_NOENT.rawValue))
+            defer {
+                xmlFreeTextReader(xml)
+            }
+            var lastElement = ""
+            while xmlTextReaderRead(xml) == 1 {
+                let count = xmlTextReaderAttributeCount(xml)
+                if let namePointer = xmlTextReaderConstName(xml) {
+                    let elementName = String(cString: namePointer)
+                    lastElement = elementName
+                    let type = xmlTextReaderNodeType(xml)
+                    if type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
+                        // we don't care about these, they show up as "#text"
+                        // which disrupts the parsing
+                        continue
+                    }
+                    if type == XML_READER_TYPE_END_ELEMENT.rawValue {
+                        // TODO: check what to do with result here
+                        _ = parser.didEnd(element: lastElement)
+                        continue
+                    }
+                    var attributes = [(XMLString, XMLString)]()
+                    attributes.reserveCapacity(Int(count))
+                    for _ in 0..<count {
+                        if xmlTextReaderMoveToNextAttribute(xml) == 1 {
+                            if let namePointer = xmlTextReaderConstName(xml),
+                                let valuePointer = xmlTextReaderConstValue(xml) {
+                                attributes.append((XMLString(namePointer),
+                                                   XMLString(valuePointer)))
+                            } else {
+                                return .error("failed to parse attribute")
+                            }
+                        } else {
+                            return .error("failed to move to next attribute")
+                        }
+                    }
+                    if let parseError = parser.parse(element: elementName,
+                                                     attributes: attributes) {
+                        return .error(parseError)
+                    }
+                    // hack: end path elements manually, since they never have children (or do they)
+                    // After it's parsed.
+                    let stringName = String(elementName)
+                    if stringName == Element.path.rawValue ||
+                        stringName == Element.clipPath.rawValue {
+                        _ = parser.didEnd(element: lastElement)
+                        continue
+                    }
+                } else {
+                    return .error("Failed to read element name")
+                }
+            }
+            return parser.createElement()
+        }
+    }
+
+}
 
 // MARK: - Element Parsers
 
@@ -160,20 +271,22 @@ final class VectorParser: ParentParser<GroupParser> {
         }
     }
 
-    func createElement() -> Result {
+    func createElement() -> Result<VectorDrawable> {
         if let baseWidth = baseWidth,
             let baseHeight = baseHeight,
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
-            let groups = children.map { group in
-                group.createElement()! // TODO: have a better way of propogating errors
+            return children.mapAllOrFail { group in
+                group.createElement()
             }
-            return .ok(.init(baseWidth: baseWidth,
-                             baseHeight: baseHeight,
-                             viewPortWidth: viewPortWidth,
-                             viewPortHeight: viewPortHeight,
-                             baseAlpha: alpha,
-                             groups: groups))
+            .flatMap { (groups) -> Result<VectorDrawable> in
+                .ok(.init(baseWidth: baseWidth,
+                          baseHeight: baseHeight,
+                          viewPortWidth: viewPortWidth,
+                          viewPortHeight: viewPortHeight,
+                          baseAlpha: alpha,
+                          groups: groups))
+            }
         } else {
             return .error("Could not parse a <vector> element, but there was no error. This is a bug in the VectorDrawable Library.")
         }
@@ -279,23 +392,23 @@ final class PathParser: GroupChildParser {
         return element == Element.path.rawValue
     }
 
-    func createElement() -> GroupChild? {
+    func createElement() -> Result<GroupChild> {
         if let commands = commands {
-            return VectorDrawable.Path(name: pathName,
-                                       fillColor: fillColor,
-                                       fillAlpha: fillAlpha,
-                                       data: commands,
-                                       strokeColor: strokeColor,
-                                       strokeWidth: strokeWidth,
-                                       strokeAlpha: strokeAlpha,
-                                       trimPathStart: trimPathStart,
-                                       trimPathEnd: trimPathEnd,
-                                       trimPathOffset: trimPathOffset,
-                                       strokeLineCap: strokeLineCap,
-                                       strokeLineJoin: strokeLineJoin,
-                                       fillType: fillType)
+            return .ok(VectorDrawable.Path(name: pathName,
+                                           fillColor: fillColor,
+                                           fillAlpha: fillAlpha,
+                                           data: commands,
+                                           strokeColor: strokeColor,
+                                           strokeWidth: strokeWidth,
+                                           strokeAlpha: strokeAlpha,
+                                           trimPathStart: trimPathStart,
+                                           trimPathEnd: trimPathEnd,
+                                           trimPathOffset: trimPathOffset,
+                                           strokeLineCap: strokeLineCap,
+                                           strokeLineJoin: strokeLineJoin,
+                                           fillType: fillType))
         } else {
-            return nil
+            return .error("\(PathProperty.pathData.rawValue) is a required property of <\(PathParser.name.rawValue)>.")
         }
     }
 
@@ -303,13 +416,13 @@ final class PathParser: GroupChildParser {
 
 protocol GroupChildParser: NodeParsing {
 
-    func createElement() -> GroupChild?
+    func createElement() -> Result<GroupChild>
 
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
 
-    func createElement() -> GroupChild? {
+    func createElement() -> Result<GroupChild> {
         return createElement()
     }
 
@@ -346,12 +459,12 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
         return true
     }
 
-    func createElement() -> VectorDrawable.ClipPath? {
+    func createElement() -> Result<VectorDrawable.ClipPath> {
         if let commands = commands {
-            return .init(name: name,
-                         path: commands)
+            return .ok(.init(name: name,
+                             path: commands))
         } else {
-            return nil
+            return .error("Didn't find \(PathProperty.pathData.rawValue), which is required in elements of type <\(Element.clipPath.rawValue)>")
         }
     }
 
@@ -375,7 +488,7 @@ final class AnyGroupParserChild: GroupChildParser {
         return parser.didEnd(element: element)
     }
 
-    func createElement() -> GroupChild? {
+    func createElement() -> Result<GroupChild> {
         return parser.createElement()
     }
 
@@ -435,18 +548,23 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         return nil
     }
 
-    func createElement() -> GroupChild? {
-        let childElements = children.map { parser in
-            parser.createElement()! // TODO: handle failure cases
+    func createElement() -> Result<GroupChild> {
+        return children.mapAllOrFail { parser in
+            parser.createElement()
         }
-        let clipPaths: [VectorDrawable.ClipPath] = self.clipPaths.map { $0.createElement()! } // TODO: handle failure cases
-        return VectorDrawable.Group(name: groupName,
-                                    transform: Transform(pivot: .init(x: pivotX, y: pivotY),
-                                                         rotation: rotation,
-                                                         scale: .init(x: scaleX, y: scaleY),
-                                                         translation: .init(x: translationX, y: translationY)),
-                                    children: childElements,
-                                    clipPaths: clipPaths)
+        .flatMap { childElements in
+            clipPaths
+                .mapAllOrFail { $0.createElement() as Result<VectorDrawable.ClipPath> }
+                .flatMap { clipPaths in
+                    .ok(VectorDrawable.Group(name: groupName,
+                                             transform: Transform(pivot: .init(x: pivotX, y: pivotY),
+                                                                  rotation: rotation,
+                                                                  scale: .init(x: scaleX, y: scaleY),
+                                                                  translation: .init(x: translationX, y: translationY)),
+                                             children: childElements,
+                                             clipPaths: clipPaths))
+                }
+        }
     }
 
     override func childForElement(_ element: String) -> (AnyGroupParserChild, (AnyGroupParserChild) -> ())? {

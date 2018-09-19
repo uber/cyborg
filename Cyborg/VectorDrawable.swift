@@ -2,7 +2,6 @@
 //  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
-import libxml2
 import UIKit
 
 enum AndroidUnitOfMeasure: String {
@@ -95,85 +94,6 @@ public final class VectorDrawable: CustomDebugStringConvertible {
           groups: \(groups)
         >
         """
-    }
-
-    public static func create(from url: URL,
-                              whenComplete run: @escaping (Result) -> ()) {
-        do {
-            let data = try Data(contentsOf: url)
-            create(from: data, whenComplete: run)
-        } catch let error {
-            run(.error(error.localizedDescription))
-        }
-    }
-
-    public static func create(from data: Data,
-                              whenComplete run: @escaping (Result) -> ()) {
-        let parser = VectorParser()
-        data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> () in
-            let xml = xmlReaderForMemory(bytes,
-                                         Int32(data.count),
-                                         nil,
-                                         nil,
-                                         Int32(XML_PARSE_NOENT.rawValue))
-            defer {
-                xmlFreeTextReader(xml)
-            }
-            var lastElement = ""
-            while xmlTextReaderRead(xml) == 1 {
-                let count = xmlTextReaderAttributeCount(xml)
-                if let namePointer = xmlTextReaderConstName(xml) {
-                    let elementName = String(cString: namePointer)
-                    lastElement = elementName
-                    let type = xmlTextReaderNodeType(xml)
-                    if type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
-                        // we don't care about these, they show up as "#text"
-                        // which disrupts the parsing
-                        continue
-                    }
-                    if type == XML_READER_TYPE_END_ELEMENT.rawValue {
-                        // TODO: check what to do with result here
-                        _ = parser.didEnd(element: lastElement)
-                        continue
-                    }
-                    var attributes = [(XMLString, XMLString)]()
-                    attributes.reserveCapacity(Int(count))
-                    for _ in 0..<count {
-                        if xmlTextReaderMoveToNextAttribute(xml) == 1 {
-                            if let namePointer = xmlTextReaderConstName(xml),
-                                let valuePointer = xmlTextReaderConstValue(xml) {
-                                attributes.append((XMLString(namePointer),
-                                                   XMLString(valuePointer)))
-                            } else {
-                                run(.error("failed to parse attribute"))
-                                return
-                            }
-                        } else {
-                            run(.error("failed to move to next attribute"))
-                            return
-                        }
-                    }
-                    if let parseError = parser.parse(element: elementName,
-                                                     attributes: attributes) {
-                        run(.error(parseError))
-                        return
-                    }
-                    // hack: end path elements manually, since they never have children (or do they)
-                    // After it's parsed.
-                    let stringName = String(elementName)
-                    if stringName == Element.path.rawValue ||
-                        stringName == Element.clipPath.rawValue {
-                        _ = parser.didEnd(element: lastElement)
-                        continue
-                    }
-                } else {
-                    run(.error("Failed to read element name"))
-                    return
-                }
-            }
-            run(parser.createElement())
-            return
-        }
     }
 
     init(baseWidth: CGFloat,

@@ -26,16 +26,14 @@ class ViewController: UIViewController {
 //            debugView.attach(to: vectorView)
             view.addSubview(vectorView)
             vectorView.translatesAutoresizingMaskIntoConstraints = false
-            VectorDrawable
-                .create(from: data) { result in
-                    switch result {
-                    case .ok(let drawable):
-                        vectorView.drawable = drawable
-                    case .error(let error):
-                        print(error)
-                        fatalError(error)
-                    }
-                }
+            let result = VectorDrawable.create(from: data)
+            switch result {
+            case .ok(let drawable):
+                vectorView.drawable = drawable
+            case .error(let error):
+                print(error)
+                fatalError(error)
+            }
             NSLayoutConstraint
                 .activate([
                     vectorView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
