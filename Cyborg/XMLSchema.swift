@@ -70,11 +70,12 @@ enum Color {
     case theme(name: String)
     case hex(value: UIColor)
     case resource(named: String)
-    case hardCoded(UIColor)
 
     init?(_ string: XMLString) {
         if string[safeIndex: 0] == .questionMark {
-            self = .theme(name: String(withoutCopying: string[1..<string.count])) // TODO: not memory safe
+            self = .theme(name: String(copying: string[1..<string.count]))
+        } else if string[safeIndex: 0] == .at {
+            self = .resource(named: String(copying: string[1..<string.count]))
         } else {
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = String(withoutCopying: string)
@@ -92,16 +93,13 @@ enum Color {
                                            blue: component(0xFF, 0),
                                            alpha: 1.0))
             } else {
-                print("returning bogus hard coded color")
-                self = .hardCoded(.random)
+                return nil
             }
         }
     }
 
     func color(from externalValues: ValueProviding) -> UIColor {
         switch self {
-        case .hardCoded(let color):
-            return color
         case .hex(let value):
             return value
         case .theme(let name):
@@ -109,21 +107,6 @@ enum Color {
         case .resource(named: let name):
             return externalValues.colorFromResources(named: name)
         }
-    }
-
-    static let clear: Color = .hardCoded(.clear)
-}
-
-extension UIColor {
-
-    static var random: UIColor {
-        let rand = {
-            CGFloat(arc4random_uniform(256)) / 256
-        }
-        let r = rand(),
-            g = rand(),
-            b = rand()
-        return UIColor(red: r, green: g, blue: b, alpha: 1)
     }
 
 }

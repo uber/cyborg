@@ -121,7 +121,19 @@ extension String {
         self = String(bytesNoCopy: UnsafeMutableRawPointer(xmlString.underlying),
                       length: Int(xmlString.count),
                       encoding: .utf8,
-                      freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>" // TODO: better error message, or acknowledge that this can fail
+                      freeWhenDone: false) ?? "<String Conversion failed, this represents a serious bug in Cyborg>"
+    }
+
+    init(copying xmlString: XMLString) {
+        var result = String()
+        for i in 0..<xmlString.count {
+            result
+                .append(Character(Unicode.Scalar(xmlString
+                        .underlying
+                        .advanced(by: Int(i))
+                        .pointee)))
+        }
+        self = result
     }
 
 }
@@ -138,11 +150,14 @@ extension UInt8 {
 
     static let newline: UInt8 = 32
 
-    static let questionMark: UInt8 = 64
+    static let questionMark: UInt8 = 63
+
+    static let at: UInt8 = 64
 
 }
 
 extension XMLString {
+
     fileprivate static func globallyScoped(_ value: UInt8) -> XMLString {
         // It's okay not to deallocate this because it's only ever used at a global scope.
         // It is not recognized as a memory leak in instruments.

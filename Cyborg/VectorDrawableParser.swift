@@ -84,7 +84,7 @@ public extension VectorDrawable {
                         continue
                     }
                     if type == XML_READER_TYPE_END_ELEMENT.rawValue {
-                        // TODO: check what to do with result here
+                        // The return value here indicates whether the parser ended, which we don't care about in this case.
                         _ = parser.didEnd(element: lastElement)
                         continue
                     }
@@ -228,12 +228,13 @@ final class VectorParser: ParentParser<GroupParser> {
     var alpha: CGFloat = 1
 
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
+        var foundSchema = false
         for (key, value) in attributes {
             if let property = VectorProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .schema:
-                    // TODO: fail if schema not found
+                    foundSchema = true
                     result = nil
                 case .height: result = assign(value, to: &baseHeight, creatingWith: parseAndroidMeasurement(from:))
                 case .width: result = assign(value, to: &baseWidth, creatingWith: parseAndroidMeasurement(from:))
@@ -257,7 +258,11 @@ final class VectorParser: ParentParser<GroupParser> {
                 return "Key \(key) is not a valid attribute of <vector>"
             }
         }
-        return nil
+        if foundSchema {
+            return nil
+        } else {
+            return "Schema not found in <vector>"
+        }
     }
 
     override func childForElement(_ element: String) -> (GroupParser, (GroupParser) -> ())? {

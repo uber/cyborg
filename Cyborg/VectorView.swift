@@ -2,26 +2,24 @@
 //  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
-import Foundation
 import UIKit
 
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
 
+    /// A source for external values to use to theme the VectorDrawable.
     public var externalValues: ValueProviding {
         didSet {
             updateLayers()
         }
     }
 
-    public init(externalValues: ValueProviding) {
-        self.externalValues = externalValues
-        super.init(frame: .zero)
-    }
-
-    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
-    public required init?(coder _: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    /// The drawable to display.
+    open var drawable: VectorDrawable? {
+        didSet {
+            updateLayers()
+            invalidateIntrinsicContentSize()
+        }
     }
 
     private var drawableLayers: [CALayer] = [] {
@@ -35,6 +33,21 @@ open class VectorView: UIView {
         }
     }
 
+    private var drawableSize: CGSize = .zero
+
+    /// Initializer.
+    ///
+    /// - parameter externalValues: A source for external values to use to theme the VectorDrawable.
+    public init(externalValues: ValueProviding) {
+        self.externalValues = externalValues
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
+    public required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     open override func layoutSubviews() {
         super.layoutSubviews()
         if bounds.size != .zero {
@@ -43,16 +56,6 @@ open class VectorView: UIView {
             }
         }
     }
-
-    /// The drawable to display.
-    open var drawable: VectorDrawable? {
-        didSet {
-            updateLayers()
-            invalidateIntrinsicContentSize()
-        }
-    }
-
-    private var drawableSize: CGSize = .zero
 
     private func updateLayers() {
         if let drawable = drawable {
@@ -70,13 +73,26 @@ open class VectorView: UIView {
 
 }
 
-/// Provides values from various sources: a "externalValues," and "resources".
-/// You should implement this protocol with a
+/// Provides values from various sources: a "theme," and "resources", which
+/// correspond to the objects of the same name on Android. You can reimplement the
+/// Android behavior, or write your own system.
 public protocol ValueProviding {
 
-    func colorFromTheme(named string: String) -> UIColor
+    /// Gets the color that corresponds to `name` from the Theme. Colors prefixed "?"
+    /// in the VectorDrawable XML file are fetched using this function.
+    ///
+    /// - parameter name: the name of the external value
+    /// -note: You are responsible for providing an appropriate value or crashing
+    /// in the event that you cannot create a color for the name.
+    func colorFromTheme(named name: String) -> UIColor
 
-    func colorFromResources(named string: String) -> UIColor
+    /// Gets the color that corresponds to `name` from the Resources bundle. Colors prefixed "@"
+    /// in the VectorDrawable XML file are fetched using this function.
+    ///
+    /// - parameter name: the name of the external value
+    /// -note: You are responsible for providing an appropriate value or crashing
+    /// in the event that you cannot create a color for the name.
+    func colorFromResources(named name: String) -> UIColor
 
 }
 
