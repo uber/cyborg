@@ -56,9 +56,9 @@ func consumeTrivia(before lit: XMLString, _ next: @escaping Parser<PathSegment>)
 func parse<T>(command: DrawingCommand,
               followedBy: @escaping Parser<T>,
               convertToPathCommandsWith convert: @escaping (T) -> PathSegment) -> Parser<PathSegment> {
-    let command = command.asXMLString // TODO: don't capture this after it stops leaking
     return { stream, index in
-        literal(command, discardErrorMessage: true)(stream, index)
+        let command = command.asXMLString
+        return literal(command, discardErrorMessage: true)(stream, index)
             .chain(into: stream) { stream, index in
                 followedBy(stream, index)
                     .map { result, index in

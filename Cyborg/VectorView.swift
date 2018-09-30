@@ -81,7 +81,7 @@ extension VectorDrawable {
                 .map { group in
                     group.createLayers(using: theme,
                                        drawableSize: viewSpace,
-                                       transform: [.identity])
+                                       transform: [])
                 }
                 .joined()
         )
@@ -160,7 +160,6 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
             }
         }
         updateRatio()
-        path = pathData.createPaths(in: ratio)
     }
 
 }

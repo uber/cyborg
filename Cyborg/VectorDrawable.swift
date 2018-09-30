@@ -282,7 +282,7 @@ extension Array where Element == Transform {
 }
 
 /// A rigid body transformation as specced by VectorDrawable.
-public struct Transform: CustomDebugStringConvertible {
+public struct Transform {
 
     /// The offset from the origin to apply the rotation from. Specified in relative coordinates.
     public let pivot: CGPoint
@@ -295,17 +295,6 @@ public struct Transform: CustomDebugStringConvertible {
 
     /// The translation, in relative terms.
     public let translation: CGPoint
-
-    public var debugDescription: String {
-        return """
-        <\(type(of: self))
-          pivot: \(pivot)
-          rotation: \(rotation)
-          scale: \(scale)
-          translation: \(translation)
-        >
-        """
-    }
 
     /// Intializer.
     ///
