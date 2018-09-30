@@ -28,8 +28,6 @@ class ViewController: UIViewController {
         }
         for data in drawableData {
             let vectorView = VectorView(externalValues: Theme())
-//            let debugView = DebugDiagnosticsView()
-//            debugView.attach(to: vectorView)
             view.addSubview(vectorView)
             vectorView.translatesAutoresizingMaskIntoConstraints = false
             let result = VectorDrawable.create(from: data)

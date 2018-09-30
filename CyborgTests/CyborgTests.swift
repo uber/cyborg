@@ -314,3 +314,14 @@ extension XMLString {
         }
     }
 }
+
+extension ParseResult {
+
+    var asOptional: (Wrapped, Int32)? {
+        switch self {
+        case .ok(let wrapped): return wrapped
+        case .error: return nil
+        }
+    }
+
+}
