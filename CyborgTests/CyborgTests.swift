@@ -5,7 +5,7 @@
 @testable import Cyborg
 import XCTest
 
-class NoTheme: Theme {
+class NoTheme: ValueProviding {
 
     func color(named _: String) -> UIColor {
         return .black

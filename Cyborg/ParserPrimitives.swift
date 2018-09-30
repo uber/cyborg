@@ -81,7 +81,7 @@ func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XML
             if discardErrorMessage {
                 return .error("")
             } else {
-                return ParseResult(error: "Literal " + String(text), index: index, stream: stream)
+                return ParseResult(error: "Literal " + String(withoutCopying: text), index: index, stream: stream)
             }
         }
     }

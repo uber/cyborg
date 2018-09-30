@@ -12,15 +12,15 @@ import libxml2
 /// ASCII only anyway, user facing ones that might have complex grapheme clusters
 /// will be immediately converting to `String` anyway, and we won't be processing them.
 ///
-/// Note: These strings should never be stored. They are only valid
+/// Note: These strings generally should never be stored. They are only valid
 /// for the scope of the `xmlReaderPointer` they were created from.
 struct XMLString: Equatable, CustomDebugStringConvertible {
 
     /// Count in UTF-8 code units.
     let count: Int32
-    
+
     fileprivate let underlying: UnsafeMutablePointer<xmlChar>
-    
+
     init(_ underlying: UnsafePointer<xmlChar>) {
         self.init(UnsafeMutablePointer(mutating: underlying))
     }
@@ -64,7 +64,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             fatalError("Index out of bounds")
         }
     }
-    
+
     subscript(safeIndex index: Int32) -> xmlChar? {
         if index < count && index >= 0 {
             return underlying.advanced(by: Int(index)).pointee
@@ -74,7 +74,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
 
     var debugDescription: String {
-        return String(self)
+        return String(withoutCopying: self)
     }
 
     func matches(_ string: XMLString, at index: Int32) -> Bool {
@@ -91,7 +91,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
         }
     }
 
-    static func ~=(lhs: String, rhs: XMLString) -> Bool {
+    static func ~= (lhs: String, rhs: XMLString) -> Bool {
         if lhs.count != rhs.count {
             return false
         } else {
@@ -103,19 +103,19 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return true
         }
     }
-    
-    func withSignedIntegers<T>(_ function: (UnsafeMutablePointer<Int8>) -> (T)) -> T {
+
+    func withSignedIntegers<T>(_ function: (UnsafeMutablePointer<Int8>) -> T) -> T {
         return underlying
             .withMemoryRebound(to: Int8.self,
                                capacity: Int(count),
                                function)
     }
-    
+
 }
 
 extension String {
 
-    init(_ xmlString: XMLString) {
+    init(withoutCopying xmlString: XMLString) {
         // *If* libXML is implemented correctly, this should never fail. If not, we return a string that we think will
         // propogate the error in a reasonable way.
         self = String(bytesNoCopy: UnsafeMutableRawPointer(xmlString.underlying),
@@ -137,9 +137,9 @@ extension UInt8 {
     static let whitespace: UInt8 = 10
 
     static let newline: UInt8 = 32
-    
+
     static let questionMark: UInt8 = 64
-    
+
 }
 
 extension XMLString {
@@ -222,7 +222,7 @@ extension CGFloat {
 extension Bool {
 
     init?(_ xmlString: XMLString) {
-        self.init(String(xmlString))
+        self.init(String(withoutCopying: xmlString))
     }
 
 }
@@ -232,7 +232,7 @@ protocol XMLStringRepresentable: RawRepresentable where RawValue == String {}
 extension XMLStringRepresentable {
 
     init?(_ xmlString: XMLString) {
-        self.init(rawValue: String(xmlString))
+        self.init(rawValue: String(withoutCopying: xmlString))
     }
 
 }

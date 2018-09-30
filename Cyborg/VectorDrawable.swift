@@ -57,7 +57,7 @@ enum BlendMode: String, XMLStringRepresentable {
 /// to be children of Groups, apparently.
 protocol GroupChild: AnyObject {
 
-    func createLayers(using theme: Theme,
+    func createLayers(using externalValues: ValueProviding,
                       drawableSize: CGSize,
                       transform: [Transform]) -> [CALayer]
 
@@ -142,7 +142,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.clipPaths = clipPaths
         }
 
-        func createLayers(using theme: Theme,
+        func createLayers(using externalValues: ValueProviding,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             var clipPathLayers = clipPaths.map { clipPath in
@@ -151,7 +151,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             }
             let pathLayers = Array(
                 children.map { child in
-                    child.createLayers(using: theme,
+                    child.createLayers(using: externalValues,
                                        drawableSize: drawableSize,
                                        transform: transform + [self.transform])
                 }
@@ -243,25 +243,25 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.strokeWidth = strokeWidth
         }
 
-        func createLayers(using theme: Theme,
+        func createLayers(using externalValues: ValueProviding,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             return [ThemeableShapeLayer(pathData: self,
-                                        theme: theme,
+                                        externalValues: externalValues,
                                         drawableSize: drawableSize,
                                         transform: transform)]
         }
 
         func apply(to layer: CAShapeLayer,
-                   using theme: Theme) {
+                   using externalValues: ValueProviding) {
             layer.strokeColor = strokeColor?
-                .color(from: theme)
+                .color(from: externalValues)
                 .withAlphaComponent(strokeAlpha)
                 .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
             layer.fillColor = fillColor?
-                .color(from: theme)
+                .color(from: externalValues)
                 .withAlphaComponent(fillAlpha)
                 .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation

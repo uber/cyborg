@@ -229,7 +229,7 @@ final class VectorParser: ParentParser<GroupParser> {
 
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
-            if let property = VectorProperty(rawValue: String(key)) {
+            if let property = VectorProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .schema:
@@ -294,7 +294,7 @@ final class VectorParser: ParentParser<GroupParser> {
 
     func parseAndroidMeasurement(from text: XMLString) -> CGFloat? {
         if case .ok(let number, let index) = number(from: text, at: 0),
-            let _ = AndroidUnitOfMeasure(rawValue: String(text[index..<text.count])) {
+            let _ = AndroidUnitOfMeasure(rawValue: String(withoutCopying: text[index..<text.count])) {
             return number
         } else {
             return nil
@@ -325,11 +325,11 @@ final class PathParser: GroupChildParser {
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         for (key, value) in attributes {
-            if let property = PathProperty(rawValue: String(key)) {
+            if let property = PathProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .name:
-                    pathName = String(value)
+                    pathName = String(withoutCopying: value)
                     result = nil
                 case .pathData:
                     let subResult: ParseError?
@@ -435,9 +435,9 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
-            if let property = ClipPathProperty(rawValue: String(key)) {
+            if let property = ClipPathProperty(rawValue: String(withoutCopying: key)) {
                 switch property {
-                case .name: name = String(value)
+                case .name: name = String(withoutCopying: value)
                 case .pathData:
                     let parsers = DrawingCommand
                         .all
@@ -521,11 +521,11 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
 
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
-            if let property = GroupProperty(rawValue: String(key)) {
+            if let property = GroupProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .name:
-                    groupName = String(value)
+                    groupName = String(withoutCopying: value)
                     result = nil
                 case .rotation:
                     result = assignFloat(value, to: &rotation)
@@ -600,7 +600,7 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     let substring = stream[index..<stream.count]
     return substring
-        .withSignedIntegers { (buffer) in
+        .withSignedIntegers { buffer in
             var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
             let result = strtod(buffer, &next)
             if result == 0.0,

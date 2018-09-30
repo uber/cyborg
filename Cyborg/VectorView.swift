@@ -8,14 +8,14 @@ import UIKit
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
 
-    public var theme: Theme {
+    public var externalValues: ValueProviding {
         didSet {
             updateLayers()
         }
     }
 
-    public init(theme: Theme) {
-        self.theme = theme
+    public init(externalValues: ValueProviding) {
+        self.externalValues = externalValues
         super.init(frame: .zero)
     }
 
@@ -56,7 +56,7 @@ open class VectorView: UIView {
 
     private func updateLayers() {
         if let drawable = drawable {
-            drawableLayers = drawable.layerRepresentation(in: bounds, using: theme)
+            drawableLayers = drawable.layerRepresentation(in: bounds, using: externalValues)
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
@@ -70,16 +70,26 @@ open class VectorView: UIView {
 
 }
 
+/// Provides values from various sources: a "externalValues," and "resources".
+/// You should implement this protocol with a
+public protocol ValueProviding {
+
+    func colorFromTheme(named string: String) -> UIColor
+
+    func colorFromResources(named string: String) -> UIColor
+
+}
+
 extension VectorDrawable {
 
     func layerRepresentation(in _: CGRect,
-                             using theme: Theme) -> [CALayer] {
+                             using externalValues: ValueProviding) -> [CALayer] {
         let viewSpace = CGSize(width: viewPortWidth,
                                height: viewPortHeight)
         return Array(
             groups
                 .map { group in
-                    group.createLayers(using: theme,
+                    group.createLayers(using: externalValues,
                                        drawableSize: viewSpace,
                                        transform: [])
                 }
@@ -90,12 +100,6 @@ extension VectorDrawable {
     var intrinsicSize: CGSize {
         return .init(width: baseWidth, height: baseHeight)
     }
-
-}
-
-public protocol Theme {
-
-    func color(named string: String) -> UIColor
 
 }
 
@@ -166,7 +170,7 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
 
 final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
 
-    fileprivate var theme: Theme {
+    fileprivate var externalValues: ValueProviding {
         didSet {
             updateTheme()
         }
@@ -174,14 +178,14 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
 
     private func updateTheme() {
         pathData.apply(to: self,
-                       using: theme)
+                       using: externalValues)
     }
 
     init(pathData: VectorDrawable.Path,
-         theme: Theme,
+         externalValues: ValueProviding,
          drawableSize: CGSize,
          transform: [Transform]) {
-        self.theme = theme
+        self.externalValues = externalValues
         super.init(pathData: pathData,
                    drawableSize: drawableSize,
                    transform: transform)

@@ -5,10 +5,16 @@
 import Cyborg
 import UIKit
 
-class Theme: Cyborg.Theme {
-    func color(named _: String) -> UIColor {
+class Theme: Cyborg.ValueProviding {
+
+    func colorFromTheme(named _: String) -> UIColor {
         return .black
     }
+
+    func colorFromResources(named _: String) -> UIColor {
+        return .black
+    }
+
 }
 
 class ViewController: UIViewController {
@@ -21,7 +27,7 @@ class ViewController: UIViewController {
             data.data(using: .utf8)!
         }
         for data in drawableData {
-            let vectorView = VectorView(theme: Theme())
+            let vectorView = VectorView(externalValues: Theme())
 //            let debugView = DebugDiagnosticsView()
 //            debugView.attach(to: vectorView)
             view.addSubview(vectorView)
