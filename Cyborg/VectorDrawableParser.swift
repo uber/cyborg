@@ -404,7 +404,7 @@ final class PathParser: GroupChildParser {
             return .ok(VectorDrawable.Path(name: pathName,
                                            fillColor: fillColor,
                                            fillAlpha: fillAlpha,
-                                           data: commands,
+                                           data: Array(commands.joined()),
                                            strokeColor: strokeColor,
                                            strokeWidth: strokeWidth,
                                            strokeAlpha: strokeAlpha,
@@ -465,7 +465,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     func createElement() -> Result<VectorDrawable.ClipPath> {
         if let commands = commands {
             return .ok(.init(name: name,
-                             path: commands))
+                             path: Array(commands.joined())))
         } else {
             return .error("Didn't find \(PathProperty.pathData.rawValue), which is required in elements of type <\(Element.clipPath.rawValue)>")
         }

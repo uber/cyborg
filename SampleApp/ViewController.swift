@@ -21,7 +21,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            argentina,
+            baselinesplit,
         ]
         .map { data in
             data.data(using: .utf8)!
