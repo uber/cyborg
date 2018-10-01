@@ -84,7 +84,7 @@ public extension VectorDrawable {
                         continue
                     }
                     if type == XML_READER_TYPE_END_ELEMENT.rawValue {
-                        // TODO: check what to do with result here
+                        // The return value here indicates whether the parser ended, which we don't care about in this case.
                         _ = parser.didEnd(element: lastElement)
                         continue
                     }
@@ -149,9 +149,11 @@ func assignFloat(_ string: XMLString,
 }
 
 protocol NodeParsing: AnyObject {
+
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError?
 
     func didEnd(element: String) -> Bool
+
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
@@ -228,12 +230,13 @@ final class VectorParser: ParentParser<GroupParser> {
     var alpha: CGFloat = 1
 
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
+        var foundSchema = false
         for (key, value) in attributes {
-            if let property = VectorProperty(rawValue: String(key)) {
+            if let property = VectorProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .schema:
-                    // TODO: fail if schema not found
+                    foundSchema = true
                     result = nil
                 case .height: result = assign(value, to: &baseHeight, creatingWith: parseAndroidMeasurement(from:))
                 case .width: result = assign(value, to: &baseWidth, creatingWith: parseAndroidMeasurement(from:))
@@ -257,7 +260,11 @@ final class VectorParser: ParentParser<GroupParser> {
                 return "Key \(key) is not a valid attribute of <vector>"
             }
         }
-        return nil
+        if foundSchema {
+            return nil
+        } else {
+            return "Schema not found in <vector>"
+        }
     }
 
     override func childForElement(_ element: String) -> (GroupParser, (GroupParser) -> ())? {
@@ -294,7 +301,7 @@ final class VectorParser: ParentParser<GroupParser> {
 
     func parseAndroidMeasurement(from text: XMLString) -> CGFloat? {
         if case .ok(let number, let index) = number(from: text, at: 0),
-            let _ = AndroidUnitOfMeasure(rawValue: String(text[index..<text.count])) {
+            let _ = AndroidUnitOfMeasure(rawValue: String(withoutCopying: text[index..<text.count])) {
             return number
         } else {
             return nil
@@ -325,19 +332,15 @@ final class PathParser: GroupChildParser {
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         for (key, value) in attributes {
-            if let property = PathProperty(rawValue: String(key)) {
+            if let property = PathProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .name:
-                    pathName = String(value)
+                    pathName = String(withoutCopying: value)
                     result = nil
                 case .pathData:
                     let subResult: ParseError?
-                    let parsers = DrawingCommand
-                        .all
-                        .compactMap { (command) -> Parser<PathSegment>? in
-                            command.parser()
-                        }
+                    let parsers = allDrawingCommands
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result
@@ -347,8 +350,12 @@ final class PathParser: GroupChildParser {
                     }
                     result = subResult
                 case .fillColor:
-                    fillColor = Color(value)! // TODO:
-                    result = nil // TODO:
+                    if let color = Color(value) {
+                        fillColor = color
+                        result = nil
+                    } else {
+                        result = "Failed to create a color"
+                    }
                 case .strokeWidth:
                     result = assignFloat(value, to: &strokeWidth)
                 case .strokeColor:
@@ -397,7 +404,7 @@ final class PathParser: GroupChildParser {
             return .ok(VectorDrawable.Path(name: pathName,
                                            fillColor: fillColor,
                                            fillAlpha: fillAlpha,
-                                           data: commands,
+                                           data: Array(commands.joined()),
                                            strokeColor: strokeColor,
                                            strokeWidth: strokeWidth,
                                            strokeAlpha: strokeAlpha,
@@ -431,15 +438,11 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
-            if let property = ClipPathProperty(rawValue: String(key)) {
+            if let property = ClipPathProperty(rawValue: String(withoutCopying: key)) {
                 switch property {
-                case .name: name = String(value)
+                case .name: name = String(withoutCopying: value)
                 case .pathData:
-                    let parsers = DrawingCommand
-                        .all
-                        .compactMap { (command) -> Parser<PathSegment>? in
-                            command.parser()
-                        }
+                    let parsers = allDrawingCommands
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result
@@ -462,7 +465,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     func createElement() -> Result<VectorDrawable.ClipPath> {
         if let commands = commands {
             return .ok(.init(name: name,
-                             path: commands))
+                             path: Array(commands.joined())))
         } else {
             return .error("Didn't find \(PathProperty.pathData.rawValue), which is required in elements of type <\(Element.clipPath.rawValue)>")
         }
@@ -517,11 +520,11 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
 
     override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
-            if let property = GroupProperty(rawValue: String(key)) {
+            if let property = GroupProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
                 case .name:
-                    groupName = String(value)
+                    groupName = String(withoutCopying: value)
                     result = nil
                 case .rotation:
                     result = assignFloat(value, to: &rotation)
@@ -595,24 +598,23 @@ func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
 
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     let substring = stream[index..<stream.count]
-    let pointer = substring.underlying
-    return pointer.withMemoryRebound(to: Int8.self,
-                                     capacity: Int(substring.count)) { buffer in
-        var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
-        let result = strtod(buffer, &next)
-        if result == 0.0,
-            next == buffer {
-            return ParseResult(error: "failed to make an int", index: index, stream: stream)
-        } else if var final = next {
-            if final.pointee == .comma {
-                final = final.advanced(by: 1)
+    return substring
+        .withSignedIntegers { buffer in
+            var next: UnsafeMutablePointer<Int8>? = UnsafeMutablePointer(mutating: buffer)
+            let result = strtod(buffer, &next)
+            if result == 0.0,
+                next == buffer {
+                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+            } else if var final = next {
+                if final.pointee == .comma {
+                    final = final.advanced(by: 1)
+                }
+                let index = index + Int32(buffer.distance(to: final))
+                return .ok(CGFloat(result), index)
+            } else {
+                return ParseResult(error: "failed to make an int", index: index, stream: stream)
             }
-            let index = index + Int32(buffer.distance(to: final))
-            return .ok(CGFloat(result), index)
-        } else {
-            return ParseResult(error: "failed to make an int", index: index, stream: stream)
         }
-    }
 }
 
 func numbers() -> Parser<[CGFloat]> {

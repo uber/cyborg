@@ -5,25 +5,29 @@
 import Cyborg
 import UIKit
 
-class Theme: Cyborg.Theme {
-    func color(named _: String) -> UIColor {
+class Theme: Cyborg.ValueProviding {
+
+    func colorFromTheme(named _: String) -> UIColor {
         return .black
     }
+
+    func colorFromResources(named _: String) -> UIColor {
+        return .black
+    }
+
 }
 
 class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            argentina,
+            baselinesplit,
         ]
         .map { data in
             data.data(using: .utf8)!
         }
         for data in drawableData {
-            let vectorView = VectorView(theme: Theme())
-//            let debugView = DebugDiagnosticsView()
-//            debugView.attach(to: vectorView)
+            let vectorView = VectorView(externalValues: Theme())
             view.addSubview(vectorView)
             vectorView.translatesAutoresizingMaskIntoConstraints = false
             let result = VectorDrawable.create(from: data)

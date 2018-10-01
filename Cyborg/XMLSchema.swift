@@ -48,10 +48,12 @@ enum ClipPathProperty: String {
 
     case name = "android:name"
     case pathData = "android:pathData"
+
 }
 
 /// Elements of the <group> element of a VectorDrawable document
 enum GroupProperty: String {
+
     case name = "android:name"
     case rotation = "android:rotation"
     case pivotX = "android:pivotX"
@@ -60,21 +62,23 @@ enum GroupProperty: String {
     case scaleY = "android:scaleY"
     case translateX = "android:translateX"
     case translateY = "android:translateY"
+
 }
 
 enum Color {
+
     case theme(name: String)
     case hex(value: UIColor)
     case resource(named: String)
-    case hardCoded(UIColor)
 
     init?(_ string: XMLString) {
-        let string = String(string) // TODO: see if we can do this without allocating a string
-        if string.hasPrefix("?") {
-            self = .theme(name: String(string[string.index(after: string.startIndex)..<string.endIndex]))
+        if string[safeIndex: 0] == .questionMark {
+            self = .theme(name: String(copying: string[1..<string.count]))
+        } else if string[safeIndex: 0] == .at {
+            self = .resource(named: String(copying: string[1..<string.count]))
         } else {
             // munge the string into a form that Init.init(_:, radix:) can understand
-            var withoutLeadingHashTag = string
+            var withoutLeadingHashTag = String(withoutCopying: string)
             _ = withoutLeadingHashTag.remove(at: withoutLeadingHashTag.startIndex)
             if withoutLeadingHashTag.count == 3 {
                 // convert from shorthand hexadecimal form, which doesn't work with the init
@@ -89,38 +93,22 @@ enum Color {
                                            blue: component(0xFF, 0),
                                            alpha: 1.0))
             } else {
-                print("returning bogus hard coded color")
-                self = .hardCoded(.random)
+                return nil
             }
         }
     }
 
-    func color(from theme: Theme) -> UIColor {
+    func color(from externalValues: ValueProviding) -> UIColor {
         switch self {
-        case .hardCoded(let color):
-            return color
         case .hex(let value):
             return value
         case .theme(let name):
-            return theme.color(named: name)
-        default:
-            fatalError()
+            return externalValues.colorFromTheme(named: name)
+        case .resource(named: let name):
+            return externalValues.colorFromResources(named: name)
         }
     }
 
-    static let clear: Color = .hardCoded(.clear)
-}
-
-extension UIColor {
-    static var random: UIColor {
-        let rand = {
-            CGFloat(arc4random_uniform(256)) / 256
-        }
-        let r = rand(),
-            g = rand(),
-            b = rand()
-        return UIColor(red: r, green: g, blue: b, alpha: 1)
-    }
 }
 
 enum LineCap: String, XMLStringRepresentable {

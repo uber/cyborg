@@ -18,20 +18,6 @@ enum ParseResult<Wrapped> {
         """)
     }
 
-    var asOptional: (Wrapped, Int32)? {
-        switch self {
-        case .ok(let wrapped): return wrapped
-        case .error: return nil
-        }
-    }
-
-    var asParseError: ParseError? {
-        switch self {
-        case .error(let error): return error
-        case .ok: return nil
-        }
-    }
-
     func map<T>(_ transformer: (Wrapped, Int32) -> (ParseResult<T>)) -> ParseResult<T> {
         switch self {
         case .ok(let value, let index):
@@ -81,7 +67,7 @@ func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XML
             if discardErrorMessage {
                 return .error("")
             } else {
-                return ParseResult(error: "Literal " + String(text), index: index, stream: stream)
+                return ParseResult(error: "Literal " + String(withoutCopying: text), index: index, stream: stream)
             }
         }
     }

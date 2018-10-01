@@ -15,7 +15,7 @@ enum AndroidUnitOfMeasure: String {
 
     func convertToPoints(from value: Int) -> CGFloat {
         let floatValue = CGFloat(value)
-        // TODO:
+        // TODO: Implement
         return floatValue
     }
 
@@ -57,7 +57,7 @@ enum BlendMode: String, XMLStringRepresentable {
 /// to be children of Groups, apparently.
 protocol GroupChild: AnyObject {
 
-    func createLayers(using theme: Theme,
+    func createLayers(using externalValues: ValueProviding,
                       drawableSize: CGSize,
                       transform: [Transform]) -> [CALayer]
 
@@ -142,7 +142,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.clipPaths = clipPaths
         }
 
-        func createLayers(using theme: Theme,
+        func createLayers(using externalValues: ValueProviding,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             var clipPathLayers = clipPaths.map { clipPath in
@@ -151,7 +151,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             }
             let pathLayers = Array(
                 children.map { child in
-                    child.createLayers(using: theme,
+                    child.createLayers(using: externalValues,
                                        drawableSize: drawableSize,
                                        transform: transform + [self.transform])
                 }
@@ -178,10 +178,10 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     public class ClipPath: PathCreating {
 
         public let name: String?
-        let data: [PathSegment]
+        let data: [DrawingCommand]
 
         init(name: String?,
-             path: [PathSegment]) {
+             path: [DrawingCommand]) {
             self.name = name
             data = path
         }
@@ -203,7 +203,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         public let name: String?
 
         let fillColor: Color?
-        let data: [PathSegment]
+        let data: [DrawingCommand]
         let strokeColor: Color?
         let strokeWidth: CGFloat
         let strokeAlpha: CGFloat
@@ -218,7 +218,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         init(name: String?,
              fillColor: Color?,
              fillAlpha: CGFloat,
-             data: [PathSegment],
+             data: [DrawingCommand],
              strokeColor: Color?,
              strokeWidth: CGFloat,
              strokeAlpha: CGFloat,
@@ -243,25 +243,25 @@ public final class VectorDrawable: CustomDebugStringConvertible {
             self.strokeWidth = strokeWidth
         }
 
-        func createLayers(using theme: Theme,
+        func createLayers(using externalValues: ValueProviding,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             return [ThemeableShapeLayer(pathData: self,
-                                        theme: theme,
+                                        externalValues: externalValues,
                                         drawableSize: drawableSize,
                                         transform: transform)]
         }
 
         func apply(to layer: CAShapeLayer,
-                   using theme: Theme) {
+                   using externalValues: ValueProviding) {
             layer.strokeColor = strokeColor?
-                .color(from: theme)
+                .color(from: externalValues)
                 .withAlphaComponent(strokeAlpha)
                 .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
             layer.fillColor = fillColor?
-                .color(from: theme)
+                .color(from: externalValues)
                 .withAlphaComponent(fillAlpha)
                 .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
@@ -344,7 +344,7 @@ extension CGPath {
 
 protocol PathCreating: AnyObject {
 
-    var data: [PathSegment] { get }
+    var data: [DrawingCommand] { get }
 
 }
 
@@ -354,7 +354,7 @@ extension PathCreating {
         let path = CGMutablePath()
         var context: PriorContext = .zero
         for command in data {
-            context = command(context, path, size)
+            context = command.apply(to: path, using: context, in: size)
         }
         return path
     }
