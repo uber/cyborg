@@ -216,7 +216,7 @@ func parseLineAbsolute() -> Parser<PathSegment> {
                  followedBy: oneOrMore(of: coordinatePair()),
                  convertToPathCommandsWith: { (points: [CGPoint]) -> PathSegment in
                      points.map { point in
-                         .line(point)
+                         .lineAbsolute(point)
                      }
     })
 }
