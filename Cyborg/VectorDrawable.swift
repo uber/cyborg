@@ -178,10 +178,10 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     public class ClipPath: PathCreating {
 
         public let name: String?
-        let data: [PathSegment]
+        let data: [DrawingCommand]
 
         init(name: String?,
-             path: [PathSegment]) {
+             path: [DrawingCommand]) {
             self.name = name
             data = path
         }
@@ -203,7 +203,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         public let name: String?
 
         let fillColor: Color?
-        let data: [PathSegment]
+        let data: [DrawingCommand]
         let strokeColor: Color?
         let strokeWidth: CGFloat
         let strokeAlpha: CGFloat
@@ -218,7 +218,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         init(name: String?,
              fillColor: Color?,
              fillAlpha: CGFloat,
-             data: [PathSegment],
+             data: [DrawingCommand],
              strokeColor: Color?,
              strokeWidth: CGFloat,
              strokeAlpha: CGFloat,
@@ -344,7 +344,7 @@ extension CGPath {
 
 protocol PathCreating: AnyObject {
 
-    var data: [PathSegment] { get }
+    var data: [DrawingCommand] { get }
 
 }
 
@@ -354,7 +354,7 @@ extension PathCreating {
         let path = CGMutablePath()
         var context: PriorContext = .zero
         for command in data {
-            context = command(context, path, size)
+            context = command.apply(to: path, using: context, in: size)
         }
         return path
     }
