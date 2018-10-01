@@ -149,9 +149,11 @@ func assignFloat(_ string: XMLString,
 }
 
 protocol NodeParsing: AnyObject {
+
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError?
 
     func didEnd(element: String) -> Bool
+
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
