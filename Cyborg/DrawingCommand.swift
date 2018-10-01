@@ -4,6 +4,96 @@
 
 import Foundation
 
+enum DrawingCommand {
+
+    case move(CGPoint)
+    case moveAbsolute(CGPoint)
+    case curve(CGPoint, CGPoint, CGPoint)
+    case curveAbsolute(CGPoint, CGPoint, CGPoint)
+    case line(CGPoint)
+    case lineAbsolute(CGPoint)
+    case horizontal(CGFloat)
+    case horizontalAbsolute(CGFloat)
+    case vertical(CGFloat)
+    case verticalAbsolute(CGFloat)
+    case smoothCurve(CGPoint, CGPoint)
+    case quadratic(CGPoint, CGPoint)
+    case quadraticAbsolute(CGPoint, CGPoint)
+
+    func apply(to path: CGMutablePath, using prior: PriorContext, in size: CGSize) -> PriorContext {
+        switch self {
+        case .move(let point):
+            let next = point.times(size)
+            path.move(to: next)
+            return next.asPriorContext
+        case .moveAbsolute(let point):
+            let next = point.times(size).add(prior.point)
+            path.move(to: next)
+            return next.asPriorContext
+        case .curve(let control1, let control2, let end):
+            let intoAbsolute = prior.point
+            let control1 = control1.times(size).add(intoAbsolute)
+            let control2 = control2.times(size).add(intoAbsolute)
+            let end = end.times(size).add(intoAbsolute)
+            path.addCurve(to: end, control1: control1, control2: control2)
+            return .lastAndControlPoint(end, control2.reflected(across: end))
+        case .curveAbsolute(let control1, let control2, let end):
+            let control1 = control1.times(size)
+            let control2 = control2.times(size)
+            let end = end.times(size)
+            path.addCurve(to: end, control1: control1, control2: control2)
+            return .lastAndControlPoint(end, control2.reflected(across: end))
+        case .line(let point):
+            let point = point.times(size).add(prior.point)
+            path.addLine(to: point)
+            return point.asPriorContext
+        case .lineAbsolute(let point):
+            let point = point.times(size)
+            path.addLine(to: point)
+            return point.asPriorContext
+        case .horizontal(let end):
+            let last = prior.point
+            let next = CGPoint(x: end * size.width + last.x, y: last.y)
+            path.addLine(to: next)
+            return next.asPriorContext
+        case .horizontalAbsolute(let end):
+            let last = prior.point
+            let next = CGPoint(x: end * size.width, y: last.y)
+            path.addLine(to: next)
+            return next.asPriorContext
+        case .vertical(let end):
+            let last = prior.point
+            let next = CGPoint(x: last.x, y: end * size.height + last.y)
+            path.addLine(to: next)
+            return next.asPriorContext
+        case .verticalAbsolute(let end):
+            let last = prior.point
+            let next = CGPoint(x: last.x, y: end * size.height)
+            path.addLine(to: next)
+            return next.asPriorContext
+        case .smoothCurve(let control2, let end):
+            let (last, controlPoint) = prior.pointAndControlPoint
+            let end = end.times(size).add(last)
+            let control2 = control2.times(size).add(last)
+            path.addCurve(to: end, control1: controlPoint, control2: control2)
+            return .lastAndControlPoint(end,
+                                        control2.reflected(across: end))
+        case .quadratic(let control1, let end):
+            let last = prior.point
+            let end = end.times(size).add(last)
+            let control1 = control1.times(size).add(last)
+            path.addQuadCurve(to: end, control: control1)
+            return end.asPriorContext
+        case .quadraticAbsolute(let control1, let end):
+            let end = end.times(size)
+            let control1 = control1.times(size)
+            path.addQuadCurve(to: end, control: control1)
+            return end.asPriorContext
+        }
+    }
+
+}
+
 enum PriorContext: Equatable {
 
     case last(CGPoint)
@@ -45,13 +135,6 @@ extension CGPoint {
 }
 
 typealias PathSegment = (PriorContext, CGMutablePath, CGSize) -> PriorContext
-
-func consumeTrivia(before lit: XMLString, _ next: @escaping Parser<PathSegment>) -> Parser<PathSegment> {
-    return consumeTrivia { stream, index in
-        literal(lit)(stream, index)
-            .chain(into: stream, next)
-    }
-}
 
 func parse<T>(command: XMLString,
               followedBy: @escaping Parser<T>,
@@ -325,6 +408,10 @@ extension CGPoint {
 
     func times(_ x1: CGFloat, _ y1: CGFloat) -> CGPoint {
         return .init(x: x * x1, y: y * y1)
+    }
+
+    func times(_ size: CGSize) -> CGPoint {
+        return .init(x: x * size.width, y: y * size.height)
     }
 
     func times(_ other: CGPoint) -> CGPoint {
