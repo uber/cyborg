@@ -340,11 +340,7 @@ final class PathParser: GroupChildParser {
                     result = nil
                 case .pathData:
                     let subResult: ParseError?
-                    let parsers = DrawingCommand
-                        .all
-                        .compactMap { (command) -> Parser<PathSegment>? in
-                            command.parser()
-                        }
+                    let parsers = allDrawingCommands
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result
@@ -446,11 +442,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                 switch property {
                 case .name: name = String(withoutCopying: value)
                 case .pathData:
-                    let parsers = DrawingCommand
-                        .all
-                        .compactMap { (command) -> Parser<PathSegment>? in
-                            command.parser()
-                        }
+                    let parsers = allDrawingCommands
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result

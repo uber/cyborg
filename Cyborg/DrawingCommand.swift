@@ -53,12 +53,11 @@ func consumeTrivia(before lit: XMLString, _ next: @escaping Parser<PathSegment>)
     }
 }
 
-func parse<T>(command: DrawingCommand,
+func parse<T>(command: XMLString,
               followedBy: @escaping Parser<T>,
               convertToPathCommandsWith convert: @escaping (T) -> PathSegment) -> Parser<PathSegment> {
     return { stream, index in
-        let command = command.asXMLString
-        return literal(command, discardErrorMessage: true)(stream, index)
+        literal(command, discardErrorMessage: true)(stream, index)
             .chain(into: stream) { stream, index in
                 followedBy(stream, index)
                     .map { result, index in
@@ -69,7 +68,7 @@ func parse<T>(command: DrawingCommand,
 }
 
 func parseCurve() -> Parser<PathSegment> {
-    return parse(command: .curve,
+    return parse(command: .c,
                  followedBy: 3.coordinatePairs(),
                  convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in { prior, path, size in
                      points.reduce(prior) { (prior, points) -> PriorContext in
@@ -90,7 +89,7 @@ func parseCurve() -> Parser<PathSegment> {
 }
 
 func parseAbsoluteCurve() -> Parser<PathSegment> {
-    return parse(command: .curveAbsolute,
+    return parse(command: .C,
                  followedBy: 3.coordinatePairs(),
                  convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in { prior, path, size in
                      points.reduce(prior) { (_, points) -> PriorContext in
@@ -109,7 +108,7 @@ func parseAbsoluteCurve() -> Parser<PathSegment> {
 }
 
 func parseMoveAbsolute() -> Parser<PathSegment> {
-    return parse(command: .moveAbsolute,
+    return parse(command: .M,
                  followedBy: 1.coordinatePairs(),
                  convertToPathCommandsWith: { (points) -> PathSegment in { _, path, size in
                      return points.reduce(.zero) { _, points -> PriorContext in
@@ -123,7 +122,7 @@ func parseMoveAbsolute() -> Parser<PathSegment> {
 }
 
 func parseMove() -> Parser<PathSegment> {
-    return parse(command: .move,
+    return parse(command: .m,
                  followedBy: 1.coordinatePairs(),
                  convertToPathCommandsWith: { (points) -> PathSegment in { prior, path, size in
                      return points.reduce(.zero) { _, points -> PriorContext in
@@ -137,7 +136,7 @@ func parseMove() -> Parser<PathSegment> {
 }
 
 func parseLine() -> Parser<PathSegment> {
-    return parse(command: .line,
+    return parse(command: .l,
                  followedBy: oneOrMore(of: coordinatePair()),
                  convertToPathCommandsWith: { (points: [CGPoint]) -> PathSegment in { (prior: PriorContext, path: CGMutablePath, size: CGSize) -> PriorContext in
                      let points = points.makeAbsolute(startingWith: prior.point, in: size)
@@ -150,7 +149,7 @@ func parseLine() -> Parser<PathSegment> {
 }
 
 func parseLineAbsolute() -> Parser<PathSegment> {
-    return parse(command: .lineAbsolute,
+    return parse(command: .L,
                  followedBy: oneOrMore(of: coordinatePair()),
                  convertToPathCommandsWith: { (points: [CGPoint]) -> PathSegment in { (_: PriorContext, path: CGMutablePath, size: CGSize) -> PriorContext in
                      let points = points.scaleTo(size: size)
@@ -163,7 +162,7 @@ func parseLineAbsolute() -> Parser<PathSegment> {
 }
 
 func parseClosePath() -> Parser<PathSegment> {
-    return parse(command: .closePath,
+    return parse(command: .z,
                  followedBy: empty(),
                  convertToPathCommandsWith: { (_) -> PathSegment in { _, path, _ in
                      path.closeSubpath()
@@ -173,7 +172,7 @@ func parseClosePath() -> Parser<PathSegment> {
 }
 
 func parseClosePathAbsolute() -> Parser<PathSegment> {
-    return parse(command: .closePathAbsolute,
+    return parse(command: .Z,
                  followedBy: empty(),
                  convertToPathCommandsWith: { (_) -> PathSegment in { _, path, _ in
                      path.closeSubpath()
@@ -183,7 +182,7 @@ func parseClosePathAbsolute() -> Parser<PathSegment> {
 }
 
 func parseHorizontal() -> Parser<PathSegment> {
-    return parse(command: .horizontal,
+    return parse(command: .h,
                  followedBy: numbers(),
                  convertToPathCommandsWith: { (xs: [CGFloat]) -> PathSegment in { prior, path, size in
                      let points = xs.map { x in
@@ -198,7 +197,7 @@ func parseHorizontal() -> Parser<PathSegment> {
 }
 
 func parseHorizontalAbsolute() -> Parser<PathSegment> {
-    return parse(command: .horizontalAbsolute,
+    return parse(command: .H,
                  followedBy: numbers(),
                  convertToPathCommandsWith: { (xs: [CGFloat]) -> PathSegment in { prior, path, size in
                      let points = xs.map { x in
@@ -213,7 +212,7 @@ func parseHorizontalAbsolute() -> Parser<PathSegment> {
 }
 
 func parseVertical() -> Parser<PathSegment> {
-    return parse(command: .vertical,
+    return parse(command: .v,
                  followedBy: numbers(),
                  convertToPathCommandsWith: { (ys: [CGFloat]) -> PathSegment in { prior, path, size in
                      let points = ys.map { y in
@@ -228,7 +227,7 @@ func parseVertical() -> Parser<PathSegment> {
 }
 
 func parseVerticalAbsolute() -> Parser<PathSegment> {
-    return parse(command: .verticalAbsolute,
+    return parse(command: .V,
                  followedBy: numbers(),
                  convertToPathCommandsWith: { (ys: [CGFloat]) -> PathSegment in { prior, path, size in
                      let points = ys.map { y in
@@ -243,7 +242,7 @@ func parseVerticalAbsolute() -> Parser<PathSegment> {
 }
 
 func parseSmoothCurve() -> Parser<PathSegment> {
-    return parse(command: .smoothCurve,
+    return parse(command: .s,
                  followedBy: 2.coordinatePairs(),
                  convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in { prior, path, size in
                      return points.reduce(prior) { (prior, pair) -> PriorContext in
@@ -264,7 +263,7 @@ func parseSmoothCurve() -> Parser<PathSegment> {
 }
 
 func parseQuadratic() -> Parser<PathSegment> {
-    return parse(command: .quadratic,
+    return parse(command: .q,
                  followedBy: 2.coordinatePairs(),
                  convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in { prior, path, size in
                      return points.reduce(.zero, { (_, pair) -> PriorContext in
@@ -282,7 +281,7 @@ func parseQuadratic() -> Parser<PathSegment> {
 }
 
 func parseQuadraticAbsolute() -> Parser<PathSegment> {
-    return parse(command: .quadraticAbsolute,
+    return parse(command: .Q,
                  followedBy: 2.coordinatePairs(),
                  convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in { _, path, size in
                      return points.reduce(.zero, { (_, pair) -> PriorContext in
@@ -297,99 +296,23 @@ func parseQuadraticAbsolute() -> Parser<PathSegment> {
     })
 }
 
-enum DrawingCommand: String {
-
-    case closePath = "z"
-    case closePathAbsolute = "Z"
-    case move = "m"
-    case moveAbsolute = "M"
-    case line = "l"
-    case lineAbsolute = "L"
-    case vertical = "v"
-    case verticalAbsolute = "V"
-    case horizontal = "h"
-    case horizontalAbsolute = "H"
-    case curve = "c"
-    case curveAbsolute = "C"
-    case smoothCurve = "s"
-    case smoothCurveAbsolute = "S"
-    case quadratic = "q"
-    case quadraticAbsolute = "Q"
-    case reflectedQuadratic = "t"
-    case reflectedQuadraticAbsolute = "T"
-    case arc = "a"
-    case arcAbsolute = "A"
-
-    var asXMLString: XMLString {
-        switch self {
-        case .closePath: return .z
-        case .closePathAbsolute: return .Z
-        case .move: return .m
-        case .moveAbsolute: return .M
-        case .line: return .l
-        case .lineAbsolute: return .L
-        case .vertical: return .v
-        case .verticalAbsolute: return .V
-        case .horizontal: return .h
-        case .horizontalAbsolute: return .H
-        case .curve: return .c
-        case .curveAbsolute: return .C
-        case .smoothCurve: return .s
-        case .smoothCurveAbsolute: return .S
-        case .quadratic: return .q
-        case .quadraticAbsolute: return .Q
-        case .reflectedQuadratic: return .t
-        case .reflectedQuadraticAbsolute: return .T
-        case .arc: return .a
-        case .arcAbsolute: return .A
-        }
-    }
-
-    func parser() -> Parser<PathSegment>? { // TODO: should not be optional
-        switch self {
-        case .curve: return parseCurve()
-        case .curveAbsolute: return parseAbsoluteCurve()
-        case .moveAbsolute: return parseMoveAbsolute()
-        case .move: return parseMove()
-        case .line: return parseLine()
-        case .lineAbsolute: return parseLineAbsolute()
-        case .closePath: return parseClosePath()
-        case .closePathAbsolute: return parseClosePathAbsolute()
-        case .horizontal: return parseHorizontal()
-        case .horizontalAbsolute: return parseHorizontalAbsolute()
-        case .vertical: return parseVertical()
-        case .verticalAbsolute: return parseVerticalAbsolute()
-        case .smoothCurve: return parseSmoothCurve()
-        case .quadratic: return parseQuadratic()
-        case .quadraticAbsolute: return parseQuadraticAbsolute()
-        default:
-            return nil // TODO:
-        }
-    }
-
-    static let all: [DrawingCommand] = [
-        .move,
-        .moveAbsolute,
-        .line,
-        .lineAbsolute,
-        .vertical,
-        .verticalAbsolute,
-        .horizontal,
-        .horizontalAbsolute,
-        .curve,
-        .curveAbsolute,
-        .smoothCurve,
-        .smoothCurveAbsolute,
-        .quadratic,
-        .quadraticAbsolute,
-        .reflectedQuadratic,
-        .reflectedQuadraticAbsolute,
-        .arc,
-        .arcAbsolute,
-        .closePath,
-        .closePathAbsolute,
-    ]
-}
+let allDrawingCommands: [Parser<PathSegment>] = [
+    parseCurve(),
+    parseAbsoluteCurve(),
+    parseLine(),
+    parseLineAbsolute(),
+    parseMove(),
+    parseMoveAbsolute(),
+    parseHorizontal(),
+    parseHorizontalAbsolute(),
+    parseVertical(),
+    parseVerticalAbsolute(),
+    parseQuadratic(),
+    parseQuadraticAbsolute(),
+    parseSmoothCurve(),
+    parseClosePath(),
+    parseClosePathAbsolute(),
+]
 
 extension CGPoint {
     func add(_ rhs: CGPoint) -> CGPoint {
