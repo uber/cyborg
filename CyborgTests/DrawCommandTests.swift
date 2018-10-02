@@ -88,4 +88,46 @@ class DrawingCommandTests: XCTestCase {
         }
     }
 
+    func test_parse_vertical() {
+        "v 1 4 5"
+            .withXMLString { string in
+                switch parseVertical()(string, 0) {
+                case .ok(let wrapped, let index):
+                    XCTAssertEqual(index, string.count)
+                    let expected = CGMutablePath()
+                    expected.move(to: .zero)
+                    expected.addLine(to: .init(x: 0, y: 1))
+                    expected.addLine(to: .init(x: 0, y: 5))
+                    expected.addLine(to: .init(x: 0, y: 10))
+                    let result = CGMutablePath()
+                    result.move(to: .zero)
+                    _ = createPath(from: wrapped, path: result)
+                    XCTAssertEqual(result, expected)
+                case .error(let error):
+                    XCTFail(error)
+                }
+            }
+    }
+
+    func test_parse_absolute_vertical() {
+        "V 1 4 5"
+            .withXMLString { string in
+                switch parseVerticalAbsolute()(string, 0) {
+                case .ok(let wrapped, let index):
+                    XCTAssertEqual(index, string.count)
+                    let expected = CGMutablePath()
+                    expected.move(to: .zero)
+                    expected.addLine(to: .init(x: 0, y: 1))
+                    expected.addLine(to: .init(x: 0, y: 4))
+                    expected.addLine(to: .init(x: 0, y: 5))
+                    let result = CGMutablePath()
+                    result.move(to: .zero)
+                    _ = createPath(from: wrapped, path: result)
+                    XCTAssertEqual(result, expected)
+                case .error(let error):
+                    XCTFail(error)
+                }
+            }
+    }
+
 }
