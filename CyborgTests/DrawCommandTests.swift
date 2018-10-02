@@ -65,27 +65,27 @@ class DrawingCommandTests: XCTestCase {
         }
     }
 
-    //    func test_parse_curve() {
-    //        let (curve, buffer) = XMLString.create(from: "c2,2 3,2 8,2")
-    //        defer {
-    //            buffer.deallocate()
-    //        }
-    //        let start = CGPoint(x: 6, y: 2)
-    //        let expected = CGMutablePath()
-    //        expected.move(to: start)
-    //        expected.addCurve(to: CGPoint(x: 8, y: 2).add(start),
-    //                          control1: CGPoint(x: 2, y: 2).add(start),
-    //                          control2: CGPoint(x: 3, y: 2).add(start))
-    //        switch parseCurve()(curve, 0) {
-    //        case .ok(let wrapped, let index):
-    //            let result = CGMutablePath()
-    //            result.move(to: start)
-    //            _ = createPath(from: wrapped, start: start.asPriorContext, path: result)
-    //            XCTAssertEqual(result, expected)
-    //            XCTAssertEqual(index, curve.count)
-    //        case .error(let error):
-    //            XCTFail(error)
-    //        }
-    //    }
+    func test_parse_curve() {
+        let (curve, buffer) = XMLString.create(from: "c2,2 3,2 8,2")
+        defer {
+            buffer.deallocate()
+        }
+        let start = CGPoint(x: 6, y: 2)
+        let expected = CGMutablePath()
+        expected.move(to: start)
+        expected.addCurve(to: CGPoint(x: 8, y: 2).add(start),
+                          control1: CGPoint(x: 2, y: 2).add(start),
+                          control2: CGPoint(x: 3, y: 2).add(start))
+        switch parseCurve()(curve, 0) {
+        case .ok(let wrapped, let index):
+            let result = CGMutablePath()
+            result.move(to: start)
+            _ = createPath(from: wrapped, start: start.asPriorContext, path: result)
+            XCTAssertEqual(result, expected)
+            XCTAssertEqual(index, curve.count)
+        case .error(let error):
+            XCTFail(error)
+        }
+    }
 
 }

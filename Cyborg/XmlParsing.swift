@@ -163,8 +163,9 @@ extension XMLString {
     fileprivate static func globallyScoped(_ value: UInt8) -> XMLString {
         // It's okay not to deallocate this because it's only ever used at a global scope.
         // It is not recognized as a memory leak in instruments.
-        let globallyScopedBuffer = UnsafeMutablePointer<xmlChar>.allocate(capacity: 1)
+        let globallyScopedBuffer = UnsafeMutablePointer<xmlChar>.allocate(capacity: 2)
         globallyScopedBuffer.pointee = value
+        globallyScopedBuffer.advanced(by: 1).pointee = 0
         return XMLString(globallyScopedBuffer)
     }
 
