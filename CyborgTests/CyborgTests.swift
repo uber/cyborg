@@ -7,13 +7,17 @@ import XCTest
 
 class NoTheme: ValueProviding {
 
-    func color(named _: String) -> UIColor {
+    func colorFromResources(named _: String) -> UIColor {
         return .black
     }
 
+    func colorFromTheme(named _: String) -> UIColor {
+        return .black
+    }
 }
 
 class CyborgTests: XCTestCase {
+
     let string = """
      <vector xmlns:android="http://schemas.android.com/apk/res/android"
          android:height="64dp"
@@ -35,51 +39,45 @@ class CyborgTests: XCTestCase {
 
     func test_Deserialize() {
         let data = string.data(using: .utf8)!
-        let callbackIsCalled = expectation(description: "Callback is called")
-        VectorDrawable
-            .create(from: data) { result in
-                callbackIsCalled.fulfill()
-                switch result {
-                case .ok(let drawable):
-                    XCTAssert(drawable.viewPortWidth == 600)
-                    XCTAssert(drawable.viewPortHeight == 600)
-                    XCTAssert(((drawable.groups[0] as! VectorDrawable.Group).children[0] as! VectorDrawable.Path).data.count != 0)
-                    let noResizing = CGSize(width: 1, height: 1)
-                    var expected = CGMutablePath()
-                    var relativeTo = CGPoint(x: 300, y: 70)
-                    expected.move(to: relativeTo)
-                    let list = [
-                        CGPoint(x: 0, y: -70),
-                        CGPoint(x: 70, y: 70),
-                        CGPoint(x: 0, y: 0),
-                        CGPoint(x: -70, y: 70),
-                    ]
-                    for point in list {
-                        let point = point.add(relativeTo)
-                        expected.addLine(to: point)
-                        relativeTo = point
-                    }
-                    expected.closeSubpath()
-                    let transform = (drawable
-                        .groups[0] as! VectorDrawable.Group)
-                        .transform
-                    expected = transform
-                        .apply(to: expected,
-                               relativeTo: .init(width: 64 / 600, height: 64 / 600))
-                        .mutableCopy()!
-                    let layers = drawable.layerRepresentation(in: CGRect(origin: .zero,
-                                                                         size: noResizing),
-                                                              using: NoTheme())
-                    let layer = layers[0] as! ThemeableShapeLayer
-                    layer.frame = .init(origin: .zero,
-                                        size: .init(width: 64, height: 64))
-                    layer.layoutSublayers()
-                    XCTAssertEqual(layer.path, expected)
-                case .error(let error):
-                    XCTFail(error)
-                }
+        switch VectorDrawable.create(from: data) {
+        case .ok(let drawable):
+            XCTAssert(drawable.viewPortWidth == 600)
+            XCTAssert(drawable.viewPortHeight == 600)
+            XCTAssert(((drawable.groups[0] as! VectorDrawable.Group).children[0] as! VectorDrawable.Path).data.count != 0)
+            let noResizing = CGSize(width: 1, height: 1)
+            var expected = CGMutablePath()
+            var relativeTo = CGPoint(x: 300, y: 70)
+            expected.move(to: relativeTo)
+            let list = [
+                CGPoint(x: 0, y: -70),
+                CGPoint(x: 70, y: 70),
+                CGPoint(x: 0, y: 0),
+                CGPoint(x: -70, y: 70),
+            ]
+            for point in list {
+                let point = point.add(relativeTo)
+                expected.addLine(to: point)
+                relativeTo = point
             }
-        wait(for: [callbackIsCalled], timeout: 0.001) // note: this is actually synchronous, but just in case it isn't called, check to make sure it actually happens
+            expected.closeSubpath()
+            let transform = (drawable
+                .groups[0] as! VectorDrawable.Group)
+                .transform
+            expected = transform
+                .apply(to: expected,
+                       relativeTo: .init(width: 64 / 600, height: 64 / 600))
+                .mutableCopy()!
+            let layers = drawable.layerRepresentation(in: CGRect(origin: .zero,
+                                                                 size: noResizing),
+                                                      using: NoTheme())
+            let layer = layers[0] as! ThemeableShapeLayer
+            layer.frame = .init(origin: .zero,
+                                size: .init(width: 64, height: 64))
+            layer.layoutSublayers()
+            XCTAssertEqual(layer.path, expected)
+        case .error(let error):
+            XCTFail(error)
+        }
     }
 
     func test_move() {
@@ -88,15 +86,15 @@ class CyborgTests: XCTestCase {
             buffer.deallocate()
         }
         let result = parseMoveAbsolute()(move, 0)
-        let path = CGMutablePath()
         let expected = CGMutablePath()
-        let movement: PriorContext = CGPoint(x: 300, y: 70).asPriorContext
-        expected.move(to: movement.point)
+        let distance = CGPoint(x: 300, y: 70)
+        let movement: DrawingCommand = .moveAbsolute(distance)
+        expected.move(to: distance)
         switch result {
         case .ok(let pathSegment, _):
-            let next = pathSegment(.zero, path, .init(width: 1, height: 1))
+            let path = createPath(from: pathSegment)
             XCTAssertEqual(path, expected)
-            XCTAssertEqual(next, movement)
+            XCTAssertEqual(movement, pathSegment[0])
         case .error(let error):
             XCTFail(error)
         }
@@ -112,8 +110,7 @@ class CyborgTests: XCTestCase {
         expected.closeSubpath()
         switch result {
         case .ok(let wrapped, let index):
-            let path = CGMutablePath()
-            _ = wrapped(.zero, path, .zero)
+            let path = createPath(from: wrapped)
             XCTAssertEqual(index, close.count)
             XCTAssertEqual(path, expected)
         case .error(let error):
@@ -226,7 +223,7 @@ class CyborgTests: XCTestCase {
         case .ok(let wrapped, let index):
             let result = CGMutablePath()
             result.move(to: start)
-            _ = wrapped(start.asPriorContext, result, CGSize(width: 1, height: 1))
+            _ = createPath(from: wrapped, start: start.asPriorContext, path: result)
             XCTAssertEqual(result, expected)
             XCTAssertEqual(index, curve.count)
         case .error(let error):
@@ -249,48 +246,34 @@ class CyborgTests: XCTestCase {
         }
     }
 
-    func test_make_absolute() {
-        let input = [(1, 1), (1, 1), (1, 1)].map(CGPoint.init)
-        let first = input.makeAbsolute(startingWith: .init((1, 1)),
-                                       in: .identity)
-        XCTAssertEqual(first, [(2, 2), (3, 3), (4, 4)].map(CGPoint.init))
-        let scaled = input.makeAbsolute(startingWith: .init((1, 1)),
-                                        in: .init(width: 0.5, height: 0.5))
-        XCTAssertEqual(scaled, [(1.5, 1.5), (2, 2), (2.5, 2.5)].map(CGPoint.init))
-        let skipOne = input.makeAbsolute(startingWith: .init((1, 1)),
-                                         in: .identity,
-                                         elementSize: 1)
-        XCTAssertEqual(skipOne, [(2, 2), (2, 2), (3, 3)].map(CGPoint.init))
-        let input2 = [(1, 1), (1, 1), (1, 1), (1, 1)].map(CGPoint.init)
-        let skipTwo = input2.makeAbsolute(startingWith: .init((1, 1)),
-                                          in: .identity,
-                                          elementSize: 2)
-        XCTAssertEqual(skipTwo, [(2, 2), (2, 2), (2, 2), (3, 3)].map(CGPoint.init))
-        let input3 = [(1, 1), (1, 1), (1, 1), (1, 1), (1, 1)].map(CGPoint.init)
-        let skipThree = input3.makeAbsolute(startingWith: .init((1, 1)),
-                                            in: .identity,
-                                            elementSize: 3)
-        XCTAssertEqual(skipThree, [(2, 2), (2, 2), (2, 2), (2, 2), (3, 3)].map(CGPoint.init))
-    }
 }
 
 extension CGPoint {
+
     init(_ xy: (CGFloat, CGFloat)) {
         self.init(x: xy.0, y: xy.1)
     }
+
 }
 
 extension CGSize {
+
     static let identity = CGSize(width: 1, height: 1)
+
 }
 
-func createPath(from: PathSegment, start: PriorContext = .zero) -> CGMutablePath {
-    let path = CGMutablePath()
-    _ = from(start, path, .identity)
+func createPath(from pathSegment: PathSegment,
+                start: PriorContext = .zero,
+                path: CGMutablePath = CGMutablePath()) -> CGMutablePath {
+    var priorContext: PriorContext = start
+    for segment in pathSegment {
+        priorContext = segment.apply(to: path, using: priorContext, in: .identity)
+    }
     return path
 }
 
 extension String {
+
     func withXMLString(_ function: (XMLString) -> ()) {
         let (string, buffer) = XMLString.create(from: self)
         defer {
@@ -298,21 +281,24 @@ extension String {
         }
         function(string)
     }
+
 }
 
 extension XMLString {
+
     static func create(from string: String) -> (XMLString, UnsafeMutablePointer<UInt8>) {
         return string.withCString { pointer in
             pointer.withMemoryRebound(to: UInt8.self,
-                                      capacity: string.count + 1, { pointer in
+                                      capacity: string.utf8.count + 1, { pointer in
                                           let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: string.count + 1)
-                                          for i in 0..<string.count + 1 {
+                                          for i in 0..<string.utf8.count + 1 {
                                               buffer.advanced(by: i).pointee = pointer.advanced(by: i).pointee
                                           }
-                                          return (XMLString(buffer, count: Int32(string.count)), buffer)
+                                          return (XMLString(buffer, count: Int32(string.utf8.count)), buffer)
             })
         }
     }
+
 }
 
 extension ParseResult {

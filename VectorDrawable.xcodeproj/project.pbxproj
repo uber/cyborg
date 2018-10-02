@@ -15,6 +15,10 @@
 		3B5338F4210F845400C1C16B /* VectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5338F3210F845400C1C16B /* VectorView.swift */; };
 		3B60ECFD211B66AC00177661 /* TestDrawables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B60ECFC211B66AC00177661 /* TestDrawables.swift */; };
 		3B7659CC21405364000FC445 /* libxml2.2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B7659CB21405364000FC445 /* libxml2.2.tbd */; };
+		3B7ED8232162826700914C57 /* ColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7ED8222162826700914C57 /* ColorTests.swift */; };
+		3B7ED82521636A3200914C57 /* XMLStringLiterals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7ED82421636A3200914C57 /* XMLStringLiterals.swift */; };
+		3B7ED82721636DF900914C57 /* XMLStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7ED82621636DF900914C57 /* XMLStringTests.swift */; };
+		3B7ED82921636EE500914C57 /* XMLSchemaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7ED82821636EE500914C57 /* XMLSchemaTests.swift */; };
 		3BA380742108E40F00F43697 /* CyborgTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA380732108E40F00F43697 /* CyborgTests.swift */; };
 		3BA380762108E40F00F43697 /* Cyborg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; };
 		3BA3807D2109571000F43697 /* ParserPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA3807C2109571000F43697 /* ParserPrimitives.swift */; };
@@ -68,6 +72,10 @@
 		3B5338F3210F845400C1C16B /* VectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorView.swift; sourceTree = "<group>"; };
 		3B60ECFC211B66AC00177661 /* TestDrawables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDrawables.swift; sourceTree = "<group>"; };
 		3B7659CB21405364000FC445 /* libxml2.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxml2.2.tbd; path = usr/lib/libxml2.2.tbd; sourceTree = SDKROOT; };
+		3B7ED8222162826700914C57 /* ColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTests.swift; sourceTree = "<group>"; };
+		3B7ED82421636A3200914C57 /* XMLStringLiterals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLStringLiterals.swift; sourceTree = "<group>"; };
+		3B7ED82621636DF900914C57 /* XMLStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLStringTests.swift; sourceTree = "<group>"; };
+		3B7ED82821636EE500914C57 /* XMLSchemaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLSchemaTests.swift; sourceTree = "<group>"; };
 		3BA380712108E40F00F43697 /* CyborgTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyborgTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BA380732108E40F00F43697 /* CyborgTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyborgTests.swift; sourceTree = "<group>"; };
 		3BA380752108E40F00F43697 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -140,6 +148,10 @@
 			isa = PBXGroup;
 			children = (
 				3BA380732108E40F00F43697 /* CyborgTests.swift */,
+				3B7ED8222162826700914C57 /* ColorTests.swift */,
+				3B7ED82421636A3200914C57 /* XMLStringLiterals.swift */,
+				3B7ED82621636DF900914C57 /* XMLStringTests.swift */,
+				3B7ED82821636EE500914C57 /* XMLSchemaTests.swift */,
 				3BA380752108E40F00F43697 /* Info.plist */,
 			);
 			path = CyborgTests;
@@ -343,7 +355,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B7ED82921636EE500914C57 /* XMLSchemaTests.swift in Sources */,
 				3BA380742108E40F00F43697 /* CyborgTests.swift in Sources */,
+				3B7ED8232162826700914C57 /* ColorTests.swift in Sources */,
+				3B7ED82721636DF900914C57 /* XMLStringTests.swift in Sources */,
+				3B7ED82521636A3200914C57 /* XMLStringLiterals.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

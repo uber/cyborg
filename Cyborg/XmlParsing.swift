@@ -92,10 +92,12 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
 
     static func ~= (lhs: String, rhs: XMLString) -> Bool {
-        if lhs.count != rhs.count {
+        if lhs.utf8.count != rhs.count {
             return false
         } else {
             for (index, character) in lhs.utf8.enumerated() {
+                print(character)
+                print(rhs.underlying.advanced(by: index).pointee)
                 if character != rhs.underlying.advanced(by: index).pointee {
                     return false
                 }
@@ -146,9 +148,9 @@ extension Int8 {
 
 extension UInt8 {
 
-    static let whitespace: UInt8 = 10
+    static let whitespace: UInt8 = 32
 
-    static let newline: UInt8 = 32
+    static let newline: UInt8 = 10
 
     static let questionMark: UInt8 = 63
 

@@ -65,17 +65,27 @@ enum GroupProperty: String {
 
 }
 
-enum Color {
+enum Color: Equatable {
 
     case theme(name: String)
     case hex(value: UIColor)
     case resource(named: String)
 
     init?(_ string: XMLString) {
-        if string[safeIndex: 0] == .questionMark {
-            self = .theme(name: String(copying: string[1..<string.count]))
+        if string.count == 0 {
+            return nil
+        } else if string[safeIndex: 0] == .questionMark {
+            if string.count > 1 {
+                self = .theme(name: String(copying: string[1..<string.count]))
+            } else {
+                return nil
+            }
         } else if string[safeIndex: 0] == .at {
-            self = .resource(named: String(copying: string[1..<string.count]))
+            if string.count > 1 {
+                self = .resource(named: String(copying: string[1..<string.count]))
+            } else {
+                return nil
+            }
         } else {
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = String(withoutCopying: string)
