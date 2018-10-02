@@ -96,8 +96,6 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
             return false
         } else {
             for (index, character) in lhs.utf8.enumerated() {
-                print(character)
-                print(rhs.underlying.advanced(by: index).pointee)
                 if character != rhs.underlying.advanced(by: index).pointee {
                     return false
                 }
