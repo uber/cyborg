@@ -160,11 +160,13 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
 
     init(pathData: T,
          drawableSize: CGSize,
-         transform: [Transform]) {
+         transform: [Transform],
+         name: String?) {
         self.pathData = pathData
         self.drawableSize = drawableSize
         pathTransform = transform
         super.init()
+        self.name = name
     }
 
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
@@ -204,7 +206,8 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
         self.externalValues = externalValues
         super.init(pathData: pathData,
                    drawableSize: drawableSize,
-                   transform: transform)
+                   transform: transform,
+                   name: pathData.name)
         updateTheme()
     }
 

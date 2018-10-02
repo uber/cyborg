@@ -4,7 +4,7 @@
 
 import Foundation
 
-enum DrawingCommand {
+enum DrawingCommand: Equatable {
 
     case move(CGPoint)
     case moveAbsolute(CGPoint)

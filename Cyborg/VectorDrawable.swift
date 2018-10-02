@@ -64,7 +64,7 @@ protocol GroupChild: AnyObject {
 }
 
 /// A VectorDrawable. This can be displayed in a `VectorView`.
-public final class VectorDrawable: CustomDebugStringConvertible {
+public final class VectorDrawable {
 
     /// The intrinsic width in points.
     public let baseWidth: CGFloat
@@ -85,17 +85,6 @@ public final class VectorDrawable: CustomDebugStringConvertible {
 
     let groups: [GroupChild]
 
-    public var debugDescription: String {
-        return """
-        <\(type(of: self)) \(ObjectIdentifier(self)))
-          viewPort: \(viewPortWidth), \(viewPortHeight),
-          baseDimensions: \(baseWidth), \(baseHeight)
-          alpha: \(baseAlpha)
-          groups: \(groups)
-        >
-        """
-    }
-
     init(baseWidth: CGFloat,
          baseHeight: CGFloat,
          viewPortWidth: CGFloat,
@@ -111,7 +100,7 @@ public final class VectorDrawable: CustomDebugStringConvertible {
     }
 
     /// Representation of a <group> element from a VectorDrawable document.
-    public class Group: GroupChild, CustomDebugStringConvertible {
+    public class Group: GroupChild {
         /// The name of the group.
         public let name: String?
 
@@ -121,16 +110,6 @@ public final class VectorDrawable: CustomDebugStringConvertible {
         let children: [GroupChild]
 
         let clipPaths: [ClipPath]
-
-        public var debugDescription: String {
-            return """
-            < \(type(of: self)) \(ObjectIdentifier(self))
-              name: \(name ?? "nil")
-              transform: \(transform)
-              children: \(children)
-            >
-            """
-        }
 
         init(name: String?,
              transform: Transform,
@@ -190,7 +169,8 @@ public final class VectorDrawable: CustomDebugStringConvertible {
                          transform: [Transform]) -> CALayer {
             let layer = ShapeLayer(pathData: self,
                                    drawableSize: size,
-                                   transform: transform)
+                                   transform: transform,
+                                   name: name)
             layer.fillColor = UIColor.black.cgColor
             return layer
         }

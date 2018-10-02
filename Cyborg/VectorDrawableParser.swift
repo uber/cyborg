@@ -127,9 +127,9 @@ public extension VectorDrawable {
 
 // MARK: - Element Parsers
 
-func assign<T>(_ string: XMLString,
-               to path: inout T,
-               creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
+fileprivate func assign<T>(_ string: XMLString,
+                           to path: inout T,
+                           creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
     if let float = creator(string) {
         path = float
         return nil
@@ -138,13 +138,13 @@ func assign<T>(_ string: XMLString,
     }
 }
 
-func assignFloat(_ string: XMLString,
-                 to path: inout CGFloat?) -> ParseError? {
+fileprivate func assignFloat(_ string: XMLString,
+                             to path: inout CGFloat?) -> ParseError? {
     return assign(string, to: &path, creatingWith: CGFloat.init)
 }
 
-func assignFloat(_ string: XMLString,
-                 to path: inout CGFloat) -> ParseError? {
+fileprivate func assignFloat(_ string: XMLString,
+                             to path: inout CGFloat) -> ParseError? {
     return assign(string, to: &path, creatingWith: CGFloat.init)
 }
 

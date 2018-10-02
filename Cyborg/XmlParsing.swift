@@ -92,7 +92,7 @@ struct XMLString: Equatable, CustomDebugStringConvertible {
     }
 
     static func ~= (lhs: String, rhs: XMLString) -> Bool {
-        if lhs.count != rhs.count {
+        if lhs.utf8.count != rhs.count {
             return false
         } else {
             for (index, character) in lhs.utf8.enumerated() {
@@ -146,9 +146,9 @@ extension Int8 {
 
 extension UInt8 {
 
-    static let whitespace: UInt8 = 10
+    static let whitespace: UInt8 = 32
 
-    static let newline: UInt8 = 32
+    static let newline: UInt8 = 10
 
     static let questionMark: UInt8 = 63
 
@@ -161,8 +161,9 @@ extension XMLString {
     fileprivate static func globallyScoped(_ value: UInt8) -> XMLString {
         // It's okay not to deallocate this because it's only ever used at a global scope.
         // It is not recognized as a memory leak in instruments.
-        let globallyScopedBuffer = UnsafeMutablePointer<xmlChar>.allocate(capacity: 1)
+        let globallyScopedBuffer = UnsafeMutablePointer<xmlChar>.allocate(capacity: 2)
         globallyScopedBuffer.pointee = value
+        globallyScopedBuffer.advanced(by: 1).pointee = 0
         return XMLString(globallyScopedBuffer)
     }
 
