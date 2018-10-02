@@ -169,7 +169,8 @@ public final class VectorDrawable {
                          transform: [Transform]) -> CALayer {
             let layer = ShapeLayer(pathData: self,
                                    drawableSize: size,
-                                   transform: transform)
+                                   transform: transform,
+                                   name: name)
             layer.fillColor = UIColor.black.cgColor
             return layer
         }
