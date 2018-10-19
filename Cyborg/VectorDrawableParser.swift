@@ -430,7 +430,10 @@ protocol GroupChildParser: NodeParsing {
 final class ClipPathParser: NodeParsing, GroupChildParser {
 
     func createElement() -> Result<GroupChild> {
-        return createElement()
+        switch (createElement as () -> (Result<VectorDrawable.ClipPath>))() {
+        case .ok(let element): return .ok(element)
+        case .error(let error): return .error(error)
+        }
     }
 
     var name: String?
