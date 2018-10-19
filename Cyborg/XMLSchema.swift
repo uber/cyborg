@@ -127,11 +127,11 @@ enum LineCap: String, XMLStringRepresentable {
     case round
     case square
 
-    var intoCoreAnimation: String {
+    var intoCoreAnimation: CAShapeLayerLineCap {
         switch self {
-        case .butt: return kCALineCapButt
-        case .round: return kCALineCapRound
-        case .square: return kCALineCapSquare
+        case .butt: return .butt
+        case .round: return .round
+        case .square: return .square
         }
     }
 }
@@ -142,11 +142,11 @@ enum LineJoin: String, XMLStringRepresentable {
     case round
     case bevel
 
-    var intoCoreAnimation: String {
+    var intoCoreAnimation: CAShapeLayerLineJoin {
         switch self {
-        case .bevel: return kCALineJoinBevel
-        case .round: return kCALineJoinRound
-        case .miter: return kCALineJoinMiter
+        case .bevel: return .bevel
+        case .round: return .round
+        case .miter: return .miter
         }
     }
 }

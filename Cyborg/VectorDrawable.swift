@@ -101,6 +101,7 @@ public final class VectorDrawable {
 
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group: GroupChild {
+
         /// The name of the group.
         public let name: String?
 
@@ -154,7 +155,7 @@ public final class VectorDrawable {
 
     }
 
-    public class ClipPath: PathCreating {
+    public class ClipPath: GroupChild, PathCreating {
 
         public let name: String?
         let data: [DrawingCommand]
@@ -174,6 +175,14 @@ public final class VectorDrawable {
             layer.fillColor = UIColor.black.cgColor
             return layer
         }
+
+        func createLayers(using _: ValueProviding,
+                          drawableSize: CGSize,
+                          transform: [Transform]) -> [CALayer] {
+            return [createLayer(drawableSize: drawableSize,
+                                transform: transform)]
+        }
+
     }
 
     /// Representation of a <path> element from a VectorDrawable document.
