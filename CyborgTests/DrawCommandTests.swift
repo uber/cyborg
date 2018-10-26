@@ -130,4 +130,50 @@ class DrawingCommandTests: XCTestCase {
             }
     }
 
+    func test_matrix2d_multiplication() {
+        let point = CGPoint(x: 1, y: 0)
+        assertAlmostEqual(rotation(angle: 90 * .pi / 180).times(point), CGPoint(x: 0, y: 1))
+        assertAlmostEqual(rotation(angle: 360 * .pi / 180).times(point), point)
+        assertAlmostEqual(rotation(angle: 180 * .pi / 180).times(point), CGPoint(x: -1, y: 0))
+    }
+
+    func test_sphericalArc() {
+        let arc = EllipticArc(center: .zero,
+                              radius: .init(x: 5, y: 5),
+                              xAngle: 0)
+        XCTAssertEqual(arc.point(for: 0), CGPoint(x: 5, y: 0))
+        assertAlmostEqual(arc.point(for: 90 * .pi / 180), CGPoint(x: 0, y: 5))
+        assertAlmostEqual(arc.point(for: 180 * .pi / 180), CGPoint(x: -5, y: 0))
+    }
+
+    func test_ellipticArc() {
+        let arc = EllipticArc(center: .zero,
+                              radius: .init(x: 10, y: 5),
+                              xAngle: 0)
+        XCTAssertEqual(arc.point(for: 0), CGPoint(x: 10, y: 0))
+    }
+
+    func test_ellipticArcXAngle() {
+        let arc = EllipticArc(center: .zero,
+                              radius: .init(x: 10, y: 5),
+                              xAngle: .pi)
+        assertAlmostEqual(arc.point(for: 0), CGPoint(x: -10, y: 0))
+        assertAlmostEqual(arc.point(for: .pi), CGPoint(x: 10, y: 0))
+    }
+
+    func rotation(angle: CGFloat) -> Matrix2 {
+        return .init(m00: cos(angle),
+                     m01: sin(angle),
+                     m10: -sin(angle),
+                     m11: cos(angle))
+    }
+
+}
+
+func assertAlmostEqual(_ lhs: CGPoint,
+                       _ rhs: CGPoint,
+                       line: UInt = #line) {
+    let error: CGFloat = 0.001 // TODO: I just picked this number arbitrarily
+    XCTAssert(abs(lhs.x - rhs.x) < error && abs(lhs.y - rhs.y) < error,
+              "\(lhs), \(rhs) are not close to equal.", line: line)
 }

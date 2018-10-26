@@ -21,6 +21,8 @@ enum DrawingCommand: Equatable {
     case quadraticAbsolute(CGPoint, CGPoint)
     case closePath
     case closePathAbsolute
+    case arc(CGPoint, CGFloat, CGFloat, CGFloat, CGPoint)
+    case arcAbsolute(CGPoint, CGFloat, CGFloat, CGFloat, CGPoint)
 
     func apply(to path: CGMutablePath, using prior: PriorContext, in size: CGSize) -> PriorContext {
         switch self {
@@ -91,6 +93,26 @@ enum DrawingCommand: Equatable {
             let control1 = control1.times(size)
             path.addQuadCurve(to: end, control: control1)
             return end.asPriorContext
+        case .arc(let radius, let rotation, let largeArcFlag, let sweepFlag, let endPoint):
+            return applyArc(to: path,
+                            in: size,
+                            radius: radius,
+                            rotation: rotation,
+                            largeArcFlag: largeArcFlag,
+                            sweepFlag: sweepFlag,
+                            endPoint: endPoint,
+                            prior: prior,
+                            isRelative: true)
+        case .arcAbsolute(let radius, let rotation, let largeArcFlag, let sweepFlag, let endPoint):
+            return applyArc(to: path,
+                            in: size,
+                            radius: radius,
+                            rotation: rotation,
+                            largeArcFlag: largeArcFlag,
+                            sweepFlag: sweepFlag,
+                            endPoint: endPoint,
+                            prior: prior,
+                            isRelative: false)
         case .closePath, .closePathAbsolute:
             path.closeSubpath()
             return path.currentPoint.asPriorContext
@@ -313,6 +335,44 @@ func parseQuadraticAbsolute() -> Parser<PathSegment> {
     })
 }
 
+func parseArc() -> Parser<PathSegment> {
+    return parse(command: .a,
+                 followedBy: arcParser,
+                 convertToPathCommandsWith: { (result) -> PathSegment in
+                     let (radius, rotation, largeArcFlag, sweepFlag, endPoint) = result
+                     return [.arc(radius, rotation, largeArcFlag, sweepFlag, endPoint)] // TODO: take more than one
+    })
+}
+
+func arcParser(_ string: XMLString, _ index: Int32) -> ParseResult<(CGPoint, CGFloat, CGFloat, CGFloat, CGPoint)> {
+    switch coordinatePair()(string, index) {
+    case .ok(let radius, let index):
+        switch number(from: string, at: index) {
+        case .ok(let rotation, let index):
+            switch number(from: string, at: index) {
+            case .ok(let arcFlagNumber, let index):
+                switch number(from: string, at: index) {
+                case .ok(let sweepFlagNumber, let index):
+                    switch coordinatePair()(string, index) {
+                    case .ok(let endPoint, let index):
+                        return .ok((radius, rotation, arcFlagNumber, sweepFlagNumber, endPoint), index)
+                    case .error(let error):
+                        return .error(error)
+                    }
+                case .error(let error):
+                    return .error(error)
+                }
+            case .error(let error):
+                return .error(error)
+            }
+        case .error(let error):
+            return .error(error)
+        }
+    case .error(let error):
+        return .error(error)
+    }
+}
+
 let allDrawingCommands: [Parser<PathSegment>] = [
     parseCurve(),
     parseAbsoluteCurve(),
@@ -329,6 +389,7 @@ let allDrawingCommands: [Parser<PathSegment>] = [
     parseSmoothCurve(),
     parseClosePath(),
     parseClosePathAbsolute(),
+    parseArc(),
 ]
 
 extension CGPoint {
@@ -349,6 +410,10 @@ extension CGPoint {
         return .init(x: x * size.width, y: y * size.height)
     }
 
+    func times(_ other: CGFloat) -> CGPoint {
+        return .init(x: x * other, y: y * other)
+    }
+
     func times(_ other: CGPoint) -> CGPoint {
         return times(other.x, other.y)
     }
@@ -361,6 +426,24 @@ extension CGPoint {
         let newX = current.x * 2 - x
         let newY = current.y * 2 - y
         return CGPoint(x: newX, y: newY)
+    }
+
+    var magnitude: CGFloat {
+        return sqrt(pow(x, 2) + pow(y, 2))
+    }
+
+    func angle(with other: CGPoint) -> CGFloat {
+        let sign: CGFloat = x * other.y - y * other.x < 0 ? -1 : 1
+        return acos(max(-1.0, min(1.0, dot(other) / (magnitude * other.magnitude)))) * sign
+    }
+
+}
+
+extension CGFloat {
+
+    func times(_ size: CGSize) -> CGFloat {
+        let magnitude = sqrt(pow(size.height, 2) + pow(size.width, 2))
+        return self * magnitude
     }
 
 }

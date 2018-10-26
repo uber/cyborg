@@ -21,7 +21,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            baselinesplit,
+            spain,
         ]
         .map { data in
             data.data(using: .utf8)!
@@ -34,17 +34,16 @@ class ViewController: UIViewController {
             switch result {
             case .ok(let drawable):
                 vectorView.drawable = drawable
+                NSLayoutConstraint
+                    .activate([
+                        vectorView.widthAnchor.constraint(equalToConstant: vectorView.intrinsicContentSize.width * 30),
+                        vectorView.heightAnchor.constraint(equalToConstant: vectorView.intrinsicContentSize.height * 30),
+                    ])
+                return vectorView
             case .error(let error):
                 print(error)
                 fatalError(error)
             }
-            NSLayoutConstraint
-                .activate([
-                    vectorView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    vectorView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-//                    vectorView.widthAnchor.constraint(equalToConstant: 300),
-//                    vectorView.heightAnchor.constraint(equalToConstant: 300)
-                ])
         }
     }
 }
