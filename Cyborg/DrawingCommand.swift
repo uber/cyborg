@@ -433,7 +433,7 @@ extension CGPoint {
     }
 
     func angle(with other: CGPoint) -> CGFloat {
-        let sign: CGFloat = x * other.y - y * other.x < 0 ? -1 : 1
+        let sign: CGFloat = x * other.y - y * (other.x < 0 ? -1 : 1)
         return acos(max(-1.0, min(1.0, dot(other) / (magnitude * other.magnitude)))) * sign
     }
 

@@ -14,11 +14,9 @@ struct EllipticArc {
 
     func point(for pseudoAngle: CGFloat) -> CGPoint {
         // 2.2.1 (3)
-        let a = radius.x
-        let b = radius.y
         return .init(
-            x: center.x + a * cos(xAngle) * cos(pseudoAngle) - b * sin(xAngle) * sin(pseudoAngle),
-            y: center.y + a * sin(xAngle) * cos(pseudoAngle) + b * cos(xAngle) * sin(pseudoAngle)
+            x: center.x + radius.x * cos(xAngle) * cos(pseudoAngle) - radius.y * sin(xAngle) * sin(pseudoAngle),
+            y: center.y + radius.x * sin(xAngle) * cos(pseudoAngle) + radius.y * cos(xAngle) * sin(pseudoAngle)
         )
     }
 
@@ -48,10 +46,10 @@ func applyArc(to path: CGMutablePath,
     let endPoint = endPoint.times(size).add(isRelative ? prior : .zero)
     var r = radius.times(size)
     // eq 5.1
-    let transform = Matrix2(m00: cos(rotation),
-                            m01: -sin(rotation),
-                            m10: sin(rotation),
-                            m11: cos(rotation))
+    let transform = Matrix2x2(m00: cos(rotation),
+                              m01: -sin(rotation),
+                              m10: sin(rotation),
+                              m11: cos(rotation))
     let xy1 = transform.times(.init(x: (prior.x - endPoint.x) / 2,
                                     y: (prior.y - endPoint.y) / 2))
     // eq 5.2
@@ -79,10 +77,10 @@ func applyArc(to path: CGMutablePath,
         )
         .times(largeArcFlag != sweepFlag ? 1 : -1)
     // eq 5.3
-    let transform2 = Matrix2(m00: cos(rotation),
-                             m01: sin(rotation),
-                             m10: -sin(rotation),
-                             m11: cos(rotation))
+    let transform2 = Matrix2x2(m00: cos(rotation),
+                               m01: sin(rotation),
+                               m10: -sin(rotation),
+                               m11: cos(rotation))
     let center = transform2
         .times(c1)
         .add(.init(x: (prior.x + endPoint.x) / 2,
@@ -169,7 +167,7 @@ fileprivate struct Segments: Sequence {
     }
 }
 
-struct Matrix2 {
+struct Matrix2x2 {
 
     let m00: CGFloat
     let m01: CGFloat

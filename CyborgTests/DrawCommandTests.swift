@@ -130,7 +130,7 @@ class DrawingCommandTests: XCTestCase {
             }
     }
 
-    func test_matrix2d_multiplication() {
+    func test_Matrix2x2d_multiplication() {
         let point = CGPoint(x: 1, y: 0)
         assertAlmostEqual(rotation(angle: 90 * .pi / 180).times(point), CGPoint(x: 0, y: 1))
         assertAlmostEqual(rotation(angle: 360 * .pi / 180).times(point), point)
@@ -161,7 +161,7 @@ class DrawingCommandTests: XCTestCase {
         assertAlmostEqual(arc.point(for: .pi), CGPoint(x: 10, y: 0))
     }
 
-    func rotation(angle: CGFloat) -> Matrix2 {
+    func rotation(angle: CGFloat) -> Matrix2x2 {
         return .init(m00: cos(angle),
                      m01: sin(angle),
                      m10: -sin(angle),
