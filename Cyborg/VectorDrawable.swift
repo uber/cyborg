@@ -202,7 +202,7 @@ public final class VectorDrawable {
         let trimPathOffset: CGFloat
         let strokeLineCap: LineCap
         let strokeLineJoin: LineJoin
-        let fillType: CGPathFillRule
+        let fillType: CAShapeLayerFillRule
 
         init(name: String?,
              fillColor: Color?,
@@ -216,7 +216,7 @@ public final class VectorDrawable {
              trimPathOffset: CGFloat,
              strokeLineCap: LineCap,
              strokeLineJoin: LineJoin,
-             fillType: CGPathFillRule) {
+             fillType: CAShapeLayerFillRule) {
             self.name = name
             self.data = data
             self.strokeColor = strokeColor
@@ -243,6 +243,7 @@ public final class VectorDrawable {
 
         func apply(to layer: CAShapeLayer,
                    using externalValues: ValueProviding) {
+            layer.name = name
             layer.strokeColor = strokeColor?
                 .color(from: externalValues)
                 .withAlphaComponent(strokeAlpha)
@@ -255,6 +256,8 @@ public final class VectorDrawable {
                 .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
+            layer.lineWidth = strokeWidth
+            layer.fillRule = fillType
         }
     }
 

@@ -327,7 +327,7 @@ final class PathParser: GroupChildParser {
     var strokeLineCap: LineCap = .butt
     var strokeMiterLimit: CGFloat = 4
     var strokeLineJoin: LineJoin = .miter
-    var fillType: CGPathFillRule = .winding
+    var fillType: CAShapeLayerFillRule = .evenOdd
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
@@ -377,10 +377,10 @@ final class PathParser: GroupChildParser {
                 case .strokeMiterLimit:
                     result = assignFloat(value, to: &strokeMiterLimit)
                 case .fillType:
-                    result = assign(value, to: &fillType, creatingWith: { (string) -> (CGPathFillRule?) in
+                    result = assign(value, to: &fillType, creatingWith: { (string) -> (CAShapeLayerFillRule?) in
                         switch string {
                         case "evenOdd": return .evenOdd
-                        case "nonZero": return .winding
+                        case "nonZero": return .nonZero
                         default: return nil
                         }
                     })
