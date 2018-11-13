@@ -8,11 +8,13 @@ import UIKit
 open class VectorView: UIView {
 
     /// A source for external values to use to theme the VectorDrawable.
-    public var externalValues: ValueProviding {
+    public var theme: ThemeProviding {
         didSet {
             updateLayers()
         }
     }
+    
+    private let resources: ResourceProviding
 
     /// The drawable to display.
     open var drawable: VectorDrawable? {
@@ -38,8 +40,9 @@ open class VectorView: UIView {
     /// Initializer.
     ///
     /// - parameter externalValues: A source for external values to use to theme the VectorDrawable.
-    public init(externalValues: ValueProviding) {
-        self.externalValues = externalValues
+    public init(theme: ThemeProviding, resources: ResourceProviding) {
+        self.theme = theme
+        self.resources = resources
         super.init(frame: .zero)
     }
 
@@ -59,7 +62,9 @@ open class VectorView: UIView {
 
     private func updateLayers() {
         if let drawable = drawable {
-            drawableLayers = drawable.layerRepresentation(in: bounds, using: externalValues)
+            drawableLayers = drawable.layerRepresentation(in: bounds,
+                                                          using: ExternalValues(resources: resources,
+                                                                                theme: theme))
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
@@ -73,33 +78,54 @@ open class VectorView: UIView {
 
 }
 
-/// Provides values from various sources: a "theme," and "resources", which
-/// correspond to the objects of the same name on Android. You can reimplement the
+/// Provides values from a "theme" which
+/// corresponds to the objects of the same name on Android. You can reimplement the
 /// Android behavior, or write your own system.
-public protocol ValueProviding {
+public protocol ThemeProviding {
 
     /// Gets the color that corresponds to `name` from the Theme. Colors prefixed "?"
     /// in the VectorDrawable XML file are fetched using this function.
     ///
     /// - parameter name: the name of the external value
-    /// -note: You are responsible for providing an appropriate value or crashing
+    /// - note: You are responsible for providing an appropriate value or crashing
     /// in the event that you cannot create a color for the name.
     func colorFromTheme(named name: String) -> UIColor
+    
+}
 
+/// Provides values from "resources" which
+/// corresponds to the objects of the same name on Android. You can reimplement the
+/// Android behavior, or write your own system.
+public protocol ResourceProviding {
+    
     /// Gets the color that corresponds to `name` from the Resources bundle. Colors prefixed "@"
     /// in the VectorDrawable XML file are fetched using this function.
     ///
     /// - parameter name: the name of the external value
-    /// -note: You are responsible for providing an appropriate value or crashing
+    /// - note: You are responsible for providing an appropriate value or crashing
     /// in the event that you cannot create a color for the name.
     func colorFromResources(named name: String) -> UIColor
+    
+}
 
+struct ExternalValues {
+    let resources: ResourceProviding
+    let theme: ThemeProviding
+    
+    func colorFromTheme(named name: String) -> UIColor {
+        return theme.colorFromTheme(named: name)
+    }
+    
+    func colorFromResources(named name: String) -> UIColor {
+        return resources.colorFromResources(named: name)
+    }
+    
 }
 
 extension VectorDrawable {
 
     func layerRepresentation(in _: CGRect,
-                             using externalValues: ValueProviding) -> [CALayer] {
+                             using externalValues: ExternalValues) -> [CALayer] {
         let viewSpace = CGSize(width: viewPortWidth,
                                height: viewPortHeight)
         return Array(
@@ -188,19 +214,19 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
 
 final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
 
-    fileprivate var externalValues: ValueProviding {
+    fileprivate var externalValues: ExternalValues {
         didSet {
             updateTheme()
         }
     }
-
+    
     private func updateTheme() {
         pathData.apply(to: self,
                        using: externalValues)
     }
 
     init(pathData: VectorDrawable.Path,
-         externalValues: ValueProviding,
+         externalValues: ExternalValues,
          drawableSize: CGSize,
          transform: [Transform]) {
         self.externalValues = externalValues
