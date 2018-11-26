@@ -108,7 +108,7 @@ enum Color: Equatable {
         }
     }
 
-    func color(from externalValues: ValueProviding) -> UIColor {
+    func color(from externalValues: ExternalValues) -> UIColor {
         switch self {
         case .hex(let value):
             return value

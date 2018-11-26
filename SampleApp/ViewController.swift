@@ -5,16 +5,20 @@
 import Cyborg
 import UIKit
 
-class Theme: Cyborg.ValueProviding {
+class Theme: Cyborg.ThemeProviding {
 
     func colorFromTheme(named _: String) -> UIColor {
         return .black
     }
+    
+}
 
+class Resources: ResourceProviding {
+    
     func colorFromResources(named _: String) -> UIColor {
         return .black
     }
-
+        
 }
 
 class ViewController: UIViewController {
@@ -37,7 +41,7 @@ class ViewController: UIViewController {
         scrollView.addFullSizeSubview(stackView)
         scrollView.alwaysBounceVertical = true
         let views = drawableData.map { data -> VectorView in
-            let vectorView = VectorView(externalValues: Theme())
+            let vectorView = VectorView(theme: Theme(), resources: Resources())
             vectorView.translatesAutoresizingMaskIntoConstraints = false
             let result = VectorDrawable.create(from: data)
             switch result {

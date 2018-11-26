@@ -57,7 +57,7 @@ enum BlendMode: String, XMLStringRepresentable {
 /// to be children of Groups, apparently.
 protocol GroupChild: AnyObject {
 
-    func createLayers(using externalValues: ValueProviding,
+    func createLayers(using externalValues: ExternalValues,
                       drawableSize: CGSize,
                       transform: [Transform]) -> [CALayer]
 
@@ -122,7 +122,7 @@ public final class VectorDrawable {
             self.clipPaths = clipPaths
         }
 
-        func createLayers(using externalValues: ValueProviding,
+        func createLayers(using externalValues: ExternalValues,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             var clipPathLayers = clipPaths.map { clipPath in
@@ -176,7 +176,7 @@ public final class VectorDrawable {
             return layer
         }
 
-        func createLayers(using _: ValueProviding,
+        func createLayers(using _: ExternalValues,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             return [createLayer(drawableSize: drawableSize,
@@ -232,7 +232,7 @@ public final class VectorDrawable {
             self.strokeWidth = strokeWidth
         }
 
-        func createLayers(using externalValues: ValueProviding,
+        func createLayers(using externalValues: ExternalValues,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
             return [ThemeableShapeLayer(pathData: self,
@@ -242,7 +242,7 @@ public final class VectorDrawable {
         }
 
         func apply(to layer: CAShapeLayer,
-                   using externalValues: ValueProviding) {
+                   using externalValues: ExternalValues) {
             layer.name = name
             layer.strokeColor = strokeColor?
                 .color(from: externalValues)
