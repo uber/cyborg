@@ -5,7 +5,7 @@
 @testable import Cyborg
 import XCTest
 
-class NoTheme: ValueProviding {
+class NoTheme: ResourceProviding, ThemeProviding {
 
     func colorFromResources(named _: String) -> UIColor {
         return .black
