@@ -104,7 +104,10 @@ func applyArc(to path: CGMutablePath,
     let arc = EllipticArc(center: center, radius: r, xAngle: rotation)
     for (start, end) in segments {
         let startPoint = arc.point(for: start)
-        if path.currentPoint != startPoint {
+        // If our calculations disagree with the current point of the path, move to the point
+        // we computed, unless the difference is too small to matter. Entering this branch
+        //  will likely lead to artifactsin when the VectorDrawable is displayed.
+        if !path.currentPoint.isWithinAPointOf(startPoint) {
             path.move(to: startPoint)
         }
         let alpha: CGFloat = {

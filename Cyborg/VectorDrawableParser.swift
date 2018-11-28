@@ -327,7 +327,7 @@ final class PathParser: GroupChildParser {
     var strokeLineCap: LineCap = .butt
     var strokeMiterLimit: CGFloat = 4
     var strokeLineJoin: LineJoin = .miter
-    var fillType: CAShapeLayerFillRule = .evenOdd
+    var fillType: CAShapeLayerFillRule = .nonZero
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
@@ -354,7 +354,7 @@ final class PathParser: GroupChildParser {
                         fillColor = color
                         result = nil
                     } else {
-                        result = "Failed to create a color"
+                        result = "Failed to create a color from \"\(String(copying: value))\""
                     }
                 case .strokeWidth:
                     result = assignFloat(value, to: &strokeWidth)

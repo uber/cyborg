@@ -246,13 +246,13 @@ public final class VectorDrawable {
             layer.name = name
             layer.strokeColor = strokeColor?
                 .color(from: externalValues)
-                .withAlphaComponent(strokeAlpha)
+                .multiplyAlpha(with: strokeAlpha)
                 .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
             layer.fillColor = fillColor?
                 .color(from: externalValues)
-                .withAlphaComponent(fillAlpha)
+                .multiplyAlpha(with: fillAlpha)
                 .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
@@ -261,6 +261,20 @@ public final class VectorDrawable {
         }
     }
 
+}
+
+extension UIColor {
+    
+    func multiplyAlpha(with other: CGFloat) -> UIColor {
+        return withAlphaComponent(alpha * other)
+    }
+    
+    var alpha: CGFloat {
+        var alpha: CGFloat = 0
+        getRed(nil, green: nil, blue: nil, alpha: &alpha)
+        return alpha
+    }
+    
 }
 
 extension Array where Element == Transform {

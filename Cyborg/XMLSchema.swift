@@ -87,6 +87,8 @@ enum Color: Equatable {
                 return nil
             }
         } else {
+            let hasAlpha = (string.count == 9)
+            let startingShift = hasAlpha ? 8 : 0
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = String(withoutCopying: string)
             _ = withoutLeadingHashTag.remove(at: withoutLeadingHashTag.startIndex)
@@ -98,10 +100,11 @@ enum Color: Equatable {
                 func component(_ mask: Int, _ shift: Int) -> CGFloat {
                     return CGFloat((value & mask) >> shift) / 255
                 }
-                self = .hex(value: UIColor(red: component(0xFF0000, 16),
-                                           green: component(0xFF00, 8),
-                                           blue: component(0xFF, 0),
-                                           alpha: 1.0))
+                let alpha = hasAlpha ? component(0xFF000000, 16) : 1.0
+                self = .hex(value: UIColor(red: component(0xFF0000, 16 + startingShift),
+                                           green: component(0xFF00, 8 + startingShift),
+                                           blue: component(0xFF, 0 + startingShift),
+                                           alpha: alpha))
             } else {
                 return nil
             }
