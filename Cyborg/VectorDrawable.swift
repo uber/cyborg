@@ -260,6 +260,46 @@ public final class VectorDrawable {
             layer.fillRule = fillType
         }
     }
+    
+    public class Gradient {
+        
+        let startColor: Color
+        let centerColor: Color
+        let endColor: Color
+        let type: GradientType
+        let tileMode: TileMode
+        
+        init(startColor: Color,
+             centerColor: Color,
+             endColor: Color,
+             type: GradientType,
+             tileMode: TileMode
+            ) {
+            self.startColor = startColor
+            self.centerColor = centerColor
+            self.endColor = endColor
+            self.type = type
+            self.tileMode = tileMode
+        }
+        
+        struct Offset {
+            let amount: CGFloat
+            let color: Color
+        }
+        
+    }
+    
+    public class LinearGradient: Gradient {
+        
+    }
+    
+    public class RadialGradient: Gradient {
+        
+    }
+    
+    public class SweepGradient: Gradient {
+        
+    }
 
 }
 

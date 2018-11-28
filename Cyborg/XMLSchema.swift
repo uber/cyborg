@@ -10,6 +10,7 @@ enum Element: String {
     case path
     case group
     case clipPath = "clip-path"
+    case item
 }
 
 /// Elements of the <vector> element of a VectorDrawable document.
@@ -152,4 +153,37 @@ enum LineJoin: String, XMLStringRepresentable {
         case .miter: return .miter
         }
     }
+}
+
+enum GradientProperty: String, XMLStringRepresentable {
+    
+    case startY = "android:startY"
+    case startX = "android:startX"
+    case endY = "android:endY"
+    case endX = "android:endX"
+    case type = "android:type"
+    case startcolor = "android:startColor"
+    case endColor = "android:endColor"
+    case centerColor = "android:centerColor"
+}
+
+enum GradientType: String, XMLStringRepresentable {
+    
+    case linear
+    case radial
+    case sweep
+    
+}
+
+enum ItemProperty: String, XMLStringRepresentable {
+    case offset = "android:offset"
+    case color = "android:color"
+}
+
+enum TileMode: String, XMLStringRepresentable {
+    
+    case clamp
+    case `repeat`
+    case mirror
+    
 }
