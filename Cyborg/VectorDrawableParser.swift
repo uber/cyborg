@@ -354,7 +354,7 @@ final class PathParser: GroupChildParser {
                         fillColor = color
                         result = nil
                     } else {
-                        result = "Failed to create a color from \(String(copying: value))"
+                        result = "Failed to create a color from \"\(String(copying: value))\""
                     }
                 case .strokeWidth:
                     result = assignFloat(value, to: &strokeWidth)

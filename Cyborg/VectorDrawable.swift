@@ -266,7 +266,7 @@ public final class VectorDrawable {
 extension UIColor {
     
     func multiplyAlpha(with other: CGFloat) -> UIColor {
-        return withAlphaComponent(min(alpha, other))
+        return withAlphaComponent(alpha * other)
     }
     
     var alpha: CGFloat {
