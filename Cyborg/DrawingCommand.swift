@@ -473,7 +473,11 @@ extension CGPoint {
         let sign: CGFloat = ((x * other.y - y * other.x) < 0) ? -1 : 1
         return acos(max(-1.0, min(1.0, dot(other) / (magnitude * other.magnitude)))) * sign
     }
-
+    
+    func isWithinAPointOf(_ other: CGPoint) -> Bool {
+        return abs(x - other.x) < 0 &&
+            abs(y - other.y) < 0
+    }
 }
 
 extension CGFloat {

@@ -87,7 +87,7 @@ enum Color: Equatable {
                 return nil
             }
         } else {
-            let hasAlpha = string.count == 9
+            let hasAlpha = (string.count == 9)
             let startingShift = hasAlpha ? 8 : 0
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = String(withoutCopying: string)
