@@ -17,6 +17,7 @@ enum DrawingCommand: Equatable {
     case vertical(CGFloat)
     case verticalAbsolute(CGFloat)
     case smoothCurve(CGPoint, CGPoint)
+    case smoothCurveAbsolute(CGPoint, CGPoint)
     case quadratic(CGPoint, CGPoint)
     case quadraticAbsolute(CGPoint, CGPoint)
     case closePath
@@ -79,6 +80,13 @@ enum DrawingCommand: Equatable {
             let (last, control1) = prior.pointAndControlPoint
             let end = end.times(size).add(last)
             let control2 = control2.times(size).add(last)
+            path.addCurve(to: end, control1: control1, control2: control2)
+            return .lastAndControlPoint(end,
+                                        control2.reflected(across: end))
+        case .smoothCurveAbsolute(let control2, let end):
+            let (_, control1) = prior.pointAndControlPoint
+            let end = end.times(size)
+            let control2 = control2.times(size)
             path.addCurve(to: end, control1: control1, control2: control2)
             return .lastAndControlPoint(end,
                                         control2.reflected(across: end))
@@ -311,6 +319,19 @@ func parseSmoothCurve() -> Parser<PathSegment> {
     })
 }
 
+func parseSmoothCurveAbsolute() -> Parser<PathSegment> {
+    return parse(command: .S,
+                 followedBy: 2.coordinatePairs(),
+                 convertToPathCommandsWith: { (points: [[CGPoint]]) -> PathSegment in
+                    points.map { pair in
+                        let end = pair[1],
+                        controlPoint = pair[0]
+                        return .smoothCurveAbsolute(controlPoint, end)
+                    }
+    })
+}
+
+
 func parseQuadratic() -> Parser<PathSegment> {
     return parse(command: .q,
                  followedBy: 2.coordinatePairs(),
@@ -337,12 +358,26 @@ func parseQuadraticAbsolute() -> Parser<PathSegment> {
 
 func parseArc() -> Parser<PathSegment> {
     return parse(command: .a,
-                 followedBy: arcParser,
+                 followedBy: oneOrMore(of: arcParser),
                  convertToPathCommandsWith: { (result) -> PathSegment in
-                     let (radius, rotation, largeArcFlag, sweepFlag, endPoint) = result
-                     return [.arc(radius, rotation, largeArcFlag, sweepFlag, endPoint)] // TODO: take more than one
+                    result.map { result in
+                        let (radius, rotation, largeArcFlag, sweepFlag, endPoint) = result
+                        return .arc(radius, rotation, largeArcFlag, sweepFlag, endPoint)
+                    }
     })
 }
+
+func parseArcAbsolute() -> Parser<PathSegment> {
+    return parse(command: .A,
+                 followedBy: oneOrMore(of: arcParser),
+                 convertToPathCommandsWith: { (result) -> PathSegment in
+                    result.map { result in
+                        let (radius, rotation, largeArcFlag, sweepFlag, endPoint) = result
+                        return .arcAbsolute(radius, rotation, largeArcFlag, sweepFlag, endPoint)
+                    }
+    })
+}
+
 
 func arcParser(_ string: XMLString, _ index: Int32) -> ParseResult<(CGPoint, CGFloat, CGFloat, CGFloat, CGPoint)> {
     switch coordinatePair()(string, index) {
@@ -387,9 +422,11 @@ let allDrawingCommands: [Parser<PathSegment>] = [
     parseQuadratic(),
     parseQuadraticAbsolute(),
     parseSmoothCurve(),
+    parseSmoothCurveAbsolute(),
     parseClosePath(),
     parseClosePathAbsolute(),
     parseArc(),
+    parseArcAbsolute(),
 ]
 
 extension CGPoint {
@@ -433,7 +470,7 @@ extension CGPoint {
     }
 
     func angle(with other: CGPoint) -> CGFloat {
-        let sign: CGFloat = x * other.y - y * (other.x < 0 ? -1 : 1)
+        let sign: CGFloat = ((x * other.y - y * other.x) < 0) ? -1 : 1
         return acos(max(-1.0, min(1.0, dot(other) / (magnitude * other.magnitude)))) * sign
     }
 

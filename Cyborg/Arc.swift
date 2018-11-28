@@ -104,7 +104,8 @@ func applyArc(to path: CGMutablePath,
     let arc = EllipticArc(center: center, radius: r, xAngle: rotation)
     for (start, end) in segments {
         let startPoint = arc.point(for: start)
-        if path.currentPoint != startPoint {
+        if abs(path.currentPoint.x - startPoint.x) > 0,
+            abs(path.currentPoint.y - startPoint.y) > 0 {
             path.move(to: startPoint)
         }
         let alpha: CGFloat = {
