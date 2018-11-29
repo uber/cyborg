@@ -150,6 +150,12 @@ fileprivate func assign<T>(_ string: XMLString,
     return assign(string, to: &property, creatingWith: T.init(_: ))
 }
 
+fileprivate func assign<T>(_ string: XMLString,
+                           to property: inout T) -> ParseError? where T: XMLStringRepresentable {
+    return assign(string, to: &property, creatingWith: T.init(_: ))
+}
+
+
 fileprivate func assignFloat(_ string: XMLString,
                              to path: inout CGFloat?) -> ParseError? {
     return assign(string, to: &path, creatingWith: CGFloat.init)
@@ -346,9 +352,13 @@ final class VectorParser: ParentParser<GroupParser> {
 
 }
 
-final class PathParser: GroupChildParser {
+final class PathParser: ParentParser<GradientParser>, GroupChildParser {
 
     static let name: Element = .path
+    
+    override var name: Element {
+        return .path
+    }
 
     var pathName: String?
     var commands: [PathSegment]?
@@ -365,7 +375,7 @@ final class PathParser: GroupChildParser {
     var strokeLineJoin: LineJoin = .miter
     var fillType: CAShapeLayerFillRule = .nonZero
 
-    func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+    override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         for (key, value) in attributes {
             if let property = PathProperty(rawValue: String(withoutCopying: key)) {
@@ -431,11 +441,23 @@ final class PathParser: GroupChildParser {
         return nil
     }
 
-    func didEnd(element: String) -> Bool {
+    override func didEnd(element: String) -> Bool {
         return element == Element.path.rawValue
     }
 
+    override func childForElement(_ element: String) -> (GradientParser, (GradientParser) -> ())? {
+        if element == "aapt:attr" {
+            return (GradientParser(), appendChild)
+        } else {
+            return nil
+        }
+    }
+    
     func createElement() -> Result<GroupChild> {
+        if let first = children.first,
+            let _ = first.createElement() {
+            print("Gradients are not currently supported")
+        }
         if let commands = commands {
             return .ok(VectorDrawable.Path(name: pathName,
                                            fillColor: fillColor,
@@ -630,11 +652,15 @@ class GradientParser: NodeParsing {
     var startY: CGFloat?
     var endX: CGFloat?
     var endY: CGFloat?
-    var type: GradientType?
+    var centerX: CGFloat?
+    var centerY: CGFloat?
+    var radius: CGFloat?
+    var type: GradientType = .linear
     var offsets: [VectorDrawable.Gradient.Offset] = []
     var centerColor: Color?
     var startColor: Color?
     var endColor: Color?
+    var tileMode: TileMode = .clamp
     
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         if element == androidResourceAttribute {
@@ -692,6 +718,60 @@ class GradientParser: NodeParsing {
         return element == androidResourceAttribute
     }
     
+    
+    func createElement() -> VectorDrawable.Gradient? {
+        if let startColor = startColor,
+            let centerColor = centerColor,
+            let endColor = endColor {
+            switch type {
+            case .linear:
+                if let startX = startX,
+                    let startY = startY,
+                    let endX = endX,
+                    let endY = endY {
+                    return VectorDrawable.LinearGradient(startColor: startColor,
+                                                         centerColor: centerColor,
+                                                         endColor: endColor,
+                                                         tileMode: tileMode,
+                                                         startX: startX,
+                                                         startY: startY,
+                                                         endX: endX,
+                                                         endY: endY)
+                } else {
+                    return nil
+                }
+            case .radial:
+                if let centerX = centerX,
+                    let centerY = centerY,
+                    let radius = radius {
+                    return VectorDrawable.RadialGradient(startColor: startColor,
+                                                         centerColor: centerColor,
+                                                         endColor: endColor,
+                                                         tileMode: tileMode,
+                                                         centerX: centerX,
+                                                         centerY: centerY,
+                                                         radius: radius)
+                } else {
+                    return nil
+                }
+            case .sweep:
+                if let centerX = centerX,
+                    let centerY = centerY {
+                    return VectorDrawable.SweepGradient(startColor: startColor,
+                                                        centerColor: centerColor,
+                                                        endColor: endColor,
+                                                        tileMode: tileMode,
+                                                        centerX: centerX,
+                                                        centerY: centerY)
+                } else {
+                    return nil
+                }
+            }
+        } else {
+            // TODO: provide an error message
+            return nil
+        }
+    }
     
 }
 

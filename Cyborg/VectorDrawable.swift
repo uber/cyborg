@@ -202,7 +202,7 @@ public final class VectorDrawable {
         let trimPathOffset: CGFloat
         let strokeLineCap: LineCap
         let strokeLineJoin: LineJoin
-        let fillType: CAShapeLayerFillRule
+        let fillType: CAShapeLayerFillRule        
 
         init(name: String?,
              fillColor: Color?,
@@ -266,19 +266,16 @@ public final class VectorDrawable {
         let startColor: Color
         let centerColor: Color
         let endColor: Color
-        let type: GradientType
         let tileMode: TileMode
         
         init(startColor: Color,
              centerColor: Color,
              endColor: Color,
-             type: GradientType,
              tileMode: TileMode
             ) {
             self.startColor = startColor
             self.centerColor = centerColor
             self.endColor = endColor
-            self.type = type
             self.tileMode = tileMode
         }
         
@@ -291,14 +288,63 @@ public final class VectorDrawable {
     
     public class LinearGradient: Gradient {
         
+        let start: CGPoint
+        let end: CGPoint
+        
+        init(startColor: Color,
+             centerColor: Color,
+             endColor: Color,
+             tileMode: TileMode,
+             startX: CGFloat,
+             startY: CGFloat,
+             endX: CGFloat,
+             endY: CGFloat) {
+            start = .init(x: startX, y: startY)
+            end = .init(x: endX, y: endY)
+            super.init(startColor: startColor,
+                       centerColor: centerColor,
+                       endColor: endColor,
+                       tileMode: tileMode)
+        }
     }
     
     public class RadialGradient: Gradient {
         
+        let center: CGPoint
+        let radius: CGFloat
+        
+        init(startColor: Color,
+             centerColor: Color,
+             endColor: Color,
+             tileMode: TileMode,
+             centerX: CGFloat,
+             centerY: CGFloat,
+             radius: CGFloat) {
+            self.radius = radius
+            center = .init(x: centerX, y: centerY)
+            super.init(startColor: startColor,
+                       centerColor: centerColor,
+                       endColor: endColor,
+                       tileMode: tileMode)
+        }
     }
     
     public class SweepGradient: Gradient {
         
+        let center: CGPoint
+        
+        init(startColor: Color,
+             centerColor: Color,
+             endColor: Color,
+             tileMode: TileMode,
+             centerX: CGFloat,
+             centerY: CGFloat) {
+            center = .init(x: centerX, y: centerY)
+            super.init(startColor: startColor,
+                       centerColor: centerColor,
+                       endColor: endColor,
+                       tileMode: tileMode)
+        }
     }
 
 }
