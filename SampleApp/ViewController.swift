@@ -26,7 +26,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            rising,
+            test,
         ]
         .map { data in
             data.data(using: .utf8)!
