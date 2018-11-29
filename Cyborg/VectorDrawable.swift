@@ -222,8 +222,13 @@ public final class VectorDrawable {
             self.name = name
             self.data = data
             if gradient != nil && fillColor == nil {
+                // The path will be used as a mask if there's a gradient, so it's necessary to
+                // ensure that it has a fill color
                 self.fillColor = .hex(value: .black)
             } else {
+                // TODO: it's not clear if this is the correct behavior,
+                // or if a vector drawable with a fillColor defined and
+                // a gradient as the other fill color should be an error.
                 self.fillColor = fillColor
             }
             self.strokeAlpha = strokeAlpha
