@@ -203,7 +203,7 @@ public final class VectorDrawable {
         let strokeLineCap: LineCap
         let strokeLineJoin: LineJoin
         let fillType: CAShapeLayerFillRule
-        var gradient: Gradient?
+        let gradient: Gradient?
 
         init(name: String?,
              fillColor: Color?,
@@ -221,13 +221,13 @@ public final class VectorDrawable {
              gradient: Gradient?) {
             self.name = name
             self.data = data
-            if gradient != nil && strokeColor == nil {
-                self.strokeColor = .hex(value: .black)
+            if gradient != nil && fillColor == nil {
+                self.fillColor = .hex(value: .black)
             } else {
-                self.strokeColor =  strokeColor
+                self.fillColor = fillColor
             }
             self.strokeAlpha = strokeAlpha
-            self.fillColor = fillColor
+            self.strokeColor = strokeColor
             self.fillAlpha = fillAlpha
             self.trimPathStart = trimPathStart
             self.trimPathEnd = trimPathEnd
@@ -249,7 +249,7 @@ public final class VectorDrawable {
                                                  transform: transform)
             if let gradient = gradient {
                 let gradientLayer = ThemeableGradientLayer(gradient: gradient, externalValues: externalValues)
-//                gradientLayer.mask = shapeLayer
+                gradientLayer.mask = shapeLayer
                 return [gradientLayer]
             } else {
                 return [shapeLayer]

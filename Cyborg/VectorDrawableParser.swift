@@ -328,7 +328,7 @@ final class VectorParser: ParentParser<GroupParser> {
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
             return children.mapAllOrFail { group in
-                group.createElement()
+                group.createElement(in: CGSize(width: viewPortWidth, height: viewPortHeight))
             }
             .flatMap { (groups) -> Result<VectorDrawable> in
                 .ok(.init(baseWidth: baseWidth,
@@ -455,10 +455,10 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
         }
     }
     
-    func createElement() -> Result<GroupChild> {
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
         let gradient: VectorDrawable.Gradient?
         if let first = children.first,
-            let definiteGradient = first.createElement() {
+            let definiteGradient = first.createElement(in: viewportSize) {
             gradient = definiteGradient
         } else {
             gradient = nil
@@ -487,13 +487,13 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
 
 protocol GroupChildParser: NodeParsing {
 
-    func createElement() -> Result<GroupChild>
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild>
 
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
 
-    func createElement() -> Result<GroupChild> {
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
         switch (createElement as () -> (Result<VectorDrawable.ClipPath>))() {
         case .ok(let element): return .ok(element)
         case .error(let error): return .error(error)
@@ -558,8 +558,8 @@ final class AnyGroupParserChild: GroupChildParser {
         return parser.didEnd(element: element)
     }
 
-    func createElement() -> Result<GroupChild> {
-        return parser.createElement()
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
+        return parser.createElement(in: viewportSize)
     }
 
 }
@@ -618,9 +618,9 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         return nil
     }
 
-    func createElement() -> Result<GroupChild> {
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
         return children.mapAllOrFail { parser in
-            parser.createElement()
+            parser.createElement(in: viewportSize)
         }
         .flatMap { childElements in
             clipPaths
@@ -729,21 +729,25 @@ class GradientParser: NodeParsing {
     }
     
     
-    func createElement() -> VectorDrawable.Gradient? {
+    func createElement(in viewportSize: CGSize) -> VectorDrawable.Gradient? {
         switch type {
         case .linear:
             if let startX = startX,
                 let startY = startY,
                 let endX = endX,
                 let endY = endY {
+                let startXUnit = startX / viewportSize.width
+                let startYUnit = startY / viewportSize.height
+                let endXUnit = endX / viewportSize.width
+                let endYUnit = endY / viewportSize.height
                 return VectorDrawable.LinearGradient(startColor: startColor,
                                                      centerColor: centerColor,
                                                      endColor: endColor,
                                                      tileMode: tileMode,
-                                                     startX: startX,
-                                                     startY: startY,
-                                                     endX: endX,
-                                                     endY: endY,
+                                                     startX: startXUnit,
+                                                     startY: startYUnit,
+                                                     endX: endXUnit,
+                                                     endY: endYUnit,
                                                      offsets: offsets)
             } else {
                 return nil
