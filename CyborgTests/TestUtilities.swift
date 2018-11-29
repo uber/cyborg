@@ -42,12 +42,12 @@ func createPath(from pathSegment: PathSegment,
 
 extension String {
 
-    func withXMLString(_ function: (XMLString) -> ()) {
+    func withXMLString<T>(_ function: (XMLString) -> (T)) -> T {
         let (string, buffer) = XMLString.create(from: self)
         defer {
             buffer.deallocate()
         }
-        function(string)
+        return function(string)
     }
 
 }
@@ -140,28 +140,47 @@ extension CGRect {
 
 }
 
-enum ElementType {
+indirect enum ElementType {
 
+    static let path: ElementType = .pathWithGradient(nil)
+    
     case clipPath
-    case path
+    case pathWithGradient(ElementType?)
     case group([ElementType])
+    case gradient
 
     var asType: AnyClass {
         switch self {
         case .clipPath: return VectorDrawable.ClipPath.self
-        case .path: return VectorDrawable.Path.self
+        case .pathWithGradient: return VectorDrawable.Path.self
         case .group: return VectorDrawable.Group.self
+        case .gradient: return VectorDrawable.Gradient.self
         }
     }
 
     var children: [ElementType] {
         if case .group(let children) = self {
             return children
+        } else if case .pathWithGradient(let optionalChild) = self,
+            let child = optionalChild {
+            return [child]
         } else {
             return []
         }
     }
 
+}
+
+func assertHierarchiesEqual(_ lhs: DrawableHierarchyProviding,
+                            _ rhs: [ElementType],
+                            file: StaticString = #file,
+                            line: UInt = #line) {
+    XCTAssert(
+        lhs.hierarchyMatches(rhs),
+        "Hierarchies didn't match: \n Expected: \(lhs), Actual: \(rhs)",
+        file: file,
+        line: line
+    )
 }
 
 protocol DrawableHierarchyProviding: AnyObject {
@@ -174,6 +193,7 @@ extension DrawableHierarchyProviding {
 
     func hierarchyMatches(_ expectedHierarchy: [ElementType]) -> Bool {
         if hierarchy.count != expectedHierarchy.count {
+            print(hierarchy)
             return false
         }
         for (child, elementType) in zip(hierarchy, expectedHierarchy) {

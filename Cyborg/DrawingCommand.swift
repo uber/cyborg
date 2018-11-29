@@ -475,9 +475,10 @@ extension CGPoint {
     }
     
     func isWithinAPointOf(_ other: CGPoint) -> Bool {
-        return abs(x - other.x) < 0 &&
-            abs(y - other.y) < 0
+        return abs(x - other.x) < 1.0 &&
+            abs(y - other.y) < 1.0
     }
+    
 }
 
 extension CGFloat {

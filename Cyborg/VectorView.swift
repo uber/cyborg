@@ -184,6 +184,19 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
                        height: bounds.height / drawableSize.height)
     }
 
+    #if DEBUG
+    
+    required override init(layer: Any) {
+        // required because the view hierarchy debugger calls this
+        let typedLayer = layer as! ShapeLayer
+        pathData = typedLayer.pathData
+        drawableSize = typedLayer.drawableSize
+        pathTransform = typedLayer.pathTransform
+        super.init(layer: layer)
+    }
+    
+    #endif
+    
     init(pathData: T,
          drawableSize: CGSize,
          transform: [Transform],
@@ -224,7 +237,7 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
         pathData.apply(to: self,
                        using: externalValues)
     }
-
+    
     init(pathData: VectorDrawable.Path,
          externalValues: ExternalValues,
          drawableSize: CGSize,
@@ -236,5 +249,66 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
                    name: pathData.name)
         updateTheme()
     }
+    
+    #if DEBUG
+    
+    required init(layer: Any) {
+        let typedLayer = layer as! ThemeableShapeLayer
+        externalValues = typedLayer.externalValues
+        super.init(layer: layer)
+    }
+    
+    #endif
+    
+}
 
+final class ThemeableGradientLayer: CAGradientLayer {
+        
+    var gradient: VectorDrawable.Gradient {
+        didSet {
+            updateGradient()
+        }
+    }
+    
+    var externalValues: ExternalValues {
+        didSet {
+            updateGradient()
+        }
+    }
+
+    
+    init(gradient: VectorDrawable.Gradient,
+         externalValues: ExternalValues) {
+        self.gradient = gradient
+        self.externalValues = externalValues
+        super.init()
+        updateGradient()
+    }
+    
+    #if DEBUG
+    
+    required override init(layer: Any) {
+        let typedLayer = layer as! ThemeableGradientLayer
+        gradient = typedLayer.gradient
+        externalValues = typedLayer.externalValues
+        super.init(layer: layer)
+        updateGradient()
+    }
+    
+    #endif
+    
+    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func layoutSublayers() {
+        super.layoutSublayers()
+        mask?.frame = bounds
+    }
+    
+    private func updateGradient() {
+        gradient.apply(to: self)
+    }
+    
 }

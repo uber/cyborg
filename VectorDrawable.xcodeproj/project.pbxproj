@@ -33,6 +33,7 @@
 		3BCCBFC61F7D658C00404EFD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC41F7D658C00404EFD /* Main.storyboard */; };
 		3BCCBFC81F7D658C00404EFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC71F7D658C00404EFD /* Assets.xcassets */; };
 		3BCCBFCB1F7D658C00404EFD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC91F7D658C00404EFD /* LaunchScreen.storyboard */; };
+		5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF612AE21B0A43000F14D11 /* GradientTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,7 @@
 		3BCCBFC71F7D658C00404EFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3BCCBFCA1F7D658C00404EFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3BCCBFCC1F7D658C00404EFD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5EF612AE21B0A43000F14D11 /* GradientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -169,6 +171,7 @@
 				3B7ED82821636EE500914C57 /* XMLSchemaTests.swift */,
 				3B7ED82A2163942A00914C57 /* ParserTests.swift */,
 				3B7ED82E216394DC00914C57 /* TestUtilities.swift */,
+				5EF612AE21B0A43000F14D11 /* GradientTests.swift */,
 				3BA380752108E40F00F43697 /* Info.plist */,
 			);
 			path = CyborgTests;
@@ -380,6 +383,7 @@
 				3B7ED8232162826700914C57 /* ColorTests.swift in Sources */,
 				3B7ED82721636DF900914C57 /* XMLStringTests.swift in Sources */,
 				3B7ED82521636A3200914C57 /* XMLStringLiterals.swift in Sources */,
+				5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

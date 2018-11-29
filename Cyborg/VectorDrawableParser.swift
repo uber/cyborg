@@ -71,6 +71,8 @@ public extension VectorDrawable {
             defer {
                 xmlFreeTextReader(xml)
             }
+            var oldDepth: Int32 = -1
+            var shouldExpectDepthToIncrease = false
             var lastElement = ""
             while xmlTextReaderRead(xml) == 1 {
                 let count = xmlTextReaderAttributeCount(xml)
@@ -83,11 +85,24 @@ public extension VectorDrawable {
                         // which disrupts the parsing
                         continue
                     }
+                    let depth = xmlTextReaderDepth(xml)
+                    defer {
+                        oldDepth = depth
+                    }
                     if type == XML_READER_TYPE_END_ELEMENT.rawValue {
                         // The return value here indicates whether the parser ended, which we don't care about in this case.
                         _ = parser.didEnd(element: lastElement)
+                        shouldExpectDepthToIncrease = false
                         continue
+                    } else if shouldExpectDepthToIncrease,
+                        depth == oldDepth {
+                        // According to a message on the libxml mailing lists ( https://mail.gnome.org/archives/xml/2010-December/msg00022.html ),
+                        // this is the right way to tell if a self-contained xml node like "<path ... />" has ended.
+                        // We expect that when an element begins, the depth will increase.
+                        // If it didn't then the node must have been self-contained.
+                        _ = parser.didEnd(element: lastElement)
                     }
+                    shouldExpectDepthToIncrease = true
                     var attributes = [(XMLString, XMLString)]()
                     attributes.reserveCapacity(Int(count))
                     for _ in 0..<count {
@@ -107,14 +122,6 @@ public extension VectorDrawable {
                                                      attributes: attributes) {
                         return .error(parseError)
                     }
-                    // hack: end path elements manually, since they never have children (or do they)
-                    // After it's parsed.
-                    let stringName = String(elementName)
-                    if stringName == Element.path.rawValue ||
-                        stringName == Element.clipPath.rawValue {
-                        _ = parser.didEnd(element: lastElement)
-                        continue
-                    }
                 } else {
                     return .error("Failed to read element name")
                 }
@@ -128,15 +135,26 @@ public extension VectorDrawable {
 // MARK: - Element Parsers
 
 fileprivate func assign<T>(_ string: XMLString,
-                           to path: inout T,
+                           to property: inout T,
                            creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
-    if let float = creator(string) {
-        path = float
+    if let value = creator(string) {
+        property = value
         return nil
     } else {
         return "Could not assign \(string)"
     }
 }
+
+fileprivate func assign<T>(_ string: XMLString,
+                           to property: inout T?) -> ParseError? where T: XMLStringRepresentable {
+    return assign(string, to: &property, creatingWith: T.init(_: ))
+}
+
+fileprivate func assign<T>(_ string: XMLString,
+                           to property: inout T) -> ParseError? where T: XMLStringRepresentable {
+    return assign(string, to: &property, creatingWith: T.init(_: ))
+}
+
 
 fileprivate func assignFloat(_ string: XMLString,
                              to path: inout CGFloat?) -> ParseError? {
@@ -154,6 +172,30 @@ protocol NodeParsing: AnyObject {
 
     func didEnd(element: String) -> Bool
 
+}
+
+extension NodeParsing {
+    
+    func parseAttributes<Enum>(_ attributes: [(XMLString, XMLString)],
+                               _ onEachSuccess: (Enum, XMLString) -> (ParseError?)) -> ParseError? where Enum: XMLStringRepresentable {
+        for (key, value) in attributes {
+            if let error = convertToEnumOrFail(key, value, onEachSuccess) {
+                return error
+            }
+        }
+        return nil
+    }
+    
+    fileprivate func convertToEnumOrFail<Enum>(_ attribute: XMLString,
+                                               _ value: XMLString,
+                                               _ onSuccess: (Enum, XMLString) -> (ParseError?)) -> ParseError? where Enum: XMLStringRepresentable {
+        if let result = Enum(attribute) {
+            return onSuccess(result, value)
+        } else {
+            return "\(attribute) is not a valid key for \(String(describing: type(of: self)))"
+        }
+    }
+    
 }
 
 class ParentParser<Child>: NodeParsing where Child: NodeParsing {
@@ -235,6 +277,8 @@ final class VectorParser: ParentParser<GroupParser> {
             if let property = VectorProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
+                case .resourceSchema:
+                    result = nil
                 case .schema:
                     foundSchema = true
                     result = nil
@@ -284,7 +328,7 @@ final class VectorParser: ParentParser<GroupParser> {
             let viewPortWidth = viewPortWidth,
             let viewPortHeight = viewPortHeight {
             return children.mapAllOrFail { group in
-                group.createElement()
+                group.createElement(in: CGSize(width: viewPortWidth, height: viewPortHeight))
             }
             .flatMap { (groups) -> Result<VectorDrawable> in
                 .ok(.init(baseWidth: baseWidth,
@@ -310,9 +354,13 @@ final class VectorParser: ParentParser<GroupParser> {
 
 }
 
-final class PathParser: GroupChildParser {
+final class PathParser: ParentParser<GradientParser>, GroupChildParser {
 
     static let name: Element = .path
+    
+    override var name: Element {
+        return .path
+    }
 
     var pathName: String?
     var commands: [PathSegment]?
@@ -329,7 +377,7 @@ final class PathParser: GroupChildParser {
     var strokeLineJoin: LineJoin = .miter
     var fillType: CAShapeLayerFillRule = .nonZero
 
-    func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+    override func parseAttributes(_ attributes: [(XMLString, XMLString)]) -> ParseError? {
         let baseError = "Error parsing the <android:pathData> tag: "
         for (key, value) in attributes {
             if let property = PathProperty(rawValue: String(withoutCopying: key)) {
@@ -395,11 +443,26 @@ final class PathParser: GroupChildParser {
         return nil
     }
 
-    func didEnd(element: String) -> Bool {
+    override func didEnd(element: String) -> Bool {
         return element == Element.path.rawValue
     }
 
-    func createElement() -> Result<GroupChild> {
+    override func childForElement(_ element: String) -> (GradientParser, (GradientParser) -> ())? {
+        if element == "aapt:attr" {
+            return (GradientParser(), appendChild)
+        } else {
+            return nil
+        }
+    }
+    
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
+        let gradient: VectorDrawable.Gradient?
+        if let first = children.first,
+            let definiteGradient = first.createElement(in: viewportSize) {
+            gradient = definiteGradient
+        } else {
+            gradient = nil
+        }
         if let commands = commands {
             return .ok(VectorDrawable.Path(name: pathName,
                                            fillColor: fillColor,
@@ -413,7 +476,8 @@ final class PathParser: GroupChildParser {
                                            trimPathOffset: trimPathOffset,
                                            strokeLineCap: strokeLineCap,
                                            strokeLineJoin: strokeLineJoin,
-                                           fillType: fillType))
+                                           fillType: fillType,
+                                           gradient: gradient))
         } else {
             return .error("\(PathProperty.pathData.rawValue) is a required property of <\(PathParser.name.rawValue)>.")
         }
@@ -423,13 +487,13 @@ final class PathParser: GroupChildParser {
 
 protocol GroupChildParser: NodeParsing {
 
-    func createElement() -> Result<GroupChild>
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild>
 
 }
 
 final class ClipPathParser: NodeParsing, GroupChildParser {
 
-    func createElement() -> Result<GroupChild> {
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
         switch (createElement as () -> (Result<VectorDrawable.ClipPath>))() {
         case .ok(let element): return .ok(element)
         case .error(let error): return .error(error)
@@ -494,8 +558,8 @@ final class AnyGroupParserChild: GroupChildParser {
         return parser.didEnd(element: element)
     }
 
-    func createElement() -> Result<GroupChild> {
-        return parser.createElement()
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
+        return parser.createElement(in: viewportSize)
     }
 
 }
@@ -554,9 +618,9 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         return nil
     }
 
-    func createElement() -> Result<GroupChild> {
+    func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
         return children.mapAllOrFail { parser in
-            parser.createElement()
+            parser.createElement(in: viewportSize)
         }
         .flatMap { childElements in
             clipPaths
@@ -584,6 +648,141 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
         }
     }
 
+}
+
+class GradientParser: NodeParsing {
+    
+    let androidResourceAttribute = "aapt:attr"
+    
+    var startX: CGFloat?
+    var startY: CGFloat?
+    var endX: CGFloat?
+    var endY: CGFloat?
+    var centerX: CGFloat?
+    var centerY: CGFloat?
+    var radius: CGFloat?
+    var type: GradientType = .linear
+    var offsets: [VectorDrawable.Gradient.Offset] = []
+    var centerColor: Color?
+    var startColor: Color?
+    var endColor: Color?
+    var tileMode: TileMode = .clamp
+    
+    func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
+        if element == androidResourceAttribute {
+            for (key, value) in attributes {
+                if String(withoutCopying: key) != "name" || String(withoutCopying: value) != PathProperty.fillColor.rawValue {
+                    return "Only \(PathProperty.fillColor.rawValue) is supported in \(androidResourceAttribute) elements."
+                } else {
+                    return nil
+                }
+            }
+            return nil
+        } else if element == "gradient" {
+            return parseAttributes(attributes) { (property: GradientProperty, value) -> (ParseError?) in
+                switch property {
+                case .centerColor: return assign(value, to: &centerColor, creatingWith: Color.init)
+                case .startY: return assignFloat(value, to: &startY)
+                case .startX: return assignFloat(value, to: &startX)
+                case .endY: return assignFloat(value, to: &endY)
+                case .endX: return assignFloat(value, to: &endX)
+                case .type: return assign(value, to: &type)
+                case .startcolor: return assign(value, to: &startColor, creatingWith: Color.init)
+                case .endColor: return assign(value, to: &endColor, creatingWith: Color.init)
+                case .tileMode: return assign(value, to: &tileMode)
+                case .centerX: return assignFloat(value, to: &centerX)
+                case .centerY: return assignFloat(value, to: &centerY)
+                case .gradientRadius: return assignFloat(value, to: &radius)
+                }
+            }
+        } else if element == "item" {
+            var offset: CGFloat?
+            var color: Color?
+            let error = parseAttributes(attributes) { (property: ItemProperty, value) -> (ParseError?) in
+                switch property {
+                case .offset: return assignFloat(value, to: &offset)
+                case .color: return assign(value, to: &color, creatingWith: Color.init)
+                }
+            }
+            if let error = error {
+                return error
+            } else {
+                switch (color, offset) {
+                case (.some(let color), .some(let offset)):
+                    offsets.append(VectorDrawable.Gradient.Offset(amount: offset, color: color))
+                    return nil
+                case (.none, .some):
+                    return "Missing color"
+                case (.some, .none):
+                    return "Missing offset"
+                case (.none, .none):
+                    return "Missing color and offset"
+                }
+            }
+        } else {
+            return "Invalid element \"\(element)\""
+        }
+    }
+    
+    func didEnd(element: String) -> Bool {
+        return element == androidResourceAttribute
+    }
+    
+    
+    func createElement(in viewportSize: CGSize) -> VectorDrawable.Gradient? {
+        switch type {
+        case .linear:
+            if let startX = startX,
+                let startY = startY,
+                let endX = endX,
+                let endY = endY {
+                let startXUnit = startX / viewportSize.width
+                let startYUnit = startY / viewportSize.height
+                let endXUnit = endX / viewportSize.width
+                let endYUnit = endY / viewportSize.height
+                return VectorDrawable.LinearGradient(startColor: startColor,
+                                                     centerColor: centerColor,
+                                                     endColor: endColor,
+                                                     tileMode: tileMode,
+                                                     startX: startXUnit,
+                                                     startY: startYUnit,
+                                                     endX: endXUnit,
+                                                     endY: endYUnit,
+                                                     offsets: offsets)
+            } else {
+                return nil
+            }
+        case .radial:
+            if let centerX = centerX,
+                let centerY = centerY,
+                let radius = radius {
+                return VectorDrawable.RadialGradient(startColor: startColor,
+                                                     centerColor: centerColor,
+                                                     endColor: endColor,
+                                                     tileMode: tileMode,
+                                                     centerX: centerX,
+                                                     centerY: centerY,
+                                                     radius: radius,
+                                                     offsets: offsets)
+            } else {
+                return nil
+            }
+        case .sweep:
+            if let centerX = centerX,
+                let centerY = centerY {
+                return VectorDrawable.SweepGradient(startColor: startColor,
+                                                    centerColor: centerColor,
+                                                    endColor: endColor,
+                                                    tileMode: tileMode,
+                                                    centerX: centerX,
+                                                    centerY: centerY,
+                                                    offsets: offsets)
+            } else {
+                return nil
+            }
+        }
+    }
+    
 }
 
 // MARK: - Parser Combinators
