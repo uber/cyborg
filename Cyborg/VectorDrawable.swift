@@ -202,7 +202,8 @@ public final class VectorDrawable {
         let trimPathOffset: CGFloat
         let strokeLineCap: LineCap
         let strokeLineJoin: LineJoin
-        let fillType: CAShapeLayerFillRule        
+        let fillType: CAShapeLayerFillRule
+        var gradient: Gradient?
 
         init(name: String?,
              fillColor: Color?,
@@ -216,10 +217,15 @@ public final class VectorDrawable {
              trimPathOffset: CGFloat,
              strokeLineCap: LineCap,
              strokeLineJoin: LineJoin,
-             fillType: CAShapeLayerFillRule) {
+             fillType: CAShapeLayerFillRule,
+             gradient: Gradient?) {
             self.name = name
             self.data = data
-            self.strokeColor = strokeColor
+            if gradient != nil && strokeColor == nil {
+                self.strokeColor = .hex(value: .black)
+            } else {
+                self.strokeColor =  strokeColor
+            }
             self.strokeAlpha = strokeAlpha
             self.fillColor = fillColor
             self.fillAlpha = fillAlpha
@@ -230,15 +236,24 @@ public final class VectorDrawable {
             self.strokeLineJoin = strokeLineJoin
             self.fillType = fillType
             self.strokeWidth = strokeWidth
+            self.gradient = gradient
         }
 
         func createLayers(using externalValues: ExternalValues,
                           drawableSize: CGSize,
                           transform: [Transform]) -> [CALayer] {
-            return [ThemeableShapeLayer(pathData: self,
-                                        externalValues: externalValues,
-                                        drawableSize: drawableSize,
-                                        transform: transform)]
+            
+            let shapeLayer = ThemeableShapeLayer(pathData: self,
+                                                 externalValues: externalValues,
+                                                 drawableSize: drawableSize,
+                                                 transform: transform)
+            if let gradient = gradient {
+                let gradientLayer = ThemeableGradientLayer(gradient: gradient, externalValues: externalValues)
+//                gradientLayer.mask = shapeLayer
+                return [gradientLayer]
+            } else {
+                return [shapeLayer]
+            }
         }
 
         func apply(to layer: CAShapeLayer,
@@ -263,25 +278,44 @@ public final class VectorDrawable {
     
     public class Gradient {
         
-        let startColor: Color
-        let centerColor: Color
-        let endColor: Color
+        let startColor: Color?
+        let centerColor: Color?
+        let endColor: Color?
         let tileMode: TileMode
+        let offsets: [Offset]
         
-        init(startColor: Color,
-             centerColor: Color,
-             endColor: Color,
-             tileMode: TileMode
-            ) {
+        init(startColor: Color?,
+             centerColor: Color?,
+             endColor: Color?,
+             tileMode: TileMode,
+             offsets: [Offset]) {
             self.startColor = startColor
             self.centerColor = centerColor
             self.endColor = endColor
             self.tileMode = tileMode
+            self.offsets = offsets
         }
         
         struct Offset {
             let amount: CGFloat
             let color: Color
+        }
+        
+        func createLayer(using externalValues: ExternalValues,
+                         drawableSize: CGSize,
+                         transform: [Transform]) -> CALayer {
+            return ThemeableGradientLayer(gradient: self,
+                                          externalValues: externalValues)
+        }
+        
+        func apply(to layer: ThemeableGradientLayer) {
+            layer.colors = offsets.map { (offset) in
+                let color = offset.color.color(from: layer.externalValues)
+                return color.cgColor
+            }
+            layer.locations = offsets.map { offset in
+                offset.amount as NSNumber
+            }
         }
         
     }
@@ -291,20 +325,29 @@ public final class VectorDrawable {
         let start: CGPoint
         let end: CGPoint
         
-        init(startColor: Color,
-             centerColor: Color,
-             endColor: Color,
+        init(startColor: Color?,
+             centerColor: Color?,
+             endColor: Color?,
              tileMode: TileMode,
              startX: CGFloat,
              startY: CGFloat,
              endX: CGFloat,
-             endY: CGFloat) {
+             endY: CGFloat,
+             offsets: [Offset]) {
             start = .init(x: startX, y: startY)
             end = .init(x: endX, y: endY)
             super.init(startColor: startColor,
                        centerColor: centerColor,
                        endColor: endColor,
-                       tileMode: tileMode)
+                       tileMode: tileMode,
+                       offsets: offsets)
+        }
+        
+        override func apply(to layer: ThemeableGradientLayer) {
+            layer.type = .axial
+            layer.startPoint = start
+            layer.endPoint = end
+            super.apply(to: layer)
         }
     }
     
@@ -313,19 +356,26 @@ public final class VectorDrawable {
         let center: CGPoint
         let radius: CGFloat
         
-        init(startColor: Color,
-             centerColor: Color,
-             endColor: Color,
+        init(startColor: Color?,
+             centerColor: Color?,
+             endColor: Color?,
              tileMode: TileMode,
              centerX: CGFloat,
              centerY: CGFloat,
-             radius: CGFloat) {
+             radius: CGFloat,
+             offsets: [Offset]) {
             self.radius = radius
             center = .init(x: centerX, y: centerY)
             super.init(startColor: startColor,
                        centerColor: centerColor,
                        endColor: endColor,
-                       tileMode: tileMode)
+                       tileMode: tileMode,
+                       offsets: offsets)
+        }
+        
+        override func apply(to layer: ThemeableGradientLayer) {
+            assertionFailure("Radial Gradients are not yet supported")
+            super.apply(to: layer)
         }
     }
     
@@ -333,17 +383,24 @@ public final class VectorDrawable {
         
         let center: CGPoint
         
-        init(startColor: Color,
-             centerColor: Color,
-             endColor: Color,
+        init(startColor: Color?,
+             centerColor: Color?,
+             endColor: Color?,
              tileMode: TileMode,
              centerX: CGFloat,
-             centerY: CGFloat) {
+             centerY: CGFloat,
+             offsets: [Offset]) {
             center = .init(x: centerX, y: centerY)
             super.init(startColor: startColor,
                        centerColor: centerColor,
                        endColor: endColor,
-                       tileMode: tileMode)
+                       tileMode: tileMode,
+                       offsets: offsets)
+        }
+        
+        override func apply(to layer: ThemeableGradientLayer) {
+            assertionFailure("Sweep Gradients are not yet supported")
+            super.apply(to: layer)
         }
     }
 

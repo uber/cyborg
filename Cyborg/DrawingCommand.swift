@@ -478,6 +478,10 @@ extension CGPoint {
         return abs(x - other.x) < 1.0 &&
             abs(y - other.y) < 1.0
     }
+    
+    func intoUnitCoordinateSpace(from size: CGSize) -> CGPoint {
+        return .init(x: x / size.width, y: y / size.height)
+    }
 }
 
 extension CGFloat {

@@ -135,10 +135,10 @@ public extension VectorDrawable {
 // MARK: - Element Parsers
 
 fileprivate func assign<T>(_ string: XMLString,
-                           to path: inout T,
+                           to property: inout T,
                            creatingWith creator: (XMLString) -> (T?)) -> ParseError? {
-    if let float = creator(string) {
-        path = float
+    if let value = creator(string) {
+        property = value
         return nil
     } else {
         return "Could not assign \(string)"
@@ -277,6 +277,8 @@ final class VectorParser: ParentParser<GroupParser> {
             if let property = VectorProperty(rawValue: String(withoutCopying: key)) {
                 let result: ParseError?
                 switch property {
+                case .resourceSchema:
+                    result = nil
                 case .schema:
                     foundSchema = true
                     result = nil
@@ -454,9 +456,12 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
     }
     
     func createElement() -> Result<GroupChild> {
+        let gradient: VectorDrawable.Gradient?
         if let first = children.first,
-            let _ = first.createElement() {
-            print("Gradients are not currently supported")
+            let definiteGradient = first.createElement() {
+            gradient = definiteGradient
+        } else {
+            gradient = nil
         }
         if let commands = commands {
             return .ok(VectorDrawable.Path(name: pathName,
@@ -471,7 +476,8 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
                                            trimPathOffset: trimPathOffset,
                                            strokeLineCap: strokeLineCap,
                                            strokeLineJoin: strokeLineJoin,
-                                           fillType: fillType))
+                                           fillType: fillType,
+                                           gradient: gradient))
         } else {
             return .error("\(PathProperty.pathData.rawValue) is a required property of <\(PathParser.name.rawValue)>.")
         }
@@ -683,6 +689,10 @@ class GradientParser: NodeParsing {
                 case .type: return assign(value, to: &type)
                 case .startcolor: return assign(value, to: &startColor, creatingWith: Color.init)
                 case .endColor: return assign(value, to: &endColor, creatingWith: Color.init)
+                case .tileMode: return assign(value, to: &tileMode)
+                case .centerX: return assignFloat(value, to: &centerX)
+                case .centerY: return assignFloat(value, to: &centerY)
+                case .gradientRadius: return assignFloat(value, to: &radius)
                 }
             }
         } else if element == "item" {
@@ -720,56 +730,52 @@ class GradientParser: NodeParsing {
     
     
     func createElement() -> VectorDrawable.Gradient? {
-        if let startColor = startColor,
-            let centerColor = centerColor,
-            let endColor = endColor {
-            switch type {
-            case .linear:
-                if let startX = startX,
-                    let startY = startY,
-                    let endX = endX,
-                    let endY = endY {
-                    return VectorDrawable.LinearGradient(startColor: startColor,
-                                                         centerColor: centerColor,
-                                                         endColor: endColor,
-                                                         tileMode: tileMode,
-                                                         startX: startX,
-                                                         startY: startY,
-                                                         endX: endX,
-                                                         endY: endY)
-                } else {
-                    return nil
-                }
-            case .radial:
-                if let centerX = centerX,
-                    let centerY = centerY,
-                    let radius = radius {
-                    return VectorDrawable.RadialGradient(startColor: startColor,
-                                                         centerColor: centerColor,
-                                                         endColor: endColor,
-                                                         tileMode: tileMode,
-                                                         centerX: centerX,
-                                                         centerY: centerY,
-                                                         radius: radius)
-                } else {
-                    return nil
-                }
-            case .sweep:
-                if let centerX = centerX,
-                    let centerY = centerY {
-                    return VectorDrawable.SweepGradient(startColor: startColor,
-                                                        centerColor: centerColor,
-                                                        endColor: endColor,
-                                                        tileMode: tileMode,
-                                                        centerX: centerX,
-                                                        centerY: centerY)
-                } else {
-                    return nil
-                }
+        switch type {
+        case .linear:
+            if let startX = startX,
+                let startY = startY,
+                let endX = endX,
+                let endY = endY {
+                return VectorDrawable.LinearGradient(startColor: startColor,
+                                                     centerColor: centerColor,
+                                                     endColor: endColor,
+                                                     tileMode: tileMode,
+                                                     startX: startX,
+                                                     startY: startY,
+                                                     endX: endX,
+                                                     endY: endY,
+                                                     offsets: offsets)
+            } else {
+                return nil
             }
-        } else {
-            // TODO: provide an error message
-            return nil
+        case .radial:
+            if let centerX = centerX,
+                let centerY = centerY,
+                let radius = radius {
+                return VectorDrawable.RadialGradient(startColor: startColor,
+                                                     centerColor: centerColor,
+                                                     endColor: endColor,
+                                                     tileMode: tileMode,
+                                                     centerX: centerX,
+                                                     centerY: centerY,
+                                                     radius: radius,
+                                                     offsets: offsets)
+            } else {
+                return nil
+            }
+        case .sweep:
+            if let centerX = centerX,
+                let centerY = centerY {
+                return VectorDrawable.SweepGradient(startColor: startColor,
+                                                    centerColor: centerColor,
+                                                    endColor: endColor,
+                                                    tileMode: tileMode,
+                                                    centerX: centerX,
+                                                    centerY: centerY,
+                                                    offsets: offsets)
+            } else {
+                return nil
+            }
         }
     }
     

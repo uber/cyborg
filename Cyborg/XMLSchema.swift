@@ -16,6 +16,7 @@ enum Element: String {
 /// Elements of the <vector> element of a VectorDrawable document.
 enum VectorProperty: String {
     case schema = "xmlns:android"
+    case resourceSchema = "xmlns:aapt"
     case height = "android:height"
     case width = "android:width"
     case viewPortHeight = "android:viewportHeight"
@@ -89,7 +90,6 @@ enum Color: Equatable {
             }
         } else {
             let hasAlpha = (string.count == 9)
-            let startingShift = hasAlpha ? 8 : 0
             // munge the string into a form that Init.init(_:, radix:) can understand
             var withoutLeadingHashTag = String(withoutCopying: string)
             _ = withoutLeadingHashTag.remove(at: withoutLeadingHashTag.startIndex)
@@ -101,11 +101,12 @@ enum Color: Equatable {
                 func component(_ mask: Int, _ shift: Int) -> CGFloat {
                     return CGFloat((value & mask) >> shift) / 255
                 }
-                let alpha = hasAlpha ? component(0xFF000000, 16) : 1.0
-                self = .hex(value: UIColor(red: component(0xFF0000, 16 + startingShift),
-                                           green: component(0xFF00, 8 + startingShift),
-                                           blue: component(0xFF, 0 + startingShift),
-                                           alpha: alpha))
+                let alpha = hasAlpha ? component(0xFF000000, 24) : 1.0
+                let color = UIColor(red: component(0xFF0000, 16),
+                                    green: component(0xFF00, 8),
+                                    blue: component(0xFF, 0),
+                                    alpha: alpha)
+                self = .hex(value: color)
             } else {
                 return nil
             }
@@ -165,6 +166,10 @@ enum GradientProperty: String, XMLStringRepresentable {
     case startcolor = "android:startColor"
     case endColor = "android:endColor"
     case centerColor = "android:centerColor"
+    case tileMode = "android:tileMode"
+    case centerX = "android:centerX"
+    case centerY = "android:centerY"
+    case gradientRadius = "android:gradientRadius"
 }
 
 enum GradientType: String, XMLStringRepresentable {
