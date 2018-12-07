@@ -68,8 +68,7 @@ public extension VectorDrawable {
                                          nil,
                                          nil,
                                          Int32(XML_PARSE_NOENT.rawValue))
-            let memoryLayout = MemoryLayout<UnsafePointer<CChar>>.self
-            var xmlError: UnsafeMutableRawPointer?
+            var xmlError: UnsafeMutablePointer<CChar>?
             let errorHandler: xmlTextReaderErrorFunc =
             { (xmlError: UnsafeMutableRawPointer?,
                 message: UnsafePointer<Int8>?,
@@ -78,17 +77,15 @@ public extension VectorDrawable {
                 if severity == XML_PARSER_SEVERITY_ERROR {
                     if let message = message,
                         let xmlError = xmlError {
-                        let xmlError = xmlError.assumingMemoryBound(to: UnsafeMutablePointer<CChar>.self)
-                        var errorPointer = xmlError.pointee
                         let lineNumber = xmlTextReaderLocatorLineNumber(location)
                         let error = """
                         <line number: \(lineNumber)>: \(String(cString: message))
                         """.utf8CString + [0]
                         error.withUnsafeBufferPointer { (buffer) in
                             if let address = buffer.baseAddress {
-                                errorPointer = UnsafeMutablePointer<CChar>.allocate(capacity: error.count)
-                                errorPointer.assign(from: address, count: error.count)
-                                xmlError.assign(from: &errorPointer, count: 1)
+                                var e = UnsafeMutablePointer<CChar>.allocate(capacity: error.count)
+                                e.assign(from: address, count: error.count)
+                                xmlError.storeBytes(of: e, as: UnsafeMutablePointer<CChar>.self)
                             }
                         }
                     } else {
@@ -100,11 +97,9 @@ public extension VectorDrawable {
                 if let xmlError = xmlError {
                     defer {
                         xmlError
-                            .assumingMemoryBound(to: UnsafeMutablePointer<CChar>.self)
-                            .pointee
                             .deallocate()
                     }
-                    return .error(String(cString: xmlError.assumingMemoryBound(to: CChar.self)))
+                    return .error(String(cString: xmlError))
                 } else {
                     return alternative()
                 }
@@ -918,23 +913,11 @@ func coordinatePair() -> Parser<CGPoint> {
     }
 }
 
-extension UnsafePointer {
-    
-    static var bad: UnsafePointer<Pointee> {
-        // Always succeeds,  same code is in stdlib.
-        // this is returned when there's an empty Data
-        // object. If we pass this pointer to libXML2, it'll crash
-        // because it does a nil check and not a length check before
-        // accessing the pointer.
-        return UnsafePointer(bitPattern: 0x000000000000bad0)!
-    }
-}
-
 extension Data {
     
     func withBytes<T, U>(or alternative: T, _ function: (UnsafePointer<U>) -> (T)) -> T {
         return withUnsafeBytes { (pointer: UnsafePointer<U>) -> T in
-            if pointer == .bad {
+            if count == 0 {
                 return alternative
             } else {
                 return function(pointer)

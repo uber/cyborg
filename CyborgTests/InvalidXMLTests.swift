@@ -20,7 +20,7 @@ a25,75 -30 0,1 50,-25 l 50,-25
 a25,100 -30 0,1 50,-25 l 50,-25 z"
 </vector>
 """
-        assertXMLError(data, "")
+        assertXMLError(data, "<line number: 2>: Couldn't find end of Start Tag path\n")
     }
     
     func test_empty_xml() {
