@@ -62,12 +62,56 @@ public extension VectorDrawable {
     /// - returns: The `VectorDrawable`, or an error if parsing failed.
     public static func create(from data: Data) -> Result<VectorDrawable> {
         let parser = VectorParser()
-        return data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
+        return data.withBytes(or: .error("Empty data passed.")) { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
             let xml = xmlReaderForMemory(bytes,
                                          Int32(data.count),
                                          nil,
                                          nil,
                                          Int32(XML_PARSE_NOENT.rawValue))
+            let memoryLayout = MemoryLayout<UnsafePointer<CChar>>.self
+            var xmlError: UnsafeMutableRawPointer?
+            let errorHandler: xmlTextReaderErrorFunc =
+            { (xmlError: UnsafeMutableRawPointer?,
+                message: UnsafePointer<Int8>?,
+                severity: xmlParserSeverities,
+                location: xmlTextReaderLocatorPtr?) in
+                if severity == XML_PARSER_SEVERITY_ERROR {
+                    if let message = message,
+                        let xmlError = xmlError {
+                        let xmlError = xmlError.assumingMemoryBound(to: UnsafeMutablePointer<CChar>.self)
+                        var errorPointer = xmlError.pointee
+                        let lineNumber = xmlTextReaderLocatorLineNumber(location)
+                        let error = """
+                        <line number: \(lineNumber)>: \(String(cString: message))
+                        """.utf8CString + [0]
+                        error.withUnsafeBufferPointer { (buffer) in
+                            if let address = buffer.baseAddress {
+                                errorPointer = UnsafeMutablePointer<CChar>.allocate(capacity: error.count)
+                                errorPointer.assign(from: address, count: error.count)
+                                xmlError.assign(from: &errorPointer, count: 1)
+                            }
+                        }
+                    } else {
+                        assertionFailure("There was an error, but a message or output variable wasn't provided.")
+                    }
+                }
+            }
+            func xmlErrorOr(_ alternative: () -> (Result<VectorDrawable>)) -> Result<VectorDrawable> {
+                if let xmlError = xmlError {
+                    defer {
+                        xmlError
+                            .assumingMemoryBound(to: UnsafeMutablePointer<CChar>.self)
+                            .pointee
+                            .deallocate()
+                    }
+                    return .error(String(cString: xmlError.assumingMemoryBound(to: CChar.self)))
+                } else {
+                    return alternative()
+                }
+            }
+            xmlTextReaderSetErrorHandler(xml,
+                                         errorHandler,
+                                         &xmlError)
             defer {
                 xmlFreeTextReader(xml)
             }
@@ -112,24 +156,43 @@ public extension VectorDrawable {
                                 attributes.append((XMLString(namePointer),
                                                    XMLString(valuePointer)))
                             } else {
-                                return .error("failed to parse attribute")
+                                return xmlErrorOr {
+                                    "failed to parse attribute".withLocationInXML(xml)
+                                }
                             }
                         } else {
-                            return .error("failed to move to next attribute")
+                            return xmlErrorOr {
+                                "failed to move to next attribute".withLocationInXML(xml)
+                            }
                         }
                     }
                     if let parseError = parser.parse(element: elementName,
                                                      attributes: attributes) {
-                        return .error(parseError)
+                        return parseError.withLocationInXML(xml)
                     }
                 } else {
-                    return .error("Failed to read element name")
+                    return xmlErrorOr {
+                        "Failed to read element name".withLocationInXML(xml)
+                    }
                 }
             }
-            return parser.createElement()
+            return xmlErrorOr {
+                parser.createElement()
+            }
         }
     }
+    
+}
 
+
+fileprivate extension String {
+    
+    func withLocationInXML(_ xml: xmlTextReaderPtr?) -> Result<VectorDrawable> {
+        let line = xmlTextReaderGetParserLineNumber(xml)
+        let column = xmlTextReaderGetParserColumnNumber(xml)
+        return .error("VectorDrawable Parsing Error: at XML <\(line):]\(column)> \n\(self)")
+    }
+    
 }
 
 // MARK: - Element Parsers
@@ -853,4 +916,30 @@ func coordinatePair() -> Parser<CGPoint> {
         }
         return .ok(point, next)
     }
+}
+
+extension UnsafePointer {
+    
+    static var bad: UnsafePointer<Pointee> {
+        // Always succeeds,  same code is in stdlib.
+        // this is returned when there's an empty Data
+        // object. If we pass this pointer to libXML2, it'll crash
+        // because it does a nil check and not a length check before
+        // accessing the pointer.
+        return UnsafePointer(bitPattern: 0x000000000000bad0)!
+    }
+}
+
+extension Data {
+    
+    func withBytes<T, U>(or alternative: T, _ function: (UnsafePointer<U>) -> (T)) -> T {
+        return withUnsafeBytes { (pointer: UnsafePointer<U>) -> T in
+            if pointer == .bad {
+                return alternative
+            } else {
+                return function(pointer)
+            }
+        }
+    }
+    
 }

@@ -28,6 +28,7 @@
 		3BA3807F210A471A00F43697 /* DrawingCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA3807E210A471A00F43697 /* DrawingCommand.swift */; };
 		3BA38081210A475A00F43697 /* XMLSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA38080210A475A00F43697 /* XMLSchema.swift */; };
 		3BA38083210A47C900F43697 /* VectorDrawableParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA38082210A47C900F43697 /* VectorDrawableParser.swift */; };
+		3BBA8C1D21BAF9BC00E475EB /* InvalidXMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BBA8C1C21BAF9BC00E475EB /* InvalidXMLTests.swift */; };
 		3BCCBFC11F7D658C00404EFD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC01F7D658C00404EFD /* AppDelegate.swift */; };
 		3BCCBFC31F7D658C00404EFD /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC21F7D658C00404EFD /* ViewController.swift */; };
 		3BCCBFC61F7D658C00404EFD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC41F7D658C00404EFD /* Main.storyboard */; };
@@ -90,6 +91,7 @@
 		3BA3807E210A471A00F43697 /* DrawingCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCommand.swift; sourceTree = "<group>"; };
 		3BA38080210A475A00F43697 /* XMLSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLSchema.swift; sourceTree = "<group>"; };
 		3BA38082210A47C900F43697 /* VectorDrawableParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorDrawableParser.swift; sourceTree = "<group>"; };
+		3BBA8C1C21BAF9BC00E475EB /* InvalidXMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvalidXMLTests.swift; sourceTree = "<group>"; };
 		3BCCBFBD1F7D658C00404EFD /* VectorDrawable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VectorDrawable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BCCBFC01F7D658C00404EFD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3BCCBFC21F7D658C00404EFD /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 				3B7ED82421636A3200914C57 /* XMLStringLiterals.swift */,
 				3B7ED82621636DF900914C57 /* XMLStringTests.swift */,
 				3B7ED82821636EE500914C57 /* XMLSchemaTests.swift */,
+				3BBA8C1C21BAF9BC00E475EB /* InvalidXMLTests.swift */,
 				3B7ED82A2163942A00914C57 /* ParserTests.swift */,
 				3B7ED82E216394DC00914C57 /* TestUtilities.swift */,
 				5EF612AE21B0A43000F14D11 /* GradientTests.swift */,
@@ -384,6 +387,7 @@
 				3B7ED82721636DF900914C57 /* XMLStringTests.swift in Sources */,
 				3B7ED82521636A3200914C57 /* XMLStringLiterals.swift in Sources */,
 				5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */,
+				3BBA8C1D21BAF9BC00E475EB /* InvalidXMLTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
