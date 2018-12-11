@@ -62,12 +62,51 @@ public extension VectorDrawable {
     /// - returns: The `VectorDrawable`, or an error if parsing failed.
     public static func create(from data: Data) -> Result<VectorDrawable> {
         let parser = VectorParser()
-        return data.withUnsafeBytes { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
+        return data.withBytes(or: .error("Empty data passed.")) { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
             let xml = xmlReaderForMemory(bytes,
                                          Int32(data.count),
                                          nil,
                                          nil,
                                          Int32(XML_PARSE_NOENT.rawValue))
+            var xmlError: UnsafeMutablePointer<CChar>?
+            let errorHandler: xmlTextReaderErrorFunc =
+            { (xmlError: UnsafeMutableRawPointer?,
+                message: UnsafePointer<Int8>?,
+                severity: xmlParserSeverities,
+                location: xmlTextReaderLocatorPtr?) in
+                if severity == XML_PARSER_SEVERITY_ERROR {
+                    if let message = message,
+                        let xmlError = xmlError {
+                        let lineNumber = xmlTextReaderLocatorLineNumber(location)
+                        let error = """
+                        <line number: \(lineNumber)>: \(String(cString: message))
+                        """.utf8CString + [0]
+                        error.withUnsafeBufferPointer { (buffer) in
+                            if let address = buffer.baseAddress {
+                                var e = UnsafeMutablePointer<CChar>.allocate(capacity: error.count)
+                                e.assign(from: address, count: error.count)
+                                xmlError.storeBytes(of: e, as: UnsafeMutablePointer<CChar>.self)
+                            }
+                        }
+                    } else {
+                        assertionFailure("There was an error, but a message or output variable wasn't provided.")
+                    }
+                }
+            }
+            func xmlErrorOr(_ alternative: () -> (Result<VectorDrawable>)) -> Result<VectorDrawable> {
+                if let xmlError = xmlError {
+                    defer {
+                        xmlError
+                            .deallocate()
+                    }
+                    return .error(String(cString: xmlError))
+                } else {
+                    return alternative()
+                }
+            }
+            xmlTextReaderSetErrorHandler(xml,
+                                         errorHandler,
+                                         &xmlError)
             defer {
                 xmlFreeTextReader(xml)
             }
@@ -112,24 +151,43 @@ public extension VectorDrawable {
                                 attributes.append((XMLString(namePointer),
                                                    XMLString(valuePointer)))
                             } else {
-                                return .error("failed to parse attribute")
+                                return xmlErrorOr {
+                                    "failed to parse attribute".withLocationInXML(xml)
+                                }
                             }
                         } else {
-                            return .error("failed to move to next attribute")
+                            return xmlErrorOr {
+                                "failed to move to next attribute".withLocationInXML(xml)
+                            }
                         }
                     }
                     if let parseError = parser.parse(element: elementName,
                                                      attributes: attributes) {
-                        return .error(parseError)
+                        return parseError.withLocationInXML(xml)
                     }
                 } else {
-                    return .error("Failed to read element name")
+                    return xmlErrorOr {
+                        "Failed to read element name".withLocationInXML(xml)
+                    }
                 }
             }
-            return parser.createElement()
+            return xmlErrorOr {
+                parser.createElement()
+            }
         }
     }
+    
+}
 
+
+fileprivate extension String {
+    
+    func withLocationInXML(_ xml: xmlTextReaderPtr?) -> Result<VectorDrawable> {
+        let line = xmlTextReaderGetParserLineNumber(xml)
+        let column = xmlTextReaderGetParserColumnNumber(xml)
+        return .error("VectorDrawable Parsing Error: at XML <\(line):]\(column)> \n\(self)")
+    }
+    
 }
 
 // MARK: - Element Parsers
@@ -853,4 +911,18 @@ func coordinatePair() -> Parser<CGPoint> {
         }
         return .ok(point, next)
     }
+}
+
+extension Data {
+    
+    func withBytes<T, U>(or alternative: T, _ function: (UnsafePointer<U>) -> (T)) -> T {
+        return withUnsafeBytes { (pointer: UnsafePointer<U>) -> T in
+            if count == 0 {
+                return alternative
+            } else {
+                return function(pointer)
+            }
+        }
+    }
+    
 }
