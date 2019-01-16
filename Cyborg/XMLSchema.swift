@@ -97,8 +97,8 @@ enum Color: Equatable {
                 // convert from shorthand hexadecimal form, which doesn't work with the init
                 withoutLeadingHashTag.append(withoutLeadingHashTag)
             }
-            if let value = Int(withoutLeadingHashTag, radix: 16) {
-                func component(_ mask: Int, _ shift: Int) -> CGFloat {
+            if let value = Int64(withoutLeadingHashTag, radix: 16) {
+                func component(_ mask: Int64, _ shift: Int64) -> CGFloat {
                     return CGFloat((value & mask) >> shift) / 255
                 }
                 let alpha = hasAlpha ? component(0xFF000000, 24) : 1.0
