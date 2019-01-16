@@ -85,7 +85,8 @@ class XMLSchemaTests: XCTestCase {
         let externalValues = ExternalValues(resources: NoTheme(),
                                             theme: NoTheme())
         let layers = drawable.layerRepresentation(in: .boundsRect(24, 24),
-                                                  using: externalValues)
+                                                  using: externalValues,
+                                                  tint: (.src, .clear))
         let pathLayer = layers[0].layerInHierarchy(named: layerName) as! ShapeLayer<VectorDrawable.Path>
         pathLayer.bounds = drawable.intrinsicSize.intoBounds()
         pathLayer.layoutIfNeeded()
