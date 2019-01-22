@@ -31,8 +31,10 @@ enum AndroidUnitOfMeasure: String {
 
 }
 
-enum BlendMode: String, XMLStringRepresentable {
-    // TODO: make these have values from the vector drawable spec, add conversion function
+/// Android Blend Mode. See https://developer.android.com/reference/android/graphics/PorterDuff.Mode
+/// for details on the various options.
+public enum BlendMode: String, XMLStringRepresentable {
+    
     case add
     case clear
     case darken
@@ -51,7 +53,9 @@ enum BlendMode: String, XMLStringRepresentable {
     case srcOut
     case srcOver
     case xor
+    
 }
+
 
 /// Child of a group. Necessary because both Paths and Groups are allowed
 /// to be children of Groups, apparently.
@@ -59,7 +63,8 @@ protocol GroupChild: AnyObject {
 
     func createLayers(using externalValues: ExternalValues,
                       drawableSize: CGSize,
-                      transform: [Transform]) -> [CALayer]
+                      transform: [Transform],
+                      tint: AndroidTint) -> [CALayer]
 
 }
 
@@ -124,7 +129,8 @@ public final class VectorDrawable {
 
         func createLayers(using externalValues: ExternalValues,
                           drawableSize: CGSize,
-                          transform: [Transform]) -> [CALayer] {
+                          transform: [Transform],
+                          tint: AndroidTint) -> [CALayer] {
             var clipPathLayers = clipPaths.map { clipPath in
                 clipPath.createLayer(drawableSize: drawableSize,
                                      transform: transform + [self.transform])
@@ -133,7 +139,8 @@ public final class VectorDrawable {
                 children.map { child in
                     child.createLayers(using: externalValues,
                                        drawableSize: drawableSize,
-                                       transform: transform + [self.transform])
+                                       transform: transform + [self.transform],
+                                       tint: tint)
                 }
                 .joined()
             )
@@ -178,7 +185,8 @@ public final class VectorDrawable {
 
         func createLayers(using _: ExternalValues,
                           drawableSize: CGSize,
-                          transform: [Transform]) -> [CALayer] {
+                          transform: [Transform],
+                          tint: AndroidTint) -> [CALayer] {
             return [createLayer(drawableSize: drawableSize,
                                 transform: transform)]
         }
@@ -246,12 +254,13 @@ public final class VectorDrawable {
 
         func createLayers(using externalValues: ExternalValues,
                           drawableSize: CGSize,
-                          transform: [Transform]) -> [CALayer] {
-            
+                          transform: [Transform],
+                          tint: AndroidTint) -> [CALayer] {
             let shapeLayer = ThemeableShapeLayer(pathData: self,
                                                  externalValues: externalValues,
                                                  drawableSize: drawableSize,
-                                                 transform: transform)
+                                                 transform: transform,
+                                                 tint: tint)
             if let gradient = gradient {
                 let gradientLayer = ThemeableGradientLayer(gradient: gradient, externalValues: externalValues)
                 gradientLayer.mask = shapeLayer
@@ -262,17 +271,20 @@ public final class VectorDrawable {
         }
 
         func apply(to layer: CAShapeLayer,
-                   using externalValues: ExternalValues) {
+                   using externalValues: ExternalValues,
+                   tint: AndroidTint) {
             layer.name = name
             layer.strokeColor = strokeColor?
                 .color(from: externalValues)
                 .multiplyAlpha(with: strokeAlpha)
+                .tintedWith(tint)
                 .cgColor
             layer.strokeStart = trimPathStart + trimPathOffset
             layer.strokeEnd = trimPathEnd + trimPathOffset
             layer.fillColor = fillColor?
                 .color(from: externalValues)
                 .multiplyAlpha(with: fillAlpha)
+                .tintedWith(tint)
                 .cgColor
             layer.lineCap = strokeLineCap.intoCoreAnimation
             layer.lineJoin = strokeLineJoin.intoCoreAnimation
@@ -423,6 +435,17 @@ extension UIColor {
         return alpha
     }
     
+    var rgba: (CGFloat, CGFloat, CGFloat, CGFloat) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (r, g, b, a)
+    }
+    
+    func tintedWith(_ tint: AndroidTint) -> UIColor {
+        let (mode, color) = tint
+        return mode.blend(src: self, dst: color)
+    }
+    
 }
 
 extension Array where Element == Transform {
@@ -511,6 +534,73 @@ extension PathCreating {
             context = command.apply(to: path, using: context, in: size)
         }
         return path
+    }
+
+}
+
+extension BlendMode {
+    
+    func blend(src: UIColor, dst: UIColor) -> UIColor {
+        let (sr, sg, sb, sa) = src.rgba
+        let (dr, dg, db, da) = dst.rgba
+        func clamp(_ float: CGFloat) -> CGFloat {
+            return max(0, min(float, 1))
+        }
+        func createColor(_ color: (CGFloat, CGFloat) -> CGFloat,
+                         _ alpha: (CGFloat, CGFloat) -> CGFloat) -> UIColor {
+            return UIColor(red: clamp(color(sr, dr)),
+                           green: clamp(color(sg, dg)),
+                           blue: clamp(color(sb, db)),
+                           alpha: clamp(alpha(sa, da)))
+        }
+        switch self {
+        case .add:
+            return createColor(+, +)
+        case .clear:
+            return createColor({ _, _ in 0 }, { _, _ in 0 })
+        case .darken:
+            return createColor({ (src: CGFloat, dst: CGFloat) -> CGFloat in (1 - da) * src + (1 - sa) * dst + min(src, dst) },
+                               { src, dst in src + dst - (src * dst) })
+        case .dst:
+            return dst
+        case .dstAtop:
+            return createColor({ src, dst in sa * dst + (1 - da) * src }, { _, dst in dst })
+        case .dstIn:
+            return createColor({ src, dst in dst * sa }, { src, dst in src * dst })
+        case .dstOut:
+            return createColor({ src, dst in (1 - sa) * dst }, { src, dst in (1 - src) * dst })
+        case .dstOver:
+            return createColor({ src, dst in dst + (1 - da) * src }, { src, dst in da + ( 1 - da) * sa })
+        case .lighten:
+            return createColor({ (src: CGFloat, dst: CGFloat) in ( 1 - da) * src + (1 - sa) * dst + max(src, dst) }, { src, dst in src + dst - src * dst })
+        case .multiply:
+            return createColor(*, *)
+        case .overlay:
+            return createColor({src, dst in
+                let first = 2 * src * dst
+                if first < da {
+                    return first
+                } else {
+                    return sa * dst - 2 * (da - src) * (sa - dst)
+                }
+            }, {src, dst in
+                src + dst - src * dst
+            })
+        case .screen:
+            return createColor({ src, dst in src + dst - src * dst }, { src, dst in src + dst - src * dst })
+        case .src:
+            return createColor({ src, _ in src }, { src, _ in src })
+        case .srcAtop:
+            return createColor({ src, dst in da * src + (1 - sa) * dst }, { _, dst in dst })
+        case .srcIn:
+            return createColor({ src, dst in src * dst }, { src, dst in src * dst })
+        case .srcOut:
+            return createColor({ src, dst in (1 - da ) * src }, { src, dst in (1 - dst) * src })
+        case .srcOver:
+            return createColor({ src, dst in src + (1 - sa ) * dst }, { src, dst in src + (1 - src) * dst })
+        case .xor:
+            return createColor({ src, dst in (1 - da) * src + (1 - sa) * dst}, { src, dst in (1 - dst) * src + (1 - src) * dst})
+        }
     }
 
 }

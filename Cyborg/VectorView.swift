@@ -4,9 +4,31 @@
 
 import UIKit
 
+/// A Tint mode and color.
+public typealias AndroidTint = (BlendMode, UIColor)
+
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
 
+    /// The tint to use for this drawable.
+    ///
+    /// This property is useful primarily for cases where
+    /// the drawable is intended to be reused in many contexts,
+    /// such as icons. In the icon case, you may find it useful to
+    /// set the tint to `(.dst, myColor)`, which will choose
+    /// `myColor` instead of the color specified in the xml.
+    ///
+    /// - note: `tint` is considered external to the VectorDrawable
+    /// and won't be updated when `theme` is set, though it will apply to
+    /// new values provided by the theme.
+    /// It is your responsibility to ensure that changes
+    /// to `theme` also change `tint` if appropriate.
+    public var tint: AndroidTint = (.src, .clear) {
+        didSet {
+            updateLayers()
+        }
+    }
+    
     /// A source for external values to use to theme the VectorDrawable.
     public var theme: ThemeProviding {
         didSet {
@@ -64,7 +86,8 @@ open class VectorView: UIView {
         if let drawable = drawable {
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
-                                                                                theme: theme))
+                                                                                theme: theme),
+                                                          tint: tint)
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
@@ -109,6 +132,7 @@ public protocol ResourceProviding {
 }
 
 struct ExternalValues {
+    
     let resources: ResourceProviding
     let theme: ThemeProviding
     
@@ -125,7 +149,8 @@ struct ExternalValues {
 extension VectorDrawable {
 
     func layerRepresentation(in _: CGRect,
-                             using externalValues: ExternalValues) -> [CALayer] {
+                             using externalValues: ExternalValues,
+                             tint: AndroidTint) -> [CALayer] {
         let viewSpace = CGSize(width: viewPortWidth,
                                height: viewPortHeight)
         return Array(
@@ -133,7 +158,8 @@ extension VectorDrawable {
                 .map { group in
                     group.createLayers(using: externalValues,
                                        drawableSize: viewSpace,
-                                       transform: [])
+                                       transform: [],
+                                       tint: tint)
                 }
                 .joined()
         )
@@ -233,16 +259,25 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
         }
     }
     
+    fileprivate var tint: AndroidTint {
+        didSet {
+            updateTheme()
+        }
+    }
+    
     private func updateTheme() {
         pathData.apply(to: self,
-                       using: externalValues)
+                       using: externalValues,
+                       tint: tint)
     }
     
     init(pathData: VectorDrawable.Path,
          externalValues: ExternalValues,
          drawableSize: CGSize,
-         transform: [Transform]) {
+         transform: [Transform],
+         tint: AndroidTint) {
         self.externalValues = externalValues
+        self.tint = tint
         super.init(pathData: pathData,
                    drawableSize: drawableSize,
                    transform: transform,
@@ -255,6 +290,7 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
     required init(layer: Any) {
         let typedLayer = layer as! ThemeableShapeLayer
         externalValues = typedLayer.externalValues
+        tint = typedLayer.tint
         super.init(layer: layer)
     }
     
