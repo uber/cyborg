@@ -391,20 +391,20 @@ func arcParser(_ string: XMLString, _ index: Int32) -> ParseResult<(CGPoint, CGF
                     switch coordinatePair()(string, index) {
                     case .ok(let endPoint, let index):
                         return .ok((radius, rotation, arcFlagNumber, sweepFlagNumber, endPoint), index)
-                    case .error(let error):
-                        return .error(error)
+                    case .error(let error, let index):
+                        return .error(error, index)
                     }
-                case .error(let error):
-                    return .error(error)
+                case .error(let error, let index):
+                    return .error(error, index)
                 }
-            case .error(let error):
-                return .error(error)
+            case .error(let error, let index):
+                return .error(error, index)
             }
-        case .error(let error):
-            return .error(error)
+        case .error(let error, let index):
+            return .error(error, index)
         }
-    case .error(let error):
-        return .error(error)
+    case .error(let error, let index):
+        return .error(error, index)
     }
 }
 
@@ -514,7 +514,9 @@ extension Int {
                 }
                 return .ok(results, next)
             } else {
-                return .error("")
+                return ParseResult(error: "Didn't find \(self) * 2 coordinate pairs, instead found \(found)",
+                    index: next,
+                    stream: stream)
             }
         }
     }

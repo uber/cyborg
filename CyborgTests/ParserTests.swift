@@ -7,6 +7,30 @@ import XCTest
 
 class ParserTests: XCTestCase {
 
+    func test_consume_all_invalid() {
+        "l 1 2 P".withXMLString { (str) in
+            switch consumeAll(using: allDrawingCommands)(str, 0) {
+            case .ok(let wrapped, _):
+                XCTFail("Expected failure, but succeeded with \(wrapped)")
+            case .error(let message, let index):
+                XCTAssertEqual(index, 6)
+                print(message)
+            }
+        }
+    }
+    
+    func test_consume_all_error_messages_with_numbers() {
+        "l 1 2 m 3".withXMLString { (str) in
+            switch consumeAll(using: allDrawingCommands)(str, 0) {
+            case .ok(let wrapped, _):
+                XCTFail("Expected failure, but succeeded with \(wrapped)")
+            case .error(let message, let index):
+                XCTAssertEqual(index, 9)
+                print(message)
+            }
+        }
+    }
+    
     func test_oneorMoreOf() {
         "a".withXMLString { str in
             "aaa".withXMLString { contents in
@@ -30,7 +54,7 @@ class ParserTests: XCTestCase {
         case .ok(let result, let index):
             XCTAssert(result == expected)
             XCTAssertEqual(index, text.count)
-        case .error(let error):
+        case .error(let error, _):
             XCTFail(error)
         }
     }
@@ -41,7 +65,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, -432)
                 XCTAssertEqual(index, str.count)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }
@@ -50,7 +74,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, 40)
                 XCTAssertEqual(index, str2.count)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }
@@ -59,7 +83,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, 4)
                 XCTAssertEqual(index, str3.count)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }
@@ -68,7 +92,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, 4.4)
                 XCTAssertEqual(index, str4.count - 1)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }
@@ -77,7 +101,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, 0.9)
                 XCTAssertEqual(index, str5.count - 1)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }
@@ -86,7 +110,7 @@ class ParserTests: XCTestCase {
             case .ok(let result, let index):
                 XCTAssertEqual(result, -0.9)
                 XCTAssertEqual(index, str6.count - 1)
-            case .error(let error):
+            case .error(let error, _):
                 XCTFail(error)
             }
         }

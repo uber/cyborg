@@ -451,7 +451,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
                     case .ok(let result, _):
                         commands = result
                         subResult = nil
-                    case .error(let error):
+                    case .error(let error, _):
                         subResult = baseError + error
                     }
                     result = subResult
@@ -571,7 +571,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result
-                    case .error(let error):
+                    case .error(let error, _):
                         let baseError = "Error parsing the <android:clipPath> tag: "
                         return baseError + error
                     }
@@ -845,17 +845,6 @@ class GradientParser: NodeParsing {
 
 // MARK: - Parser Combinators
 
-func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
-    return { stream, index in
-        var next = index
-        while next != stream.count,
-            stream[next] == .whitespace || stream[next] == .newline {
-            next += 1
-        }
-        return before(stream, next)
-    }
-}
-
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     let substring = stream[index..<stream.count]
     return substring
@@ -888,7 +877,7 @@ func numbers() -> Parser<[CGFloat]> {
         if result.count > 0 {
             return .ok(result, nextIndex)
         } else {
-            return .error("")
+            return .error("", nextIndex)
         }
     }
 }
@@ -901,13 +890,17 @@ func coordinatePair() -> Parser<CGPoint> {
             point.x = CGFloat(found)
             next = index
         } else {
-            return .error("")
+            return ParseResult(error: "Couldn't find the first number in the coordinate pair.",
+                index: next,
+                stream: stream)
         }
         if case .ok(let found, let index) = number(from: stream, at: next) {
             point.y = CGFloat(found)
             next = index
         } else {
-            return .error("")
+            return ParseResult(error: "Couldn't find the second number in the coordinate pair",
+                index: next,
+                stream: stream)
         }
         return .ok(point, next)
     }
