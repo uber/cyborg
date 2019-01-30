@@ -14,8 +14,8 @@ enum ParseResult<Wrapped> {
     init(error: String, index: Int32, stream: XMLString) {
         self = .error("""
             Error at \(index): \(error)
-            \(stream[0..<index])\(stream[index..<min(stream.count, 30)])
-            \(Array(repeating: "~", count: Int(index)).joined() + "^")
+            \(stream[0..<index])\(stream[index..<min(stream.count, index + 30)])
+            \(String(repeating: "~", count: Int(index)) + "^")
             """, index)
     }
 
