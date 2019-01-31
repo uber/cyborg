@@ -28,14 +28,14 @@ open class VectorView: UIView {
             updateLayers()
         }
     }
-    
+
     /// A source for external values to use to theme the VectorDrawable.
     public var theme: ThemeProviding {
         didSet {
             updateLayers()
         }
     }
-    
+
     private let resources: ResourceProviding
 
     /// The drawable to display.
@@ -84,10 +84,19 @@ open class VectorView: UIView {
 
     private func updateLayers() {
         if let drawable = drawable {
+            let transform: CATransform3D
+            if case .rightToLeft = effectiveUserInterfaceLayoutDirection {
+                transform = CATransform3DMakeScale(-1, 1, 1)
+            } else {
+                transform = CATransform3DIdentity
+            }
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
                                                                                 theme: theme),
-                                                          tint: tint)
+                                                          tint: tint))
+            for layer in drawableLayers {
+                layer.transform = transform
+            }
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
@@ -113,14 +122,14 @@ public protocol ThemeProviding {
     /// - note: You are responsible for providing an appropriate value or crashing
     /// in the event that you cannot create a color for the name.
     func colorFromTheme(named name: String) -> UIColor
-    
+
 }
 
 /// Provides values from "resources" which
 /// corresponds to the objects of the same name on Android. You can reimplement the
 /// Android behavior, or write your own system.
 public protocol ResourceProviding {
-    
+
     /// Gets the color that corresponds to `name` from the Resources bundle. Colors prefixed "@"
     /// in the VectorDrawable XML file are fetched using this function.
     ///
@@ -128,22 +137,22 @@ public protocol ResourceProviding {
     /// - note: You are responsible for providing an appropriate value or crashing
     /// in the event that you cannot create a color for the name.
     func colorFromResources(named name: String) -> UIColor
-    
+
 }
 
 struct ExternalValues {
-    
+
     let resources: ResourceProviding
     let theme: ThemeProviding
-    
+
     func colorFromTheme(named name: String) -> UIColor {
         return theme.colorFromTheme(named: name)
     }
-    
+
     func colorFromResources(named name: String) -> UIColor {
         return resources.colorFromResources(named: name)
     }
-    
+
 }
 
 extension VectorDrawable {
@@ -209,7 +218,7 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
         ratio = CGSize(width: bounds.width / drawableSize.width,
                        height: bounds.height / drawableSize.height)
     }
-    
+
     required override init(layer: Any) {
         if let typedLayer = layer as? ShapeLayer {
             pathData = typedLayer.pathData
@@ -220,7 +229,7 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
             fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ShapeLayer.self)")
         }
     }
-    
+
     init(pathData: T,
          drawableSize: CGSize,
          transform: [Transform],
@@ -256,19 +265,19 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
             updateTheme()
         }
     }
-    
+
     fileprivate var tint: AndroidTint {
         didSet {
             updateTheme()
         }
     }
-    
+
     private func updateTheme() {
         pathData.apply(to: self,
                        using: externalValues,
                        tint: tint)
     }
-    
+
     init(pathData: VectorDrawable.Path,
          externalValues: ExternalValues,
          drawableSize: CGSize,
@@ -282,7 +291,7 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
                    name: pathData.name)
         updateTheme()
     }
-    
+
     required init(layer: Any) {
         if let typedLayer = layer as? ThemeableShapeLayer {
             externalValues = typedLayer.externalValues
@@ -292,24 +301,24 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
             fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ThemeableShapeLayer.self)")
         }
     }
-    
+
 }
 
 final class ThemeableGradientLayer: CAGradientLayer {
-        
+
     var gradient: VectorDrawable.Gradient {
         didSet {
             updateGradient()
         }
     }
-    
+
     var externalValues: ExternalValues {
         didSet {
             updateGradient()
         }
     }
 
-    
+
     init(gradient: VectorDrawable.Gradient,
          externalValues: ExternalValues) {
         self.gradient = gradient
@@ -317,7 +326,7 @@ final class ThemeableGradientLayer: CAGradientLayer {
         super.init()
         updateGradient()
     }
-    
+
     required override init(layer: Any) {
         if let typedLayer = layer as? ThemeableGradientLayer {
             gradient = typedLayer.gradient
@@ -328,19 +337,19 @@ final class ThemeableGradientLayer: CAGradientLayer {
             fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ThemeableGradientLayer.self)")
         }
     }
-    
+
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func layoutSublayers() {
         super.layoutSublayers()
         mask?.frame = bounds
     }
-    
+
     private func updateGradient() {
         gradient.apply(to: self)
     }
-    
+
 }
