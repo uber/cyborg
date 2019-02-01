@@ -83,7 +83,7 @@ If, for some reason, you provide an invalid VectorDrawable to Cyborg, the standa
 as a nonfatal to the crash reporting service of your choice and use to debug locally. This can be handled at your app's "platform" level, allowing you to write code that assumes that
 the parsing always succeeds, just like with UIImage:
 
-```swuft
+```swift
 extension VectorDrawable {
     public static func named(_ name: String) -> VectorDrawable? {
         return Bundle.main.url(forResource: name, withExtension: "xml").flatMap { url in
