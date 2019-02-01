@@ -93,7 +93,7 @@ open class VectorView: UIView {
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
                                                                                 theme: theme),
-                                                          tint: tint))
+                                                          tint: tint)
             for layer in drawableLayers {
                 layer.transform = transform
             }
