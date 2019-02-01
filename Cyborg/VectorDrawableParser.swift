@@ -49,8 +49,7 @@ public extension VectorDrawable {
     /// - returns: The `VectorDrawable`, or an error if parsing failed.
     public static func create(from url: URL) -> Result<VectorDrawable> {
         do {
-            let data = try Data(contentsOf: url,
-                                options: [.uncached])
+            let data = try Data(contentsOf: url)
             return create(from: data)
         } catch let error {
             return .error(error.localizedDescription)
