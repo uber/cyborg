@@ -209,19 +209,17 @@ class ShapeLayer<T>: CAShapeLayer where T: PathCreating {
         ratio = CGSize(width: bounds.width / drawableSize.width,
                        height: bounds.height / drawableSize.height)
     }
-
-    #if DEBUG
     
     required override init(layer: Any) {
-        // required because the view hierarchy debugger calls this
-        let typedLayer = layer as! ShapeLayer
-        pathData = typedLayer.pathData
-        drawableSize = typedLayer.drawableSize
-        pathTransform = typedLayer.pathTransform
-        super.init(layer: layer)
+        if let typedLayer = layer as? ShapeLayer {
+            pathData = typedLayer.pathData
+            drawableSize = typedLayer.drawableSize
+            pathTransform = typedLayer.pathTransform
+            super.init(layer: layer)
+        } else {
+            fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ShapeLayer.self)")
+        }
     }
-    
-    #endif
     
     init(pathData: T,
          drawableSize: CGSize,
@@ -285,16 +283,15 @@ final class ThemeableShapeLayer: ShapeLayer<VectorDrawable.Path> {
         updateTheme()
     }
     
-    #if DEBUG
-    
     required init(layer: Any) {
-        let typedLayer = layer as! ThemeableShapeLayer
-        externalValues = typedLayer.externalValues
-        tint = typedLayer.tint
-        super.init(layer: layer)
+        if let typedLayer = layer as? ThemeableShapeLayer {
+            externalValues = typedLayer.externalValues
+            tint = typedLayer.tint
+            super.init(layer: layer)
+        } else {
+            fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ThemeableShapeLayer.self)")
+        }
     }
-    
-    #endif
     
 }
 
@@ -321,17 +318,16 @@ final class ThemeableGradientLayer: CAGradientLayer {
         updateGradient()
     }
     
-    #if DEBUG
-    
     required override init(layer: Any) {
-        let typedLayer = layer as! ThemeableGradientLayer
-        gradient = typedLayer.gradient
-        externalValues = typedLayer.externalValues
-        super.init(layer: layer)
-        updateGradient()
+        if let typedLayer = layer as? ThemeableGradientLayer {
+            gradient = typedLayer.gradient
+            externalValues = typedLayer.externalValues
+            super.init(layer: layer)
+            updateGradient()
+        } else {
+            fatalError("Core Animation passed a layer of type \(Swift.type(of: layer)), which cannot be used to construct a layer of type \(ThemeableGradientLayer.self)")
+        }
     }
-    
-    #endif
     
     @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
     required init?(coder aDecoder: NSCoder) {
