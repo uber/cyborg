@@ -1,7 +1,7 @@
 # Cyborg
 
 Cyborg is a [partial](https://github.com/uber/cyborg/issues?q=is%3Aissue+is%3Aopen+label%3A%22Spec+Compliance%22) port of Android's [VectorDrawable](https://medium.com/androiddevelopers/understanding-androids-vector-image-format-vectordrawable-ab09e41d5c68) to iOS.
-It is intended as a replacement for UIImages, Icon Fonts, and Apple's PDF vector image option. There are many benefits to using this format that are not provided by Images, Icon Fonts, PDFs, or SVG, including:
+It is intended as a replacement for UIImages, Icon Fonts, and Apple's PDF vector image option. The VectorDrawable format provides a number of advantages:
 
 - Full theming support of individual elements of an illustration, beyond simple image tinting or changing the text color in an Icon Font
 - Ability to use one asset for both platforms, simplifying the design -> engineering pipeline
@@ -9,7 +9,13 @@ It is intended as a replacement for UIImages, Icon Fonts, and Apple's PDF vector
 - RTL support
 - Easily convertible from SVG using Android Studio or third-party tools
 
-Cyborg's parser is faster than the iOS SVG libraries we could find, though it tends to be about 1.3X slower than a `UIImage`, and an icon font with ~50 icons can be loaded in the time that it takes to load around 2-3 drawables of similar complexity.
+## Performance Comparisons
+
+We benchmarked Cyborg against a number of alternatives, loading the 50+ icons contained in our Driver app's icon set.
+
+- Cyborg's parser is faster than the iOS SVG libraries we could find
+- It tends to be a tiny bit slower than `UIImage`. The differences should be in the fractions of milliseconds in practice
+- An icon font with ~50 icons can be loaded in the time that it takes to load around 2-3 drawables of similar complexity.
 
 If parsing performance becomes an issue, you may wish to implement either a caching mechanism appropriate for your application, or take advantage of Cyborg's thread safety to perform parsing off the main thread.
 
@@ -22,7 +28,7 @@ The full list of features is enumerated in the [Android Documentation](https://d
 
 After following the integration steps below, using Cyborg requires only slightly more code than using a `UIImage`:
 
-```
+```swift
 let vectorView = VectorView(theme: myTheme)
 vectorView.drawable = VectorDrawable.named("MyDrawable")
 ```
@@ -39,7 +45,7 @@ One of the best features of VectorDrawables is the ability to swap in arbitrary 
 
 However, gaining access to these powerful features requires us to write our own Theme and Resource providers:
 
-```
+```swift
 class Theme: Cyborg.ThemeProviding {
 
     func colorFromTheme(named _: String) -> UIColor {
@@ -60,8 +66,7 @@ class Resources: ResourceProviding {
 
 Assuming that resources never change, we can now write the convenience initializer depicted in the first code sample:
 
-```
-
+```swift
 fileprivate let resources = Resources()
 
 extension VectorDrawable {
@@ -78,7 +83,7 @@ If, for some reason, you provide an invalid VectorDrawable to Cyborg, the standa
 as a nonfatal to the crash reporting service of your choice and use to debug locally. This can be handled at your app's "platform" level, allowing you to write code that assumes that
 the parsing always succeeds, just like with UIImage:
 
-```
+```swuft
 extension VectorDrawable {
     public static func named(_ name: String) -> VectorDrawable? {
         return Bundle.main.url(forResource: name, withExtension: "xml").flatMap { url in
@@ -93,7 +98,7 @@ extension VectorDrawable {
 }
 ```
 
-## Quality of Life Suggestions
+## Best Practices
 
 ### Lint VectorDrawable Assets
 
@@ -103,3 +108,8 @@ you may want to lint the xml files to ensure that they are valid.
 ### Store Your VectorDrawables in a Single Repo
 
 You may find it convenient to allow designers to commit new assets directly to a repo that can be pulled into your Android and iOS repos by designers.
+
+### Snapshot Test Your VectorDrawables
+
+The easiest way to ensure correctness of your UIs that use static vector drawables is to snapshot test the UIs that use them using a tool like [UBSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case).
+This will ensure that any code that isn't compiler-verified matches your expectations.
