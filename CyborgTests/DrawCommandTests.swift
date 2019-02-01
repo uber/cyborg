@@ -22,8 +22,8 @@ class DrawingCommandTests: XCTestCase {
             let path = createPath(from: pathSegment)
             XCTAssertEqual(path, expected)
             XCTAssertEqual(movement, pathSegment[0])
-        case .error(let error, _):
-            XCTFail(error)
+        case .error(let error):
+            XCTFail(error.message)
         }
     }
 
@@ -40,8 +40,8 @@ class DrawingCommandTests: XCTestCase {
             let path = createPath(from: wrapped)
             XCTAssertEqual(index, close.count)
             XCTAssertEqual(path, expected)
-        case .error(let error, _):
-            XCTFail(error)
+        case .error(let error):
+            XCTFail(error.message)
         }
     }
 
@@ -59,8 +59,8 @@ class DrawingCommandTests: XCTestCase {
             case .ok(let result, _):
                 let path = createPath(from: result)
                 XCTAssertEqual(path, expected)
-            case .error(let error, _):
-                XCTFail(error)
+            case .error(let error):
+                XCTFail(error.message)
             }
         }
     }
@@ -83,8 +83,8 @@ class DrawingCommandTests: XCTestCase {
             _ = createPath(from: wrapped, start: start.asPriorContext, path: result)
             XCTAssertEqual(result, expected)
             XCTAssertEqual(index, curve.count)
-        case .error(let error, _):
-            XCTFail(error)
+        case .error(let error):
+            XCTFail(error.message)
         }
     }
 
@@ -103,8 +103,8 @@ class DrawingCommandTests: XCTestCase {
                     result.move(to: .zero)
                     _ = createPath(from: wrapped, path: result)
                     XCTAssertEqual(result, expected)
-                case .error(let error, _):
-                    XCTFail(error)
+                case .error(let error):
+                    XCTFail(error.message)
                 }
             }
     }
@@ -124,8 +124,8 @@ class DrawingCommandTests: XCTestCase {
                     result.move(to: .zero)
                     _ = createPath(from: wrapped, path: result)
                     XCTAssertEqual(result, expected)
-                case .error(let error, _):
-                    XCTFail(error)
+                case .error(let error):
+                    XCTFail(error.message)
                 }
             }
     }

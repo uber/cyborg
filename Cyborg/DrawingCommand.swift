@@ -514,7 +514,9 @@ extension Int {
                 }
                 return .ok(results, next)
             } else {
-                return .error(.tooFewNumbers(found, .init(index: next, stream: stream)))
+                return .error(.tooFewNumbers(expected: self * 2,
+                                             found: found,
+                                             .init(index: next, stream: stream)))
             }
         }
     }

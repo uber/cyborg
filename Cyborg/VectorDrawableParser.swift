@@ -421,7 +421,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
     }
 
     var pathName: String?
-    var commands: [PathSegment]?
+    var commands: ContiguousArray<PathSegment>?
     var fillColor: Color?
     var strokeColor: Color?
     var strokeWidth: CGFloat = 0
@@ -452,7 +452,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
                         commands = result
                         subResult = nil
                     case .error(let error):
-                        subResult = baseError + error.errorMessage
+                        subResult = baseError + error.message
                     }
                     result = subResult
                 case .fillColor:
@@ -559,7 +559,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     }
 
     var name: String?
-    var commands: [PathSegment]?
+    var commands: ContiguousArray<PathSegment>?
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
@@ -573,7 +573,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                         commands = result
                     case .error(let error):
                         let baseError = "Error parsing the <android:clipPath> tag: "
-                        return baseError + error.errorMessage
+                        return baseError + error.message
                     }
                 }
             } else {

@@ -6,9 +6,9 @@ import Foundation
 
 typealias Parser<T> = (XMLString, Int32) -> ParseResult<T>
 
-indirect enum Failure {
+indirect enum Failure: Equatable {
     
-    struct Metadata {
+    struct Metadata: Equatable {
         let index: Int32
         let stream: XMLString
     }
@@ -17,44 +17,75 @@ indirect enum Failure {
     case noMatchesFound(Failure)
     case noParsersMatchedFirstCharacter(XMLString.Char, Metadata)
     case allParsersFailed([Failure], Metadata)
-    case tooFewNumbers(Int, Metadata)
+    case tooFewNumbers(expected: Int, found: Int, Metadata)
     case noFirstMemberInCoordinatePair(Metadata)
     case noSecondMemberInCoordinatePair(Metadata)
-    case foundNoNumbers(Metadata)
     case failedToParseNumber(Metadata)
     
-    var errorMessage: String {
+    var message: String {
         func error(message: String, index: Int32, stream: XMLString) -> String {
             return """
-            Error at \(index): \(error)
+            Error at \(index):
+            \(message)
             \(stream[0..<index])\(stream[index..<min(stream.count, index + 30)])
             \(String(repeating: "~", count: Int(index)) + "^")
             """
         }
-        fatalError()
-//        switch self {
-//        case .literalNotFoundAtIndex(let literal, let metadata):
-//            return error(message: String(copying: literal),
-//                         index: metadata.index,
-//                         stream: metadata.stream)
-//        case .noMatchesFound(let reason, let metadata):
-//
-//        case .noParsersMatchedFirstCharacter(_, _):
-//            <#code#>
-//        case .allParsersFailed(_, _):
-//            <#code#>
-//        case .tooFewNumbers(_, _):
-//            <#code#>
-//        case .noFirstMemberInCoordinatePair(_):
-//            <#code#>
-//        case .noSecondMemberInCoordinatePair(_):
-//            <#code#>
-//        case .foundNoNumbers(_):
-//            <#code#>
-//        case .failedToParseNumber(_):
-//            <#code#>
-//        }
+        switch self {
+        case .literalNotFoundAtIndex(let literal, let metadata):
+            return error(message: "Expected \"\(String(copying: literal))\".",
+                         index: metadata.index,
+                         stream: metadata.stream)
+        case .noMatchesFound(let reason):
+            return "Failed before finding any matches. The error was: \(reason.message)"
+        case .noParsersMatchedFirstCharacter(let character, let metadata):
+            return error(message: "Expected one of the path commands, but found \"\(UnicodeScalar(character))\".",
+                index: metadata.index, stream:
+                metadata.stream)
+        case .allParsersFailed(let failures, let metadata):
+            return error(message: "Expected to consume all of the input, but all parsers failed with errors: \(failures.map { $0.message }.joined(separator: "\n"))",
+                index: metadata.index,
+                stream: metadata.stream)
+        case .tooFewNumbers(let expected, let found, let metadata):
+            return error(message: "Expected a multiple of \(expected) numbers, found \(found).",
+                         index: metadata.index,
+                         stream: metadata.stream)
+        case .noFirstMemberInCoordinatePair(let metadata):
+            return error(message: "Expected a coordinate pair, but couldn't find any numbers.",
+                         index: metadata.index,
+                         stream: metadata.stream)
+        case .noSecondMemberInCoordinatePair(let metadata):
+            return error(message: "Expected a coordinate pair, but only found one number.",
+                         index: metadata.index,
+                         stream: metadata.stream)
+        case .failedToParseNumber(let metadata):
+            return error(message: "Expected a number.",
+                         index: metadata.index,
+                         stream: metadata.stream)
+        }
     }
+    
+    var index: Int32 {
+        switch self {
+        case .literalNotFoundAtIndex(_, let metadata):
+            return metadata.index
+        case .noMatchesFound(let metadata):
+            return metadata.index
+        case .noParsersMatchedFirstCharacter(_, let metadata):
+            return metadata.index
+        case .allParsersFailed(_, let metadata):
+            return metadata.index
+        case .tooFewNumbers(_, _, let metadata):
+            return metadata.index
+        case .noFirstMemberInCoordinatePair(let metadata):
+            return metadata.index
+        case .noSecondMemberInCoordinatePair(let metadata):
+            return metadata.index
+        case .failedToParseNumber(let metadata):
+            return metadata.index
+        }
+    }
+
 }
 
 enum ParseResult<Wrapped> {
@@ -111,11 +142,11 @@ func literal(_ text: XMLString) -> Parser<XMLString> {
     }
 }
 
-func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
+func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<ContiguousArray<T>> {
     return { (stream: XMLString, index: Int32) in
         var index = index,
-        results: [T] = [],
-        errors: [Failure] = []
+        results: ContiguousArray<T> = [],
+        errors: ContiguousArray<Failure> = []
         errors.reserveCapacity(parsers.count)
         results.reserveCapacity(Int(stream.count) / 3)
         var next = index
@@ -141,16 +172,32 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
                 if index == stream.count {
                     return .ok(results, index)
                 } else {
-                    if errors.filter({ (error) -> Bool in
+                    if errors.first(where: { (error: Failure) -> Bool in
                         if case .literalNotFoundAtIndex = error {
-                            return true
-                        } else {
                             return false
+                        } else {
+                            return true
                         }
-                    }).count != 0 {
+                    }) == nil {
                         return .error(.noParsersMatchedFirstCharacter(stream[next], .init(index: next, stream: stream)))
                     } else {
-                        return .error(.allParsersFailed(errors, .init(index: next, stream: stream)))
+                        var furthestError = errors.first
+                        var foundUnequalIndex = false
+                        for error in errors.dropFirst() {
+                            let lastIndex = furthestError?.index ?? -1
+                            if error.index != lastIndex {
+                                foundUnequalIndex = true
+                                if error.index > lastIndex {
+                                    furthestError = error
+                                }
+                            }
+                        }
+                        if let furthestError = furthestError,
+                            foundUnequalIndex {
+                            return .error(furthestError)
+                        } else {
+                            return .error(.allParsersFailed(Array(errors), .init(index: next, stream: stream)))
+                        }
                     }
                 }
         }
