@@ -451,8 +451,8 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
                     case .ok(let result, _):
                         commands = result
                         subResult = nil
-                    case .error(let error, _):
-                        subResult = baseError + error
+                    case .error(let error):
+                        subResult = baseError + error.errorMessage
                     }
                     result = subResult
                 case .fillColor:
@@ -571,9 +571,9 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                     switch consumeAll(using: parsers)(value, 0) {
                     case .ok(let result, _):
                         commands = result
-                    case .error(let error, _):
+                    case .error(let error):
                         let baseError = "Error parsing the <android:clipPath> tag: "
-                        return baseError + error
+                        return baseError + error.errorMessage
                     }
                 }
             } else {
@@ -853,7 +853,7 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
             let result = strtod(buffer, &next)
             if result == 0.0,
                 next == buffer {
-                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+                return .error(.failedToParseNumber(.init(index: index, stream: stream)))
             } else if var final = next {
                 if final.pointee == .comma {
                     final = final.advanced(by: 1)
@@ -861,7 +861,7 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
                 let index = index + Int32(buffer.distance(to: final))
                 return .ok(CGFloat(result), index)
             } else {
-                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+                return .error(.failedToParseNumber(.init(index: index, stream: stream)))
             }
         }
 }
@@ -877,7 +877,7 @@ func numbers() -> Parser<[CGFloat]> {
         if result.count > 0 {
             return .ok(result, nextIndex)
         } else {
-            return .error("", nextIndex)
+            return .error(.failedToParseNumber(.init(index: nextIndex, stream: stream)))
         }
     }
 }
@@ -890,17 +890,13 @@ func coordinatePair() -> Parser<CGPoint> {
             point.x = CGFloat(found)
             next = index
         } else {
-            return ParseResult(error: "Couldn't find the first number in the coordinate pair.",
-                index: next,
-                stream: stream)
+            return .error(.noFirstMemberInCoordinatePair(.init(index: next, stream: stream)))
         }
         if case .ok(let found, let index) = number(from: stream, at: next) {
             point.y = CGFloat(found)
             next = index
         } else {
-            return ParseResult(error: "Couldn't find the second number in the coordinate pair",
-                index: next,
-                stream: stream)
+            return .error(.noSecondMemberInCoordinatePair(.init(index: next, stream: stream)))
         }
         return .ok(point, next)
     }

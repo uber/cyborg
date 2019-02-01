@@ -6,24 +6,67 @@ import Foundation
 
 typealias Parser<T> = (XMLString, Int32) -> ParseResult<T>
 
-enum ParseResult<Wrapped> {
-
-    case ok(Wrapped, Int32)
-    case error(String, Int32)
-
-    init(error: String, index: Int32, stream: XMLString) {
-        self = .error("""
+indirect enum Failure {
+    
+    struct Metadata {
+        let index: Int32
+        let stream: XMLString
+    }
+    
+    case literalNotFoundAtIndex(XMLString, Metadata)
+    case noMatchesFound(Failure)
+    case noParsersMatchedFirstCharacter(XMLString.Char, Metadata)
+    case allParsersFailed([Failure], Metadata)
+    case tooFewNumbers(Int, Metadata)
+    case noFirstMemberInCoordinatePair(Metadata)
+    case noSecondMemberInCoordinatePair(Metadata)
+    case foundNoNumbers(Metadata)
+    case failedToParseNumber(Metadata)
+    
+    var errorMessage: String {
+        func error(message: String, index: Int32, stream: XMLString) -> String {
+            return """
             Error at \(index): \(error)
             \(stream[0..<index])\(stream[index..<min(stream.count, index + 30)])
             \(String(repeating: "~", count: Int(index)) + "^")
-            """, index)
+            """
+        }
+        fatalError()
+//        switch self {
+//        case .literalNotFoundAtIndex(let literal, let metadata):
+//            return error(message: String(copying: literal),
+//                         index: metadata.index,
+//                         stream: metadata.stream)
+//        case .noMatchesFound(let reason, let metadata):
+//
+//        case .noParsersMatchedFirstCharacter(_, _):
+//            <#code#>
+//        case .allParsersFailed(_, _):
+//            <#code#>
+//        case .tooFewNumbers(_, _):
+//            <#code#>
+//        case .noFirstMemberInCoordinatePair(_):
+//            <#code#>
+//        case .noSecondMemberInCoordinatePair(_):
+//            <#code#>
+//        case .foundNoNumbers(_):
+//            <#code#>
+//        case .failedToParseNumber(_):
+//            <#code#>
+//        }
     }
+}
+
+enum ParseResult<Wrapped> {
+
+    case ok(Wrapped, Int32)
+    case error(Failure)
 
     func map<T>(_ transformer: (Wrapped, Int32) -> (ParseResult<T>)) -> ParseResult<T> {
         switch self {
         case .ok(let value, let index):
             return transformer(value, index)
-        case .error(let error, let index): return .error(error, index)
+        case .error(let error): return .error(error)
         }
     }
 
@@ -31,7 +74,7 @@ enum ParseResult<Wrapped> {
         switch self {
         case .ok(_, let index):
             return transformer(stream, index)
-        case .error(let error, let index): return .error(error, index)
+        case .error(let error): return .error(error)
         }
     }
 }
@@ -53,23 +96,17 @@ func oneOrMore<T>(of parser: @escaping Parser<T>) -> Parser<[T]> {
             }
             return .ok(results, nextIndex)
         case .error(let error):
-            return ParseResult(error: "Could not find one match: subparser error was: \(error)",
-                               index: index,
-                               stream: stream)
+            return .error(.noMatchesFound(error))
         }
     }
 }
 
-func literal(_ text: XMLString, discardErrorMessage: Bool = false) -> Parser<XMLString> {
+func literal(_ text: XMLString) -> Parser<XMLString> {
     return { (stream: XMLString, index: Int32) in
         if stream.matches(text, at: index) {
             return .ok(text, index + text.count)
         } else {
-            if discardErrorMessage {
-                return .error("", index)
-            } else {
-                return ParseResult(error: "Literal " + String(withoutCopying: text), index: index, stream: stream)
-            }
+            return .error(.literalNotFoundAtIndex(text, .init(index: index, stream: stream)))
         }
     }
 }
@@ -78,7 +115,7 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
     return { (stream: XMLString, index: Int32) in
         var index = index,
         results: [T] = [],
-        errors: [(String, Int32)] = []
+        errors: [Failure] = []
         errors.reserveCapacity(parsers.count)
         results.reserveCapacity(Int(stream.count) / 3)
         var next = index
@@ -97,40 +134,23 @@ func consumeAll<T>(using parsers: [Parser<T>]) -> Parser<[T]> {
                             index = currentIndex
                             errors.removeAll()
                             continue untilNoMatchFound
-                        case .error(let error, let index):
-                            errors.append((error, index))
+                        case .error(let error):
+                            errors.append(error)
                         }
                 }
                 if index == stream.count {
                     return .ok(results, index)
                 } else {
-                    func defaultError() -> ParseResult<[T]> {
-                        return ParseResult(error: "Couldn't find a match for any parsers, errors were: \n\(errors.map { $0.0 }.joined(separator: "\n"))",
-                            index: index,
-                            stream: stream)
-                    }
-                    if errors.count > 2 {
-                        let errors = errors.sorted(by: { (lhs, rhs) -> Bool in
-                            lhs.1 > rhs.1
-                        })
-                        let first = errors[0]
-                        if first.1 > errors[1].1 {
-                            return .error(first.0, first.1)
+                    if errors.filter({ (error) -> Bool in
+                        if case .literalNotFoundAtIndex = error {
+                            return true
                         } else {
-                            let firstIndex = errors[0].1
-                            let equalIndices = errors.first(where: { (_, index) -> Bool in
-                                index != firstIndex
-                            }) == nil
-                            if equalIndices {
-                                return ParseResult(error: "No parsers matched the first character \"\(Character(Unicode.Scalar(stream[next])))\"",
-                                    index: next,
-                                    stream: stream)
-                            } else {
-                                return defaultError()
-                            }
+                            return false
                         }
+                    }).count != 0 {
+                        return .error(.noParsersMatchedFirstCharacter(stream[next], .init(index: next, stream: stream)))
                     } else {
-                        return defaultError()
+                        return .error(.allParsersFailed(errors, .init(index: next, stream: stream)))
                     }
                 }
         }

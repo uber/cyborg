@@ -15,6 +15,8 @@ import libxml2
 /// Note: These strings generally should never be stored. They are only valid
 /// for the scope of the `xmlReaderPointer` they were created from.
 struct XMLString: Equatable, CustomDebugStringConvertible {
+    
+    typealias Char = xmlChar
 
     /// Count in UTF-8 code units.
     let count: Int32
