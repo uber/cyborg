@@ -103,5 +103,3 @@ you may want to lint the xml files to ensure that they are valid.
 ### Store Your VectorDrawables in a Single Repo
 
 You may find it convenient to allow designers to commit new assets directly to a repo that can be pulled into your Android and iOS repos by designers.
-
-### Automatically Replace Color Literals with Theme Colors
