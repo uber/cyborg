@@ -175,7 +175,7 @@ func parse<T>(command: XMLString,
               followedBy: @escaping Parser<T>,
               convertToPathCommandsWith convert: @escaping (T) -> PathSegment) -> Parser<PathSegment> {
     return { stream, index in
-        literal(command, discardErrorMessage: true)(stream, index)
+        literal(command)(stream, index)
             .chain(into: stream) { stream, index in
                 followedBy(stream, index)
                     .map { result, index in
@@ -514,7 +514,9 @@ extension Int {
                 }
                 return .ok(results, next)
             } else {
-                return .error("")
+                return .error(.tooFewNumbers(expected: self * 2,
+                                             found: found,
+                                             .init(index: next, stream: stream)))
             }
         }
     }

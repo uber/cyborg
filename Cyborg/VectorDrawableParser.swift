@@ -421,7 +421,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
     }
 
     var pathName: String?
-    var commands: [PathSegment]?
+    var commands: ContiguousArray<PathSegment>?
     var fillColor: Color?
     var strokeColor: Color?
     var strokeWidth: CGFloat = 0
@@ -452,7 +452,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
                         commands = result
                         subResult = nil
                     case .error(let error):
-                        subResult = baseError + error
+                        subResult = baseError + error.message
                     }
                     result = subResult
                 case .fillColor:
@@ -559,7 +559,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     }
 
     var name: String?
-    var commands: [PathSegment]?
+    var commands: ContiguousArray<PathSegment>?
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
@@ -573,7 +573,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                         commands = result
                     case .error(let error):
                         let baseError = "Error parsing the <android:clipPath> tag: "
-                        return baseError + error
+                        return baseError + error.message
                     }
                 }
             } else {
@@ -845,17 +845,6 @@ class GradientParser: NodeParsing {
 
 // MARK: - Parser Combinators
 
-func consumeTrivia<T>(before: @escaping Parser<T>) -> Parser<T> {
-    return { stream, index in
-        var next = index
-        while next != stream.count,
-            stream[next] == .whitespace || stream[next] == .newline {
-            next += 1
-        }
-        return before(stream, next)
-    }
-}
-
 func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
     let substring = stream[index..<stream.count]
     return substring
@@ -864,7 +853,7 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
             let result = strtod(buffer, &next)
             if result == 0.0,
                 next == buffer {
-                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+                return .error(.failedToParseNumber(.init(index: index, stream: stream)))
             } else if var final = next {
                 if final.pointee == .comma {
                     final = final.advanced(by: 1)
@@ -872,7 +861,7 @@ func number(from stream: XMLString, at index: Int32) -> ParseResult<CGFloat> {
                 let index = index + Int32(buffer.distance(to: final))
                 return .ok(CGFloat(result), index)
             } else {
-                return ParseResult(error: "failed to make an int", index: index, stream: stream)
+                return .error(.failedToParseNumber(.init(index: index, stream: stream)))
             }
         }
 }
@@ -888,7 +877,7 @@ func numbers() -> Parser<[CGFloat]> {
         if result.count > 0 {
             return .ok(result, nextIndex)
         } else {
-            return .error("")
+            return .error(.failedToParseNumber(.init(index: nextIndex, stream: stream)))
         }
     }
 }
@@ -901,13 +890,13 @@ func coordinatePair() -> Parser<CGPoint> {
             point.x = CGFloat(found)
             next = index
         } else {
-            return .error("")
+            return .error(.noFirstMemberInCoordinatePair(.init(index: next, stream: stream)))
         }
         if case .ok(let found, let index) = number(from: stream, at: next) {
             point.y = CGFloat(found)
             next = index
         } else {
-            return .error("")
+            return .error(.noSecondMemberInCoordinatePair(.init(index: next, stream: stream)))
         }
         return .ok(point, next)
     }
