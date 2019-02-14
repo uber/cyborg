@@ -166,11 +166,14 @@ public final class VectorDrawable {
 
         public let name: String?
         let data: [DrawingCommand]
+        let fillType: CAShapeLayerFillRule
 
         init(name: String?,
-             path: [DrawingCommand]) {
+             path: [DrawingCommand],
+             fillType: CAShapeLayerFillRule) {
             self.name = name
             data = path
+            self.fillType = fillType
         }
 
         func createLayer(drawableSize size: CGSize,

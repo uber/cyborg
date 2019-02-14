@@ -26,10 +26,12 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let drawableData = [
-            test,
+            "test",
         ]
-        .map { data in
-            data.data(using: .utf8)!
+        .map { name in
+           try! Data(contentsOf: Bundle(for: ViewController.self)
+            .url(forResource: name,
+                 withExtension: "xml")!)
         }
         let scrollView = UIScrollView()
         let stackView = UIStackView()

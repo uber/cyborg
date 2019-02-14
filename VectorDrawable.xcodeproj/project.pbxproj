@@ -13,7 +13,6 @@
 		3B3BE37D1FA016B60070D8B1 /* Cyborg.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3BE3751FA016B60070D8B1 /* Cyborg.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3B3BE3821FA016C20070D8B1 /* VectorDrawable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */; };
 		3B5338F4210F845400C1C16B /* VectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5338F3210F845400C1C16B /* VectorView.swift */; };
-		3B5D2E20218296F00024E3C6 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5D2E1F218296F00024E3C6 /* Test.swift */; };
 		3B5D2E22218297700024E3C6 /* Arc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5D2E21218297700024E3C6 /* Arc.swift */; };
 		3B7659CC21405364000FC445 /* libxml2.2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B7659CB21405364000FC445 /* libxml2.2.tbd */; };
 		3B7ED8232162826700914C57 /* ColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7ED8222162826700914C57 /* ColorTests.swift */; };
@@ -34,6 +33,7 @@
 		3BCCBFC61F7D658C00404EFD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC41F7D658C00404EFD /* Main.storyboard */; };
 		3BCCBFC81F7D658C00404EFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC71F7D658C00404EFD /* Assets.xcassets */; };
 		3BCCBFCB1F7D658C00404EFD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC91F7D658C00404EFD /* LaunchScreen.storyboard */; };
+		5E4CCCB32214E3B300F18B38 /* test.xml in Resources */ = {isa = PBXBuildFile; fileRef = 5E4CCCB12214E34900F18B38 /* test.xml */; };
 		5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF612AE21B0A43000F14D11 /* GradientTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -75,7 +75,6 @@
 		3B3BE3781FA016B60070D8B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3B3BE3811FA016C20070D8B1 /* VectorDrawable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorDrawable.swift; sourceTree = "<group>"; };
 		3B5338F3210F845400C1C16B /* VectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorView.swift; sourceTree = "<group>"; };
-		3B5D2E1F218296F00024E3C6 /* Test.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Test.swift; sourceTree = "<group>"; };
 		3B5D2E21218297700024E3C6 /* Arc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Arc.swift; sourceTree = "<group>"; };
 		3B7659CB21405364000FC445 /* libxml2.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxml2.2.tbd; path = usr/lib/libxml2.2.tbd; sourceTree = SDKROOT; };
 		3B7ED8222162826700914C57 /* ColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTests.swift; sourceTree = "<group>"; };
@@ -99,6 +98,7 @@
 		3BCCBFC71F7D658C00404EFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3BCCBFCA1F7D658C00404EFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3BCCBFCC1F7D658C00404EFD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5E4CCCB12214E34900F18B38 /* test.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = test.xml; sourceTree = "<group>"; };
 		5EF612AE21B0A43000F14D11 /* GradientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -145,14 +145,6 @@
 				3B3BE3781FA016B60070D8B1 /* Info.plist */,
 			);
 			path = Cyborg;
-			sourceTree = "<group>";
-		};
-		3B5D2E1E218296F00024E3C6 /* SampleDrawables */ = {
-			isa = PBXGroup;
-			children = (
-				3B5D2E1F218296F00024E3C6 /* Test.swift */,
-			);
-			path = SampleDrawables;
 			sourceTree = "<group>";
 		};
 		3B7659CA21405364000FC445 /* Frameworks */ = {
@@ -206,7 +198,7 @@
 			children = (
 				3BCCBFC01F7D658C00404EFD /* AppDelegate.swift */,
 				3BCCBFC21F7D658C00404EFD /* ViewController.swift */,
-				3B5D2E1E218296F00024E3C6 /* SampleDrawables */,
+				5E4CCCB12214E34900F18B38 /* test.xml */,
 				3BCCBFC41F7D658C00404EFD /* Main.storyboard */,
 				3BCCBFC71F7D658C00404EFD /* Assets.xcassets */,
 				3BCCBFC91F7D658C00404EFD /* LaunchScreen.storyboard */,
@@ -354,6 +346,7 @@
 				3BCCBFCB1F7D658C00404EFD /* LaunchScreen.storyboard in Resources */,
 				3BCCBFC81F7D658C00404EFD /* Assets.xcassets in Resources */,
 				3BCCBFC61F7D658C00404EFD /* Main.storyboard in Resources */,
+				5E4CCCB32214E3B300F18B38 /* test.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,7 +390,6 @@
 			files = (
 				3BCCBFC31F7D658C00404EFD /* ViewController.swift in Sources */,
 				3BCCBFC11F7D658C00404EFD /* AppDelegate.swift in Sources */,
-				3B5D2E20218296F00024E3C6 /* Test.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
