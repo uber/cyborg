@@ -50,6 +50,9 @@ enum ClipPathProperty: String {
 
     case name = "android:name"
     case pathData = "android:pathData"
+    case fillType = "android:fillType"
+    case fillColor = "android:fillColor"
+    case strokeColor = "android:strokeColor"
 
 }
 

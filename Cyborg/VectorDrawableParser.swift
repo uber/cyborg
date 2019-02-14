@@ -7,6 +7,9 @@ import libxml2
 
 /// Contains either an instance of  `Wrapped`,
 /// or an `error` if the instance could not be deserialized.
+///
+/// - note: XML errors are presented in <line:column:depth> format.
+/// The line and column always correspond to the end of the relevant element.
 public enum Result<Wrapped> {
 
     case ok(Wrapped)
@@ -110,38 +113,28 @@ public extension VectorDrawable {
             defer {
                 xmlFreeTextReader(xml)
             }
-            var oldDepth: Int32 = -1
-            var shouldExpectDepthToIncrease = false
             var lastElement = ""
             while xmlTextReaderRead(xml) == 1 {
                 let count = xmlTextReaderAttributeCount(xml)
                 if let namePointer = xmlTextReaderConstName(xml) {
                     let elementName = String(cString: namePointer)
-                    lastElement = elementName
+                    let isEmpty = xmlTextReaderIsEmptyElement(xml) == 1
                     let type = xmlTextReaderNodeType(xml)
+                    defer {
+                        if type != XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
+                            lastElement = elementName
+                        }
+                    }
                     if type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
                         // we don't care about these, they show up as "#text"
                         // which disrupts the parsing
                         continue
                     }
-                    let depth = xmlTextReaderDepth(xml)
-                    defer {
-                        oldDepth = depth
-                    }
                     if type == XML_READER_TYPE_END_ELEMENT.rawValue {
                         // The return value here indicates whether the parser ended, which we don't care about in this case.
                         _ = parser.didEnd(element: lastElement)
-                        shouldExpectDepthToIncrease = false
                         continue
-                    } else if shouldExpectDepthToIncrease,
-                        depth == oldDepth {
-                        // According to a message on the libxml mailing lists ( https://mail.gnome.org/archives/xml/2010-December/msg00022.html ),
-                        // this is the right way to tell if a self-contained xml node like "<path ... />" has ended.
-                        // We expect that when an element begins, the depth will increase.
-                        // If it didn't then the node must have been self-contained.
-                        _ = parser.didEnd(element: lastElement)
                     }
-                    shouldExpectDepthToIncrease = true
                     var attributes = [(XMLString, XMLString)]()
                     attributes.reserveCapacity(Int(count))
                     for _ in 0..<count {
@@ -165,6 +158,10 @@ public extension VectorDrawable {
                                                      attributes: attributes) {
                         return parseError.withLocationInXML(xml)
                     }
+                    if isEmpty {
+                        // handle self closing tags (<tag ... />)
+                        _ = parser.didEnd(element: elementName)
+                    }
                 } else {
                     return xmlErrorOr {
                         "Failed to read element name".withLocationInXML(xml)
@@ -185,7 +182,8 @@ fileprivate extension String {
     func withLocationInXML(_ xml: xmlTextReaderPtr?) -> Result<VectorDrawable> {
         let line = xmlTextReaderGetParserLineNumber(xml)
         let column = xmlTextReaderGetParserColumnNumber(xml)
-        return .error("VectorDrawable Parsing Error: at XML <\(line):]\(column)> \n\(self)")
+        let depth = xmlTextReaderDepth(xml)
+        return .error("VectorDrawable Parsing Error: at XML <\(line):\(column):\(depth)> \n\(self)")
     }
     
 }
@@ -289,7 +287,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
             if !hasFoundElement {
                 return "Element \"\(element)\" found, expected \(name.rawValue)."
             } else {
-                return "Found element \"\(element)\" nested, when it is not an acceptable child node."
+                return "Found element \"\(element)\" nested in \(type(of: self)), when it is not an acceptable child node."
             }
         }
     }
@@ -502,7 +500,11 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
     }
 
     override func didEnd(element: String) -> Bool {
-        return element == Element.path.rawValue
+        if let currentChild = currentChild {
+            return currentChild.didEnd(element: element)
+        } else {
+            return element == Element.path.rawValue
+        }
     }
 
     override func childForElement(_ element: String) -> (GradientParser, (GradientParser) -> ())? {
@@ -560,6 +562,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
 
     var name: String?
     var commands: ContiguousArray<PathSegment>?
+    var fillType: CAShapeLayerFillRule?
 
     func parse(element _: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
         for (key, value) in attributes {
@@ -575,6 +578,11 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
                         let baseError = "Error parsing the <android:clipPath> tag: "
                         return baseError + error.message
                     }
+                case .fillType:
+                    fillType = CAShapeLayerFillRule(rawValue: String(copying: value))
+                case .fillColor, .strokeColor:
+                    // TODO: determine whether this needs to be handled
+                    break
                 }
             } else {
                 return "Key \"\(key)\" is not a valid property of ClipPath."
@@ -590,7 +598,8 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     func createElement() -> Result<VectorDrawable.ClipPath> {
         if let commands = commands {
             return .ok(.init(name: name,
-                             path: Array(commands.joined())))
+                             path: Array(commands.joined()),
+                             fillType: fillType ?? .evenOdd))
         } else {
             return .error("Didn't find \(PathProperty.pathData.rawValue), which is required in elements of type <\(Element.clipPath.rawValue)>")
         }
