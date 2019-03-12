@@ -102,7 +102,7 @@ extension VectorDrawable {
 
 ### Lint VectorDrawable Assets
 
-As you may already have noticed, the Theme and Resource objects you wrote in an earlier section are strongly typed. To prevent issues with assets that reference nonexistent theme or resource colors,
+As you may already have noticed, the Theme and Resource objects you wrote in an earlier section are [stringly typed](http://wiki.c2.com/?StringlyTyped). To prevent issues with assets that reference nonexistent theme or resource colors,
 you may want to lint the xml files to ensure that they are valid.
 
 ### Store Your VectorDrawables in a Single Repo
