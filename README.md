@@ -102,7 +102,7 @@ extension VectorDrawable {
 
 ### Lint VectorDrawable Assets
 
-As you may already have noticed, the Theme and Resource objects you wrote in an earlier section are stringly typed. To prevent issues with assets that reference nonexistent theme or resource colors,
+As you may already have noticed, the Theme and Resource objects you wrote in an earlier section are [stringly typed](http://wiki.c2.com/?StringlyTyped). To prevent issues with assets that reference nonexistent theme or resource colors,
 you may want to lint the xml files to ensure that they are valid.
 
 ### Store Your VectorDrawables in a Single Repo
@@ -111,5 +111,5 @@ You may find it convenient to allow designers to commit new assets directly to a
 
 ### Snapshot Test Your VectorDrawables
 
-The easiest way to ensure correctness of your UIs that use static vector drawables is to snapshot test the UIs that use them using a tool like [UBSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case).
+The easiest way to ensure correctness of your UIs that use static vector drawables is to snapshot test the UIs that use them using a tool like [iOSSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case).
 This will ensure that any code that isn't compiler-verified matches your expectations.
