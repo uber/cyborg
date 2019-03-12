@@ -50,7 +50,7 @@ public extension VectorDrawable {
     ///
     /// - parameter url: The `URL` to load.
     /// - returns: The `VectorDrawable`, or an error if parsing failed.
-    public static func create(from url: URL) -> Result<VectorDrawable> {
+    static func create(from url: URL) -> Result<VectorDrawable> {
         do {
             let data = try Data(contentsOf: url)
             return create(from: data)
@@ -63,7 +63,7 @@ public extension VectorDrawable {
     ///
     /// - parameter data: The `Data` to parse.
     /// - returns: The `VectorDrawable`, or an error if parsing failed.
-    public static func create(from data: Data) -> Result<VectorDrawable> {
+    static func create(from data: Data) -> Result<VectorDrawable> {
         let parser = VectorParser()
         return data.withBytes(or: .error("Empty data passed.")) { (bytes: UnsafePointer<Int8>) -> Result<VectorDrawable> in
             let xml = xmlReaderForMemory(bytes,
@@ -912,7 +912,18 @@ func coordinatePair() -> Parser<CGPoint> {
 }
 
 extension Data {
-    
+    #if compiler(>=5.0)
+    func withBytes<T, U>(or alternative: T, _ function: (UnsafePointer<U>) -> (T)) -> T {
+        return withUnsafeBytes { (pointer: UnsafeRawBufferPointer) -> T in
+            if let baseAddress = pointer.baseAddress, pointer.count != 0 {
+                let bytes = baseAddress.assumingMemoryBound(to: U.self)
+                return function(bytes)
+            } else {
+                return alternative
+            }
+        }
+    }
+    #else
     func withBytes<T, U>(or alternative: T, _ function: (UnsafePointer<U>) -> (T)) -> T {
         return withUnsafeBytes { (pointer: UnsafePointer<U>) -> T in
             if count == 0 {
@@ -922,5 +933,5 @@ extension Data {
             }
         }
     }
-    
+    #endif
 }
