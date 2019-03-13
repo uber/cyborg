@@ -2,8 +2,10 @@
 //  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
+import CoreGraphics
 import Foundation
 import libxml2
+import QuartzCore
 
 /// Contains either an instance of  `Wrapped`,
 /// or an `error` if the instance could not be deserialized.

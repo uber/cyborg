@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Elements of a VectorDrawable document.
 enum Element: String {
