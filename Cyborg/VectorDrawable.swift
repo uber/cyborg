@@ -590,7 +590,7 @@ extension BlendMode {
                 src + dst - src * dst
             })
         case .screen:
-            return createColor({ src, dst in src + dst - src * dst }, { src, dst in src + dst - src * dst })
+            return createColor({ (src: CGFloat, dst: CGFloat) in src + dst - src * dst }, { (src: CGFloat, dst: CGFloat) in src + dst - src * dst })
         case .src:
             return createColor({ src, _ in src }, { src, _ in src })
         case .srcAtop:
@@ -602,7 +602,7 @@ extension BlendMode {
         case .srcOver:
             return createColor({ src, dst in src + (1 - sa ) * dst }, { src, dst in src + (1 - src) * dst })
         case .xor:
-            return createColor({ src, dst in (1 - da) * src + (1 - sa) * dst}, { src, dst in (1 - dst) * src + (1 - src) * dst})
+            return createColor({ (src: CGFloat, dst: CGFloat) in (1 - da) * src + (1 - sa) * dst}, { (src: CGFloat, dst: CGFloat) in (1 - dst) * src + (1 - src) * dst})
         }
     }
 

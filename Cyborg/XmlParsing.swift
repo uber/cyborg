@@ -2,6 +2,7 @@
 //  Copyright © Uber Technologies, Inc. All rights reserved.
 //
 
+import CoreGraphics
 import Foundation
 import libxml2
 
