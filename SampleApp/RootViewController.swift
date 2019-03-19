@@ -101,7 +101,7 @@ class ImportView: View {
             .activate([
                 importButton.centerXAnchor.constraint(equalTo: centerXAnchor),
                 importButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: padding),
-                textView.topAnchor.constraint(equalTo: topAnchor),
+                textView.topAnchor.constraint(equalTo: readableContentGuide.topAnchor),
                 textView.bottomAnchor.constraint(equalTo: importButton.bottomAnchor, constant: padding),
                 textView.leadingAnchor.constraint(equalTo: readableContentGuide.leadingAnchor),
                 textView.trailingAnchor.constraint(equalTo: readableContentGuide.trailingAnchor)
