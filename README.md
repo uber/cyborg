@@ -24,6 +24,11 @@ As of this writing, Swift is a young language, and performance improvements to i
 
 The full list of features is enumerated in the [Android Documentation](https://developer.android.com/reference/android/graphics/drawable/VectorDrawable).
 
+## Installing Cyborg
+
+1. Get [Carthage](https://github.com/Carthage/Carthage#quick-start).
+2. Add the following to your CartFile: `github git@github.com:uber/cyborg.git ~> [desired version]`
+
 ## Using Cyborg
 
 After following the integration steps below, using Cyborg requires only slightly more code than using a `UIImage`:
