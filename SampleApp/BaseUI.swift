@@ -1,10 +1,7 @@
 //
-//  BaseUI.swift
-//  VectorDrawable
+//  Copyright © Uber Technologies, Inc. All rights reserved.
 //
-//  Created by Benjamin Pious on 3/18/19.
-//  Copyright © 2019 Ben Pious. All rights reserved.
-//
+
 
 import UIKit
 

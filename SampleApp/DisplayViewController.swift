@@ -24,12 +24,20 @@ class DisplayView: View {
         super.init()
         backgroundColor = .white
         vectorView.drawable = drawable
-        vectorView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(vectorView)
+        let scrollView = UIScrollView()
+        scrollView.alwaysBounceVertical = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+                vectorView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(vectorView)
+        addSubview(scrollView)
         NSLayoutConstraint
             .activate([
-                vectorView.centerXAnchor.constraint(equalTo: centerXAnchor),
-                vectorView.centerYAnchor.constraint(equalTo: centerYAnchor)
+                vectorView.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor),
+                vectorView.centerYAnchor.constraint(equalTo: scrollView.centerYAnchor),
+                scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+                scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                scrollView.topAnchor.constraint(equalTo: topAnchor),
                 ])
     }
     
