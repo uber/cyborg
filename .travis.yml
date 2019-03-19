@@ -5,5 +5,4 @@ matrix:
         - name: "CyborgTests"
           script: xcodebuild test -project VectorDrawable.xcodeproj -scheme Cyborg -destination 'platform=iOS Simulator,OS=11.4,name=iPhone X'
         - name: "BuildSampleApp"
-          install: cd Sample/Pluginized && carthage update --platform ios
           script: xcodebuild build -project VectorDrawable.xcodeproj -scheme VectorDrawable -destination 'platform=iOS Simulator,OS=11.4,name=iPhone X'
