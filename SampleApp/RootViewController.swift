@@ -5,25 +5,16 @@
 import Cyborg
 import UIKit
 
-class Theme: Cyborg.ThemeProviding {
-
-    func colorFromTheme(named _: String) -> UIColor {
-        return .black
-    }
-    
-}
-
-class Resources: ResourceProviding {
-    
-    func colorFromResources(named _: String) -> UIColor {
-        return .black
-    }
-        
-}
-
 class RootViewController: ViewController<ImportView> {
     
-    init() {
+    let theme: Theme
+    let resources: Resources
+    let preferences: Preferences
+    
+    init(preferences: Preferences) {
+        self.preferences = preferences
+        theme = preferences.theme
+        resources = preferences.resources
         super.init(viewCreator: ImportView.init)
         title = "Import"
         navigationItem.prompt = "Copy paste the VectorDrawable code into the text view"
@@ -31,6 +22,12 @@ class RootViewController: ViewController<ImportView> {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem
+            .setRightBarButton(UIBarButtonItem(title: "Theme",
+                                               style: .plain,
+                                               target: self,
+                                               action: #selector(editThemeTapped)),
+                               animated: false)
         specializedView
             .importButton
             .addTarget(self,
@@ -58,6 +55,15 @@ class RootViewController: ViewController<ImportView> {
         } else {
             showError(message: "Couldn't convert the text to UTF-8.")
         }
+    }
+    
+    @objc
+    func editThemeTapped() {
+        navigationController
+            .orAssert("This view controller requires a navigation controller to function correctly")?
+            .pushViewController(ThemeEditorViewController(theme: theme,
+                                                          resources: resources),
+                                animated: true)
     }
 
     private func showError(message: String) {
@@ -110,7 +116,7 @@ class ImportView: View {
     
 }
 
-fileprivate class Button: UIButton {
+class Button: UIButton {
     
     // TODO: add touch feedback, make this better resemble Apple's tinted buttons
     
