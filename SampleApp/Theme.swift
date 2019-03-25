@@ -31,6 +31,10 @@ class ColorProvider: Codable {
         }
     }
     
+    func removeColor(at index: Int) {
+        mappedColors[colors[index].name] = nil
+    }
+    
     func colorForKey(_ key: String) -> UIColor {
         if let color = mappedColors[key] {
             return UIColor(rgba: color.hex)

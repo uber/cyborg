@@ -7,9 +7,13 @@ import Cyborg
 
 class DisplayViewController: ViewController<DisplayView> {
     
-    init(drawable: VectorDrawable) {
+    init(drawable: VectorDrawable,
+         theme: Theme,
+         resources: Resources) {
         super.init {
-            DisplayView(drawable: drawable)
+            DisplayView(drawable: drawable,
+                        theme: theme,
+                        resources: resources)
         }
         title = "Imported VectorDrawable"
     }
@@ -17,10 +21,13 @@ class DisplayViewController: ViewController<DisplayView> {
 
 class DisplayView: View {
     
-    let vectorView = VectorView(theme: Theme(),
-                                resources: Resources())
+    let vectorView: VectorView
     
-    init(drawable: VectorDrawable) {
+    init(drawable: VectorDrawable,
+         theme: Theme,
+         resources: Resources) {
+        vectorView = VectorView(theme: theme,
+                                resources: resources)
         super.init()
         backgroundColor = .white
         vectorView.drawable = drawable

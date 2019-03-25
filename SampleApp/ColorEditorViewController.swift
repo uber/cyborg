@@ -117,27 +117,7 @@ class ColorEditorView: View {
         errorMessage.translatesAutoresizingMaskIntoConstraints = false
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         let saveButtonConstraint = saveButton.bottomAnchor.constraint(equalTo: readableContentGuide.bottomAnchor)
-        observer = NotificationCenter
-            .default
-            .addObserver(forName: UIResponder.keyboardWillChangeFrameNotification,
-                         object: nil,
-                         queue: nil) { [weak self] (note) in
-                            // TODO: this makes a lot of assumptions about where we are on screen
-                            // and what's in the dictionary. This should be factored out into a
-                            // keyboard layout guide.
-                            if let userInfo = note.userInfo,
-                                let finalFrame = userInfo[AnyHashable(UIWindow.keyboardFrameEndUserInfoKey)] as? CGRect,
-                                let rawCurve = userInfo[UIWindow.keyboardAnimationCurveUserInfoKey] as? Int,
-                                let curve = AnimationCurve(rawValue: rawCurve),
-                                let duration = userInfo[UIWindow.keyboardAnimationDurationUserInfoKey] as? TimeInterval {
-                                self?.layoutIfNeeded()
-                                UIViewPropertyAnimator(duration: duration, curve: curve, animations: {
-                                    saveButtonConstraint.constant = -finalFrame.height
-                                    self?.layoutIfNeeded()
-                                })
-                                    .startAnimation()
-                            }
-        }
+        observer = saveButtonConstraint.moveWithKeyboard(in: self)
         NSLayoutConstraint
             .activate([
                 namefield.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),

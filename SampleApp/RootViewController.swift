@@ -47,7 +47,9 @@ class RootViewController: ViewController<ImportView> {
             case .ok(let drawable):
                 navigationController
                     .orAssert("This view controller requires a navigation controller to function correctly")?
-                    .pushViewController(DisplayViewController(drawable: drawable),
+                    .pushViewController(DisplayViewController(drawable: drawable,
+                                                              theme: theme,
+                                                              resources: resources),
                                         animated: true)
             case .error(let error):
                 showError(message: error)
@@ -94,6 +96,8 @@ class ImportView: View {
         return textView
     }()
     
+    private var observer: AnyObject?
+    
     override init() {
         super.init()
         backgroundColor = .white
@@ -102,10 +106,12 @@ class ImportView: View {
         textView.translatesAutoresizingMaskIntoConstraints = false
         importButton.translatesAutoresizingMaskIntoConstraints = false
         let padding: CGFloat = 10
+        let importButtonBottomConstraint = importButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: padding)
+        observer = importButtonBottomConstraint.moveWithKeyboard(in: self)
         NSLayoutConstraint
             .activate([
                 importButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-                importButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: padding),
+                importButtonBottomConstraint,
                 textView.topAnchor.constraint(equalTo: readableContentGuide.topAnchor),
                 textView.bottomAnchor.constraint(equalTo: importButton.bottomAnchor, constant: padding),
                 textView.leadingAnchor.constraint(equalTo: readableContentGuide.leadingAnchor),

@@ -15,7 +15,7 @@ ColorEditorListener{
 
     private let reuseID = "reuseID"
     
-    enum Section: Int {
+    enum Section: Int, CaseIterable {
         
         case theme
         case resource
@@ -57,6 +57,34 @@ ColorEditorListener{
         let color = provider.colors[indexPath.row]
         showColorEditor(for: color,
                         in: provider)
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        switch Section(from: section) {
+        case .theme: return "Theme"
+        case .resource: return "Resources"
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .delete
+    }
+    
+    func tableView(_ tableView: UITableView,
+                   commit editingStyle: UITableViewCell.EditingStyle,
+                   forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            provider(for: indexPath).removeColor(at: indexPath.row)
+            writePreferenes()
+            tableView.beginUpdates()
+            tableView.deleteRows(at: [indexPath],
+                                 with: .bottom)
+            tableView.endUpdates()
+        }
+    }
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return Section.allCases.count
     }
     
     func provider(for indexPath: IndexPath) -> ColorProvider {
@@ -110,9 +138,13 @@ ColorEditorListener{
     }
     
     func finishedEditingColor(_ color: NamedColor) {
+        writePreferenes()
+        specializedView.table.reloadData()
+    }
+    
+    func writePreferenes() {
         preferences.theme = theme
         preferences.resources = resources
-        specializedView.table.reloadData()
     }
     
 }
@@ -145,5 +177,5 @@ class ThemeEditorView: View {
                 addButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
                 ])
     }
-        
+    
 }
