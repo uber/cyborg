@@ -77,11 +77,6 @@ ColorEditorListener{
                                             for: .touchUpInside)
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        specializedView.table.reloadData()
-    }
-    
     @objc
     func addNewColorPressed() {
         let bottomSheet = UIAlertController(title: "Where Should the Color be Added?",
@@ -115,7 +110,9 @@ ColorEditorListener{
     }
     
     func finishedEditingColor(_ color: NamedColor) {
-        
+        preferences.theme = theme
+        preferences.resources = resources
+        specializedView.table.reloadData()
     }
     
 }
@@ -148,14 +145,5 @@ class ThemeEditorView: View {
                 addButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
                 ])
     }
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-//        let oldInsets = table.contentInset
-//        table.contentInset = .init(top: oldInsets.top,
-//                                   left: oldInsets.bottom,
-//                                   bottom: -(table.frame.height - addButton.frame.minY),
-//                                   right: oldInsets.right)
-    }
-    
+        
 }

@@ -61,8 +61,7 @@ class RootViewController: ViewController<ImportView> {
     func editThemeTapped() {
         navigationController
             .orAssert("This view controller requires a navigation controller to function correctly")?
-            .pushViewController(ThemeEditorViewController(theme: theme,
-                                                          resources: resources),
+            .pushViewController(ThemeEditorViewController(preferences: preferences),
                                 animated: true)
     }
 

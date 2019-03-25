@@ -41,12 +41,18 @@ class ColorEditorViewController: ViewController<ColorEditorView> {
             .addTarget(self,
                        action: #selector(valueDidChange(_:)),
                        for: .allEditingEvents)
+        specializedView
+            .saveButton
+            .addTarget(self,
+                       action: #selector(saveButtonTapped),
+                       for: .touchUpInside)
     }
     
     @objc
     func saveButtonTapped() {
         navigationController?
             .popViewController(animated: true)
+        colorProvider.mappedColors[color.name] = color
         listener?.finishedEditingColor(color)
     }
     
@@ -65,25 +71,22 @@ class ColorEditorViewController: ViewController<ColorEditorView> {
         }
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        // assuming that editing is finished when the view disappears is a minor hack,
-        // but it's a sample app, so w/e
-        colorProvider.mappedColors[color.name] = color
-    }
-    
 }
 
 class ColorEditorView: View {
     
     let namefield: UITextField = {
        let field = UITextField()
+        field.autocorrectionType = .no
+        field.autocapitalizationType = .none
+        field.borderStyle = .bezel
         field.placeholder = "Color Name"
         return field
     }()
     
     let colorfield: UITextField = {
        let field = UITextField()
+        field.borderStyle = .bezel
         field.placeholder = "Hex Number Value"
         return field
     }()
@@ -100,6 +103,8 @@ class ColorEditorView: View {
         return button
     }()
     
+    var observer: AnyObject?
+    
     override init() {
         super.init()
         backgroundColor = .white
@@ -111,6 +116,28 @@ class ColorEditorView: View {
         colorfield.translatesAutoresizingMaskIntoConstraints = false
         errorMessage.translatesAutoresizingMaskIntoConstraints = false
         saveButton.translatesAutoresizingMaskIntoConstraints = false
+        let saveButtonConstraint = saveButton.bottomAnchor.constraint(equalTo: readableContentGuide.bottomAnchor)
+        observer = NotificationCenter
+            .default
+            .addObserver(forName: UIResponder.keyboardWillChangeFrameNotification,
+                         object: nil,
+                         queue: nil) { [weak self] (note) in
+                            // TODO: this makes a lot of assumptions about where we are on screen
+                            // and what's in the dictionary. This should be factored out into a
+                            // keyboard layout guide.
+                            if let userInfo = note.userInfo,
+                                let finalFrame = userInfo[AnyHashable(UIWindow.keyboardFrameEndUserInfoKey)] as? CGRect,
+                                let rawCurve = userInfo[UIWindow.keyboardAnimationCurveUserInfoKey] as? Int,
+                                let curve = AnimationCurve(rawValue: rawCurve),
+                                let duration = userInfo[UIWindow.keyboardAnimationDurationUserInfoKey] as? TimeInterval {
+                                self?.layoutIfNeeded()
+                                UIViewPropertyAnimator(duration: duration, curve: curve, animations: {
+                                    saveButtonConstraint.constant = -finalFrame.height
+                                    self?.layoutIfNeeded()
+                                })
+                                    .startAnimation()
+                            }
+        }
         NSLayoutConstraint
             .activate([
                 namefield.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
@@ -122,7 +149,7 @@ class ColorEditorView: View {
                 errorMessage.topAnchor.constraint(equalTo: colorfield.bottomAnchor),
                 errorMessage.leadingAnchor.constraint(equalTo: colorfield.leadingAnchor),
                 errorMessage.trailingAnchor.constraint(equalTo: colorfield.trailingAnchor),
-                saveButton.bottomAnchor.constraint(equalTo: readableContentGuide.bottomAnchor),
+                saveButtonConstraint,
                 saveButton.centerXAnchor.constraint(equalTo: centerXAnchor),
                 ])
     }

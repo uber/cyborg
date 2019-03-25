@@ -89,12 +89,25 @@ class Preferences {
 
 extension UserDefaults {
     
-    func object<T>(for key: Preferences.Key) -> T? {
-        return object(forKey: key.rawValue) as? T
+    // TODO: bubble up errors
+    
+    func object<T: Codable>(for key: Preferences.Key) -> T? {
+        let decoder = JSONDecoder()
+        if let data = object(forKey: key.rawValue) as? Data,
+            let object = try? decoder.decode(T.self, from: data){
+            return object
+        } else {
+            return nil
+        }
     }
     
-    func save(object: Any, key: Preferences.Key) {
-        set(object, forKey: key.rawValue)
+    func save<T: Codable>(object: T, key: Preferences.Key) {
+        let encoder = JSONEncoder()
+        if let object = try? encoder.encode(object) {
+            set(object, forKey: key.rawValue)
+        } else {
+            assertionFailure()
+        }
     }
     
 }
