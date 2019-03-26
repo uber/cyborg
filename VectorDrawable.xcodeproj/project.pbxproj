@@ -32,6 +32,9 @@
 		3BCCBFC31F7D658C00404EFD /* RootViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC21F7D658C00404EFD /* RootViewController.swift */; };
 		3BCCBFC81F7D658C00404EFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC71F7D658C00404EFD /* Assets.xcassets */; };
 		3BCCBFCB1F7D658C00404EFD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3BCCBFC91F7D658C00404EFD /* LaunchScreen.storyboard */; };
+		3BFE9BDC2245861300F8D6EA /* ThemeAndResourceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */; };
+		3BFE9BDE2245882B00F8D6EA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDD2245882B00F8D6EA /* Theme.swift */; };
+		3BFE9BE02245921100F8D6EA /* ColorEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */; };
 		5EED9ED52240744D00B466BB /* BaseUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED42240744D00B466BB /* BaseUI.swift */; };
 		5EED9ED72240773900B466BB /* DisplayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED62240773900B466BB /* DisplayViewController.swift */; };
 		5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF612AE21B0A43000F14D11 /* GradientTests.swift */; };
@@ -97,6 +100,9 @@
 		3BCCBFC71F7D658C00404EFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3BCCBFCA1F7D658C00404EFD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3BCCBFCC1F7D658C00404EFD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeAndResourceViewController.swift; sourceTree = "<group>"; };
+		3BFE9BDD2245882B00F8D6EA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorEditorViewController.swift; sourceTree = "<group>"; };
 		5EED9ED42240744D00B466BB /* BaseUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseUI.swift; sourceTree = "<group>"; };
 		5EED9ED62240773900B466BB /* DisplayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayViewController.swift; sourceTree = "<group>"; };
 		5EF612AE21B0A43000F14D11 /* GradientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientTests.swift; sourceTree = "<group>"; };
@@ -198,7 +204,10 @@
 			children = (
 				3BCCBFC01F7D658C00404EFD /* AppDelegate.swift */,
 				3BCCBFC21F7D658C00404EFD /* RootViewController.swift */,
+				3BFE9BDD2245882B00F8D6EA /* Theme.swift */,
+				3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */,
 				5EED9ED62240773900B466BB /* DisplayViewController.swift */,
+				3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */,
 				5EED9ED42240744D00B466BB /* BaseUI.swift */,
 				3BCCBFC71F7D658C00404EFD /* Assets.xcassets */,
 				3BCCBFC91F7D658C00404EFD /* LaunchScreen.storyboard */,
@@ -388,8 +397,11 @@
 			files = (
 				3BCCBFC31F7D658C00404EFD /* RootViewController.swift in Sources */,
 				3BCCBFC11F7D658C00404EFD /* AppDelegate.swift in Sources */,
+				3BFE9BE02245921100F8D6EA /* ColorEditorViewController.swift in Sources */,
 				5EED9ED52240744D00B466BB /* BaseUI.swift in Sources */,
+				3BFE9BDE2245882B00F8D6EA /* Theme.swift in Sources */,
 				5EED9ED72240773900B466BB /* DisplayViewController.swift in Sources */,
+				3BFE9BDC2245861300F8D6EA /* ThemeAndResourceViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

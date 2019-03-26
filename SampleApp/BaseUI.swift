@@ -18,6 +18,35 @@ class View: UIView {
     
 }
 
+extension NSLayoutConstraint {
+    
+    func moveWithKeyboard(in view: UIView) -> AnyObject {
+        return NotificationCenter
+            .default
+            .addObserver(forName: UIResponder.keyboardWillChangeFrameNotification,
+                         object: nil,
+                         queue: nil) { [weak view] (note) in
+                            // TODO: this makes a lot of assumptions about where we are on screen
+                            // and what's in the dictionary. This should be factored out into a
+                            // keyboard layout guide.
+                            if let userInfo = note.userInfo,
+                                let finalFrame = userInfo[AnyHashable(UIWindow.keyboardFrameEndUserInfoKey)] as? CGRect,
+                                let rawCurve = userInfo[UIWindow.keyboardAnimationCurveUserInfoKey] as? Int,
+                                let curve = UIView.AnimationCurve(rawValue: rawCurve),
+                                let duration = userInfo[UIWindow.keyboardAnimationDurationUserInfoKey] as? TimeInterval {
+                                view?.layoutIfNeeded()
+                                UIViewPropertyAnimator(duration: duration, curve: curve, animations: {
+                                    self.constant = -finalFrame.height
+                                    view?.layoutIfNeeded()
+                                })
+                                    .startAnimation()
+                            }
+        }
+
+    }
+    
+}
+
 
 class ViewController<View: UIView>: UIViewController {
     
