@@ -67,7 +67,7 @@ class ColorEditorViewController: ViewController<ColorEditorView> {
             color.hex = hexValue
             specializedView.errorMessage.text = ""
         } else {
-            specializedView.errorMessage.text = "Invalid hex color value. Enter a number withou a leading \"#\"  or \"0x\""
+            specializedView.errorMessage.text = "Invalid hex color value. Enter a number without a leading \"#\"  or \"0x\""
         }
     }
     
