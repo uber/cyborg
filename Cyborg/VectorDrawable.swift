@@ -423,6 +423,14 @@ public final class VectorDrawable {
             super.apply(to: layer)
         }
     }
+    
+    /// An empty VectorDrawable of size zero.
+    public static let blank = VectorDrawable(baseWidth: 0,
+                                             baseHeight: 0,
+                                             viewPortWidth: 0,
+                                             viewPortHeight: 0,
+                                             baseAlpha: 0,
+                                             groups: [])
 
 }
 
