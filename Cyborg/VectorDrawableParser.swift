@@ -127,18 +127,12 @@ public extension VectorDrawable {
             defer {
                 xmlFreeTextReader(xml)
             }
-            var lastElement = ""
             while xmlTextReaderRead(xml) == 1 {
                 let count = xmlTextReaderAttributeCount(xml)
                 if let namePointer = xmlTextReaderConstName(xml) {
                     let elementName = String(cString: namePointer)
                     let isEmpty = xmlTextReaderIsEmptyElement(xml) == 1
                     let type = xmlTextReaderNodeType(xml)
-                    defer {
-                        if type != XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
-                            lastElement = elementName
-                        }
-                    }
                     if type == XML_READER_TYPE_SIGNIFICANT_WHITESPACE.rawValue {
                         // we don't care about these, they show up as "#text"
                         // which disrupts the parsing
@@ -146,7 +140,7 @@ public extension VectorDrawable {
                     }
                     if type == XML_READER_TYPE_END_ELEMENT.rawValue {
                         // The return value here indicates whether the parser ended, which we don't care about in this case.
-                        _ = parser.didEnd(element: lastElement)
+                        _ = parser.didEnd(element: elementName)
                         continue
                     }
                     var attributes = [(XMLString, XMLString)]()
