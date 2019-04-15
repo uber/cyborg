@@ -116,28 +116,28 @@ class XMLSchemaTests: XCTestCase {
             .create(from: """
                 <?xml version="1.0" encoding="utf-8"?>
                 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-                android:viewportWidth="24"
-                android:viewportHeight="24"
-                android:width="24dp"
-                android:height="24dp">
-                <group
-                android:translateX="-3589"
-                android:translateY="-2800">
-                <group
-                android:translateX="3596"
-                android:translateY="2801">
-                <path
-                android:pathData="M0 0l0 3 13 0 0 13 3 0L16 0 0 0Z"
-                android:fillColor="?iconPrimary" />
-                </group>
-                <group
-                android:translateX="3590"
-                android:translateY="2806">
-                <path
-                android:pathData="M0 17L17 17 17 0 0 0 0 17ZM3 3L14 3 14 10 11.5 7.5 9.7 9.3 6.5 6 3 9.5 3 3Z"
-                android:fillColor="?iconPrimary" />
-                </group>
-                </group>
+                        android:viewportWidth="24"
+                        android:viewportHeight="24"
+                        android:width="24dp"
+                        android:height="24dp">
+                  <group
+                      android:translateX="-3589"
+                      android:translateY="-2800">
+                    <group
+                        android:translateX="3596"
+                        android:translateY="2801">
+                      <path
+                          android:pathData="M0 0l0 3 13 0 0 13 3 0L16 0 0 0Z"
+                          android:fillColor="?iconPrimary" />
+                    </group>
+                    <group
+                        android:translateX="3590"
+                        android:translateY="2806">
+                      <path
+                          android:pathData="M0 17L17 17 17 0 0 0 0 17ZM3 3L14 3 14 10 11.5 7.5 9.7 9.3 6.5 6 3 9.5 3 3Z"
+                          android:fillColor="?iconPrimary" />
+                    </group>
+                  </group>
                 </vector>
                 """).expectSuccess()
         XCTAssert(drawable
