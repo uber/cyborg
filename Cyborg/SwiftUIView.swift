@@ -25,7 +25,7 @@ import SwiftUI
 /// Current areas where this API may be deficient are:
 ///
 /// 1. The drawable must be fully parsed before the view's init is called, which isn't in the spirit of SwiftUI's views being
-/// easy to construct.
+/// cheap to construct.
 ///
 /// 2. Handling of resources is a bit hacky. See below for details.
 ///
@@ -37,7 +37,11 @@ import SwiftUI
 /// `init(_ drawable:)`.
 ///
 /// You can provide the `theme` and `resources` through
-/// `environment()`.
+/// `environment()`. It seems as though `theme` is better suited to be an `EnvironmentObject` than
+/// merely part of the `Environment`, but there doesn't seem to be any way to access an `EnvironmentObject` inside of
+/// `updateUIView` without crashing. If you want dynamic theme changes, the easiest way currently is to bind an `EnvironmentObject`
+/// higher in your view hierarchy, then use its output to mutate the `Environment` by calling `View.environment` on the child
+/// tree that contains the drawables you want to theme.
 ///
 /// - Note: `resources` does not update after the view is first created,
 /// it's passed as an `Environment` var solely for convenience.
@@ -46,20 +50,15 @@ public struct VectorDrawableView: UIViewRepresentable {
     
     public let drawable: VectorDrawable
     
-    @Environment(\.vectorDrawableTheme)
-    public var theme: ThemeProviding
-    
-    @Environment(\.vectorDrawableResources)
-    public var resources: ResourceProviding
-    
     /// Initializer.
     public init(_ drawable: VectorDrawable) {
         self.drawable = drawable
     }
     
     public func makeUIView(context: UIViewRepresentableContext<VectorDrawableView>) -> VectorView {
-        let view = VectorView(theme: ThemeKey.defaultValue,
-                              resources: ResourceKey.defaultValue)
+        let view = VectorView(theme: context.environment.vectorDrawableTheme,
+                              resources: context.environment.vectorDrawableResources)
+        print(context.environment.vectorDrawableTheme.colorFromTheme(named: ""))
         view.setContentHuggingPriority(.defaultHigh,
                                        for: .horizontal)
         view.setContentHuggingPriority(.defaultHigh,
@@ -75,7 +74,6 @@ public struct VectorDrawableView: UIViewRepresentable {
     }
 
 }
-
 
 /// The key for Vector Drawable themes.
 public struct ThemeKey: EnvironmentKey {
@@ -96,7 +94,7 @@ public struct ThemeKey: EnvironmentKey {
 /// The key for Vector Drawable resources.
 public struct ResourceKey: EnvironmentKey {
     
-    public static var defaultValue: ResourceProviding = {
+    public static let defaultValue: ResourceProviding = {
         struct DefaultResources: ResourceProviding {
             func colorFromResources(named name: String) -> UIColor {
                 return .black
@@ -142,3 +140,4 @@ public extension EnvironmentValues {
 }
 
 #endif
+
