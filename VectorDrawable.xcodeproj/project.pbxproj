@@ -35,6 +35,7 @@
 		3BFE9BDC2245861300F8D6EA /* ThemeAndResourceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */; };
 		3BFE9BDE2245882B00F8D6EA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDD2245882B00F8D6EA /* Theme.swift */; };
 		3BFE9BE02245921100F8D6EA /* ColorEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */; };
+		5ECFF67F22B04F5A003909C1 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECFF67E22B04F5A003909C1 /* SwiftUIView.swift */; };
 		5EED9ED52240744D00B466BB /* BaseUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED42240744D00B466BB /* BaseUI.swift */; };
 		5EED9ED72240773900B466BB /* DisplayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED62240773900B466BB /* DisplayViewController.swift */; };
 		5EF612AF21B0A43000F14D11 /* GradientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF612AE21B0A43000F14D11 /* GradientTests.swift */; };
@@ -103,6 +104,7 @@
 		3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeAndResourceViewController.swift; sourceTree = "<group>"; };
 		3BFE9BDD2245882B00F8D6EA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorEditorViewController.swift; sourceTree = "<group>"; };
+		5ECFF67E22B04F5A003909C1 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 		5EED9ED42240744D00B466BB /* BaseUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseUI.swift; sourceTree = "<group>"; };
 		5EED9ED62240773900B466BB /* DisplayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayViewController.swift; sourceTree = "<group>"; };
 		5EF612AE21B0A43000F14D11 /* GradientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientTests.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				3B5D2E21218297700024E3C6 /* Arc.swift */,
 				3BA3807C2109571000F43697 /* ParserPrimitives.swift */,
 				3B5338F3210F845400C1C16B /* VectorView.swift */,
+				5ECFF67E22B04F5A003909C1 /* SwiftUIView.swift */,
 				3B3BE3781FA016B60070D8B1 /* Info.plist */,
 			);
 			path = Cyborg;
@@ -318,6 +321,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -367,6 +371,7 @@
 				3B14B78121406CBE00C1C696 /* XmlParsing.swift in Sources */,
 				3BA38081210A475A00F43697 /* XMLSchema.swift in Sources */,
 				3B5D2E22218297700024E3C6 /* Arc.swift in Sources */,
+				5ECFF67F22B04F5A003909C1 /* SwiftUIView.swift in Sources */,
 				3BA3807F210A471A00F43697 /* DrawingCommand.swift in Sources */,
 				3BA3807D2109571000F43697 /* ParserPrimitives.swift in Sources */,
 				3B5338F4210F845400C1C16B /* VectorView.swift in Sources */,
