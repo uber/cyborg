@@ -1,5 +1,10 @@
 # Cyborg
 
+[![Build Status](https://travis-ci.com/uber/cyborg.svg?branch=master)](https://travis-ci.com/uber/cyborg)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2961/badge)](https://bestpractices.coreinfrastructure.org/projects/2961)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+
+
 Cyborg is a [partial](https://github.com/uber/cyborg/issues?q=is%3Aissue+is%3Aopen+label%3A%22Spec+Compliance%22) port of Android's [VectorDrawable](https://medium.com/androiddevelopers/understanding-androids-vector-image-format-vectordrawable-ab09e41d5c68) to iOS.
 It is intended as a replacement for UIImages, Icon Fonts, and Apple's PDF vector image option. The VectorDrawable format provides a number of advantages:
 
