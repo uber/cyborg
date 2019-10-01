@@ -48,7 +48,9 @@ extension NSLayoutConstraint {
                                 let duration = userInfo[UIWindow.keyboardAnimationDurationUserInfoKey] as? TimeInterval {
                                 view?.layoutIfNeeded()
                                 UIViewPropertyAnimator(duration: duration, curve: curve, animations: {
-                                    self.constant = -finalFrame.height
+                                    let padding: CGFloat = 10
+                                    
+                                    self.constant = -(finalFrame.height + padding)
                                     view?.layoutIfNeeded()
                                 })
                                     .startAnimation()

@@ -117,15 +117,14 @@ class ImportView: View {
         addSubview(importButton)
         textView.translatesAutoresizingMaskIntoConstraints = false
         importButton.translatesAutoresizingMaskIntoConstraints = false
-        let padding: CGFloat = 10
-        let importButtonBottomConstraint = importButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: padding)
+        let importButtonBottomConstraint = importButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: 0)
         observer = importButtonBottomConstraint.moveWithKeyboard(in: self)
         NSLayoutConstraint
             .activate([
                 importButton.centerXAnchor.constraint(equalTo: centerXAnchor),
                 importButtonBottomConstraint,
                 textView.topAnchor.constraint(equalTo: readableContentGuide.topAnchor),
-                textView.bottomAnchor.constraint(equalTo: importButton.bottomAnchor, constant: padding),
+                textView.bottomAnchor.constraint(equalTo: importButton.topAnchor, constant: -10),
                 textView.leadingAnchor.constraint(equalTo: readableContentGuide.leadingAnchor),
                 textView.trailingAnchor.constraint(equalTo: readableContentGuide.trailingAnchor)
                 ])
