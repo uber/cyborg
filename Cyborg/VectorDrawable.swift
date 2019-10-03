@@ -81,6 +81,10 @@ protocol GroupChild: AnyObject {
 }
 
 /// A VectorDrawable. This can be displayed in a `VectorView`.
+///
+/// You can set the `tint` and `intrinsicSize` of a `VectorDrawable` by using
+/// the `withSize` and `withTint` functions, respectively. `withSizeMultiple` is
+/// also available for cases where you want to preserve the aspect ratio of the drawable.
 public final class VectorDrawable {
 
     /// The intrinsic width in points.
@@ -99,6 +103,18 @@ public final class VectorDrawable {
 
     /// The overall alpha to apply to the drawable.
     public let baseAlpha: CGFloat
+    
+    /// The tint to apply to the drawable.
+    ///
+    /// This tint color is overridden if there is a tint color set on the `VectorView` the
+    /// callee is placed into. 
+    ///
+    /// - note: `tint` is considered external to the VectorDrawable
+    /// and won't be updated when `theme` is set, though it will apply to
+    /// new values provided by the theme.
+    /// It is your responsibility to ensure that changes
+    /// to `theme` also change `tint` if appropriate.
+    public let tint: AndroidTint
 
     let groups: [GroupChild]
 
@@ -107,13 +123,15 @@ public final class VectorDrawable {
          viewPortWidth: CGFloat,
          viewPortHeight: CGFloat,
          baseAlpha: CGFloat,
-         groups: [GroupChild]) {
+         groups: [GroupChild],
+         tint: AndroidTint = (.src, .clear)) {
         self.baseWidth = baseWidth
         self.baseHeight = baseHeight
         self.viewPortWidth = viewPortWidth
         self.viewPortHeight = viewPortHeight
         self.baseAlpha = baseAlpha
         self.groups = groups
+        self.tint = tint
     }
     
     /// Creates a duplicate of the callee with the specified size.
@@ -126,7 +144,8 @@ public final class VectorDrawable {
                      viewPortWidth: viewPortWidth,
                      viewPortHeight: viewPortHeight,
                      baseAlpha: baseAlpha,
-                     groups: groups)
+                     groups: groups,
+                     tint: tint)
     }
     
     /// Creates a duplicate of the callee with its base size multiplied by `multiple`.
@@ -136,6 +155,20 @@ public final class VectorDrawable {
     public func withSizeMultiple(_ multiple: CGFloat) -> VectorDrawable {
         return withSize(.init(width: baseWidth * multiple,
                               height: baseHeight * multiple))
+    }
+    
+    /// Creates a duplicate of the callee with its tint set to `tint`.
+    ///
+    /// - parameter tint: the new tint to use
+    /// - returns: a new `VectorDrawable` with the specified `tint`.
+    public func withTint(_ tint: AndroidTint) -> VectorDrawable {
+        return .init(baseWidth: baseWidth,
+                     baseHeight: baseHeight,
+                     viewPortWidth: viewPortWidth,
+                     viewPortHeight: viewPortHeight,
+                     baseAlpha: baseAlpha,
+                     groups: groups,
+                     tint: tint)
     }
 
     /// Representation of a <group> element from a VectorDrawable document.

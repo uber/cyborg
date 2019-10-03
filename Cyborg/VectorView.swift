@@ -35,7 +35,7 @@ open class VectorView: UIView {
     /// new values provided by the theme.
     /// It is your responsibility to ensure that changes
     /// to `theme` also change `tint` if appropriate.
-    public var tint: AndroidTint = (.src, .clear) {
+    public var tint: AndroidTint? {
         didSet {
             updateLayers()
         }
@@ -105,7 +105,7 @@ open class VectorView: UIView {
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
                                                                                 theme: theme),
-                                                          tint: tint)
+                                                          tint: tint ?? drawable.tint)
             for layer in drawableLayers {
                 layer.transform = transform
             }
