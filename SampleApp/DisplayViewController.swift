@@ -46,7 +46,7 @@ class DisplayView: View {
         let scrollView = UIScrollView()
         scrollView.alwaysBounceVertical = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-                vectorView.translatesAutoresizingMaskIntoConstraints = false
+        vectorView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(vectorView)
         addSubview(scrollView)
         NSLayoutConstraint
