@@ -106,15 +106,15 @@ public final class VectorDrawable {
     
     /// The tint to apply to the drawable.
     ///
-    /// This tint color is overridden if there is a tint color set on the `VectorView` the
-    /// callee is placed into. 
+    /// This tint color overrides the tint color on the `VectorView` it is
+    /// displayed in. If this tint is `nil` the `VectorView`'s tint is used.
     ///
     /// - note: `tint` is considered external to the VectorDrawable
     /// and won't be updated when `theme` is set, though it will apply to
     /// new values provided by the theme.
     /// It is your responsibility to ensure that changes
     /// to `theme` also change `tint` if appropriate.
-    public let tint: AndroidTint
+    public let tint: AndroidTint?
 
     let groups: [GroupChild]
 
@@ -124,7 +124,7 @@ public final class VectorDrawable {
          viewPortHeight: CGFloat,
          baseAlpha: CGFloat,
          groups: [GroupChild],
-         tint: AndroidTint = (.src, .clear)) {
+         tint: AndroidTint? = nil) {
         self.baseWidth = baseWidth
         self.baseHeight = baseHeight
         self.viewPortWidth = viewPortWidth
