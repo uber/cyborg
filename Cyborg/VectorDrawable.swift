@@ -115,6 +115,28 @@ public final class VectorDrawable {
         self.baseAlpha = baseAlpha
         self.groups = groups
     }
+    
+    /// Creates a duplicate of the callee with the specified size.
+    ///
+    /// - parameter size: the size to set the drawable to
+    /// - returns: a new `VectorDrawable` with the specified size.
+    public func withSize(_ size: CGSize) -> VectorDrawable {
+        return .init(baseWidth: size.width,
+                     baseHeight: size.height,
+                     viewPortWidth: viewPortWidth,
+                     viewPortHeight: viewPortHeight,
+                     baseAlpha: baseAlpha,
+                     groups: groups)
+    }
+    
+    /// Creates a duplicate of the callee with its base size multiplied by `multiple`.
+    ///
+    /// - parameter multiple: the number to multiply the starting size by
+    /// - returns: a new `VectorDrawable` with the specified size.
+    public func withSizeMultiple(_ multiple: CGFloat) -> VectorDrawable {
+        return withSize(.init(width: baseWidth * multiple,
+                              height: baseHeight * multiple))
+    }
 
     /// Representation of a <group> element from a VectorDrawable document.
     public class Group: GroupChild {
