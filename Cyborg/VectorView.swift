@@ -30,6 +30,9 @@ open class VectorView: UIView {
     /// set the tint to `(.dst, myColor)`, which will choose
     /// `myColor` instead of the color specified in the xml.
     ///
+    /// This proerty is overridden by the `VectorDrawable`'s `tint` property
+    /// if it has been set. 
+    ///
     /// - note: `tint` is considered external to the VectorDrawable
     /// and won't be updated when `theme` is set, though it will apply to
     /// new values provided by the theme.
@@ -105,7 +108,7 @@ open class VectorView: UIView {
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
                                                                                 theme: theme),
-                                                          tint: tint)
+                                                          tint: drawable.tint ?? tint)
             for layer in drawableLayers {
                 layer.transform = transform
             }
