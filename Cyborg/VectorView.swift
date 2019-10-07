@@ -439,17 +439,17 @@ final class ThemeableGradientLayer: CAGradientLayer {
 extension CGSize {
         
     func scaleAspectFit(in dimensions: CGSize) -> CGSize {
-        return aspectFill(dimensions: dimensions,
-                          with: min)
+        return scaledToAspect(in: dimensions,
+                              with: min)
     }
     
     func scaleAspectFill(in dimensions: CGSize) -> CGSize {
-        return aspectFill(dimensions: dimensions,
-                          with: max)
+        return scaledToAspect(in: dimensions,
+                              with: max)
     }
     
-    func aspectFill(dimensions: CGSize,
-                    with function: (CGFloat, CGFloat) -> (CGFloat)) -> CGSize {
+    private func scaledToAspect(in dimensions: CGSize,
+                                with function: (CGFloat, CGFloat) -> (CGFloat)) -> CGSize {
         let heightRatio = dimensions.height / height
         let widthRatio = dimensions.width / width
         let ratio = function(heightRatio, widthRatio)
