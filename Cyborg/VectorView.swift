@@ -30,8 +30,8 @@ open class VectorView: UIView {
     /// set the tint to `(.dst, myColor)`, which will choose
     /// `myColor` instead of the color specified in the xml.
     ///
-    /// This proerty is overridden by the `VectorDrawable`'s `tint` property
-    /// if it has been set. 
+    /// This property is overridden by the `VectorDrawable`'s `tint` property
+    /// if it has been set.
     ///
     /// - note: `tint` is considered external to the VectorDrawable
     /// and won't be updated when `theme` is set, though it will apply to
@@ -90,9 +90,70 @@ open class VectorView: UIView {
 
     open override func layoutSubviews() {
         super.layoutSubviews()
-        if bounds.size != .zero {
+        func makeActualSize(_ drawable: VectorDrawable,
+                            at point: CGPoint) {
             for layer in layer.sublayers ?? [] {
-                layer.frame = bounds
+                layer.frame = .init(origin: point,
+                                    size: drawable.intrinsicSize)
+            }
+        }
+        if bounds.size != .zero,
+            let drawable = drawable {
+            switch contentMode {
+            case .scaleToFill,
+                 .redraw: // redraw behaves the same as scaleToFil in `UIImageView`
+                for layer in layer.sublayers ?? [] {
+                    layer.frame = bounds
+                }
+            case .scaleAspectFit:
+                let size = drawable.intrinsicSize.scaleAspectFit(in: bounds.size)
+                for layer in layer.sublayers ?? [] {
+                    layer.frame = .init(origin: bounds.origin,
+                                        size: size)
+                }
+            case .scaleAspectFill:
+                let size = drawable.intrinsicSize.scaleAspectFill(in: bounds.size)
+                for layer in layer.sublayers ?? [] {
+                    layer.frame = .init(origin: .init(x: bounds.origin.x + bounds.size.width / 2 - size.width / 2,
+                                                      y: bounds.origin.y + bounds.size.height / 2 - size.height / 2),
+                                        size: size)
+                }
+            case .center:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width / 2 - drawable.baseWidth / 2,
+                                         y: bounds.origin.y + bounds.size.height / 2 - drawable.baseHeight / 2))
+            case .top:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width / 2 - drawable.baseWidth / 2,
+                                         y: 0))
+            case .bottom:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width / 2 - drawable.baseWidth / 2,
+                                         y: bounds.origin.y + bounds.size.height - drawable.baseHeight))
+            case .left:
+                makeActualSize(drawable,
+                               at: .init(x: 0,
+                                         y: bounds.origin.y + bounds.size.height / 2 - drawable.baseHeight / 2))
+            case .right:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width - drawable.baseWidth,
+                                         y: bounds.origin.y + bounds.size.height / 2 - drawable.baseHeight / 2))
+            case .topLeft:
+                makeActualSize(drawable,
+                               at: .init(x: 0,
+                                         y: 0))
+            case .topRight:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width - drawable.baseWidth,
+                                         y: 0))
+            case .bottomLeft:
+                makeActualSize(drawable,
+                               at: .init(x: 0,
+                                         y: bounds.origin.y + bounds.size.height - drawable.baseHeight))
+            case .bottomRight:
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width - drawable.baseWidth,
+                                         y: bounds.origin.y + bounds.size.height - drawable.baseHeight))
             }
         }
     }
@@ -121,6 +182,12 @@ open class VectorView: UIView {
 
     open override var intrinsicContentSize: CGSize {
         return drawableSize
+    }
+    
+    open override var contentMode: UIView.ContentMode {
+        didSet {
+            updateLayers()
+        }
     }
 
 }
@@ -367,4 +434,47 @@ final class ThemeableGradientLayer: CAGradientLayer {
         gradient.apply(to: self)
     }
 
+}
+
+extension CGSize {
+    
+    func scaleAspectFit(in dimensions: CGSize) -> CGSize {
+        let largerDimension: WritableKeyPath<CGSize, CGFloat>
+        let smallerDimension: WritableKeyPath<CGSize, CGFloat>
+        let minimumSize = min(dimensions.width, dimensions.height)
+        if width > height {
+            largerDimension = \.width
+            smallerDimension = \.height
+        } else {
+            largerDimension = \.height
+            smallerDimension = \.width
+        }
+        let smallerValue = self[keyPath: smallerDimension]
+        let largerValue = self[keyPath: largerDimension]
+        var scaled: CGSize = .zero
+        scaled[keyPath: smallerDimension] = (smallerValue / largerValue) * minimumSize
+        scaled[keyPath: largerDimension] = minimumSize
+        return scaled
+
+    }
+    
+    func scaleAspectFill(in dimensions: CGSize) -> CGSize {
+        let largerDimension: WritableKeyPath<CGSize, CGFloat>
+        let smallerDimension: WritableKeyPath<CGSize, CGFloat>
+        let maximumSize = max(dimensions.width, dimensions.height)
+        if width > height {
+            largerDimension = \.width
+            smallerDimension = \.height
+        } else {
+            largerDimension = \.height
+            smallerDimension = \.width
+        }
+        let smallerValue = self[keyPath: smallerDimension]
+        let largerValue = self[keyPath: largerDimension]
+        var scaled: CGSize = .zero
+        scaled[keyPath: largerDimension] = (largerValue / smallerValue) * maximumSize
+        scaled[keyPath: smallerDimension] = maximumSize
+        return scaled
+    }
+        
 }
