@@ -437,44 +437,24 @@ final class ThemeableGradientLayer: CAGradientLayer {
 }
 
 extension CGSize {
-    
+        
     func scaleAspectFit(in dimensions: CGSize) -> CGSize {
-        let largerDimension: WritableKeyPath<CGSize, CGFloat>
-        let smallerDimension: WritableKeyPath<CGSize, CGFloat>
-        let minimumSize = min(dimensions.width, dimensions.height)
-        if width > height {
-            largerDimension = \.width
-            smallerDimension = \.height
-        } else {
-            largerDimension = \.height
-            smallerDimension = \.width
-        }
-        let smallerValue = self[keyPath: smallerDimension]
-        let largerValue = self[keyPath: largerDimension]
-        var scaled: CGSize = .zero
-        scaled[keyPath: smallerDimension] = (smallerValue / largerValue) * minimumSize
-        scaled[keyPath: largerDimension] = minimumSize
-        return scaled
-
+        return aspectFill(dimensions: dimensions,
+                          with: min)
     }
     
     func scaleAspectFill(in dimensions: CGSize) -> CGSize {
-        let largerDimension: WritableKeyPath<CGSize, CGFloat>
-        let smallerDimension: WritableKeyPath<CGSize, CGFloat>
-        let maximumSize = max(dimensions.width, dimensions.height)
-        if width > height {
-            largerDimension = \.width
-            smallerDimension = \.height
-        } else {
-            largerDimension = \.height
-            smallerDimension = \.width
-        }
-        let smallerValue = self[keyPath: smallerDimension]
-        let largerValue = self[keyPath: largerDimension]
-        var scaled: CGSize = .zero
-        scaled[keyPath: largerDimension] = (largerValue / smallerValue) * maximumSize
-        scaled[keyPath: smallerDimension] = maximumSize
-        return scaled
+        return aspectFill(dimensions: dimensions,
+                          with: max)
     }
-        
+    
+    func aspectFill(dimensions: CGSize,
+                    with function: (CGFloat, CGFloat) -> (CGFloat)) -> CGSize {
+        let heightRatio = dimensions.height / height
+        let widthRatio = dimensions.width / width
+        let ratio = function(heightRatio, widthRatio)
+        return .init(width: width * ratio,
+                     height: height * ratio)
+    }
+    
 }

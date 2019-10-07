@@ -32,6 +32,12 @@ class AspectRatioTests: XCTestCase {
                            file: file,
                            line: line)
         }
+        assertTransformed(from: .init(width: 1,
+                                      height: 5),
+                          in: .init(width: 100,
+                                    height: 200),
+                          to: .init(width: 40,
+                                    height: 200))
         assertTransformed(from: .init(width: 10,
                                       height: 10),
                           in: .init(width: 100,
@@ -63,6 +69,12 @@ class AspectRatioTests: XCTestCase {
                            file: file,
                            line: line)
         }
+        assertTransformed(from: .init(width: 1,
+                                      height: 5),
+                          in: .init(width: 100,
+                                    height: 200),
+                          to: .init(width: 100,
+                                    height: 500))
         assertTransformed(from: .init(width: 10,
                                       height: 10),
                           in: .init(width: 100,
