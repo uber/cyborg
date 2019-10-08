@@ -48,11 +48,15 @@ class DisplayView: View {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         vectorView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(vectorView)
+        vectorView.backgroundColor = .red
+        vectorView.contentMode = .scaleAspectFill
         addSubview(scrollView)
         NSLayoutConstraint
             .activate([
                 vectorView.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor),
                 vectorView.centerYAnchor.constraint(equalTo: scrollView.centerYAnchor),
+                vectorView.heightAnchor.constraint(equalToConstant: 100),
+                vectorView.widthAnchor.constraint(equalToConstant: 120),
                 scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
                 scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
                 scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),

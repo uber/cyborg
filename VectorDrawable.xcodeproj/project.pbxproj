@@ -35,6 +35,7 @@
 		3BFE9BDC2245861300F8D6EA /* ThemeAndResourceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */; };
 		3BFE9BDE2245882B00F8D6EA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDD2245882B00F8D6EA /* Theme.swift */; };
 		3BFE9BE02245921100F8D6EA /* ColorEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */; };
+		5E46DE49234BB6E8006276C7 /* AspectRatioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E46DE48234BB6E8006276C7 /* AspectRatioTests.swift */; };
 		5ECFF67F22B04F5A003909C1 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECFF67E22B04F5A003909C1 /* SwiftUIView.swift */; };
 		5EED9ED52240744D00B466BB /* BaseUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED42240744D00B466BB /* BaseUI.swift */; };
 		5EED9ED72240773900B466BB /* DisplayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EED9ED62240773900B466BB /* DisplayViewController.swift */; };
@@ -104,6 +105,7 @@
 		3BFE9BDB2245861300F8D6EA /* ThemeAndResourceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeAndResourceViewController.swift; sourceTree = "<group>"; };
 		3BFE9BDD2245882B00F8D6EA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		3BFE9BDF2245921100F8D6EA /* ColorEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorEditorViewController.swift; sourceTree = "<group>"; };
+		5E46DE48234BB6E8006276C7 /* AspectRatioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AspectRatioTests.swift; sourceTree = "<group>"; };
 		5ECFF67E22B04F5A003909C1 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 		5EED9ED42240744D00B466BB /* BaseUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseUI.swift; sourceTree = "<group>"; };
 		5EED9ED62240773900B466BB /* DisplayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayViewController.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 				3B7ED82A2163942A00914C57 /* ParserTests.swift */,
 				3B7ED82E216394DC00914C57 /* TestUtilities.swift */,
 				5EF612AE21B0A43000F14D11 /* GradientTests.swift */,
+				5E46DE48234BB6E8006276C7 /* AspectRatioTests.swift */,
 				3BA380752108E40F00F43697 /* Info.plist */,
 			);
 			path = CyborgTests;
@@ -385,6 +388,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3B7ED82921636EE500914C57 /* XMLSchemaTests.swift in Sources */,
+				5E46DE49234BB6E8006276C7 /* AspectRatioTests.swift in Sources */,
 				3B7ED82D2163945A00914C57 /* DrawCommandTests.swift in Sources */,
 				3B7ED82F216394DC00914C57 /* TestUtilities.swift in Sources */,
 				3B7ED82B2163942A00914C57 /* ParserTests.swift in Sources */,
