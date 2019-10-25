@@ -4,6 +4,6 @@ osx_image: xcode11.1
 matrix:
     include:
         - name: "CyborgTests"
-          script: xcodebuild test -project VectorDrawable.xcodeproj -scheme Cyborg -destination 'platform=iOS Simulator,OS=13.1,name=iPhone Xr'
+          script: xcodebuild test -project VectorDrawable.xcodeproj -scheme Cyborg -destination 'platform=iOS Simulator,OS=13.1,name=iPhone 11'
         - name: "BuildSampleApp"
-          script: xcodebuild build -project VectorDrawable.xcodeproj -scheme VectorDrawable -destination 'platform=iOS Simulator,OS=13.1,name=iPhone Xr'
+          script: xcodebuild build -project VectorDrawable.xcodeproj -scheme VectorDrawable -destination 'platform=iOS Simulator,OS=13.1,name=iPhone 11'
