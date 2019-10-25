@@ -26,15 +26,15 @@ struct EllipticArc {
 
     func point(for pseudoAngle: CGFloat) -> CGPoint {
         // 2.2.1 (3)
-        return .init(
+        .init(
             x: center.x + radius.x * cos(xAngle) * cos(pseudoAngle) - radius.y * sin(xAngle) * sin(pseudoAngle),
             y: center.y + radius.x * sin(xAngle) * cos(pseudoAngle) + radius.y * cos(xAngle) * sin(pseudoAngle)
         )
     }
-
+    
     func derivative(for pseudoAngle: CGFloat) -> CGPoint {
         // 2.2.1 (4)
-        return .init(
+        .init(
             x: -radius.x * cos(xAngle) * sin(pseudoAngle) - radius.y * sin(xAngle) * cos(pseudoAngle),
             y: -radius.x * sin(xAngle) * sin(pseudoAngle) + radius.y * cos(xAngle) * cos(pseudoAngle)
         )
@@ -153,10 +153,10 @@ fileprivate struct Segments: Sequence {
     }
 
     func makeIterator() -> Segments.Iterator {
-        return Iterator(current: start,
-                        currentIndex: 0,
-                        delta: delta,
-                        division: division)
+        Iterator(current: start,
+                 currentIndex: 0,
+                 delta: delta,
+                 division: division)
     }
 
     struct Iterator: IteratorProtocol {

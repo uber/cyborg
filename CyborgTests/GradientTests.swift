@@ -78,7 +78,7 @@ extension VectorDrawable.Gradient.Offset: Equatable {
     
     public static func ==(lhs: VectorDrawable.Gradient.Offset,
                           rhs: VectorDrawable.Gradient.Offset) -> Bool {
-        return lhs.amount == rhs.amount && lhs.color == rhs.color
+        lhs.amount == rhs.amount && lhs.color == rhs.color
     }
     
 }

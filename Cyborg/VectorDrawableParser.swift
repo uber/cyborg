@@ -211,23 +211,23 @@ fileprivate func assign<T>(_ string: XMLString,
 
 fileprivate func assign<T>(_ string: XMLString,
                            to property: inout T?) -> ParseError? where T: XMLStringRepresentable {
-    return assign(string, to: &property, creatingWith: T.init(_: ))
+    assign(string, to: &property, creatingWith: T.init(_: ))
 }
 
 fileprivate func assign<T>(_ string: XMLString,
                            to property: inout T) -> ParseError? where T: XMLStringRepresentable {
-    return assign(string, to: &property, creatingWith: T.init(_: ))
+    assign(string, to: &property, creatingWith: T.init(_: ))
 }
 
 
 fileprivate func assignFloat(_ string: XMLString,
                              to path: inout CGFloat?) -> ParseError? {
-    return assign(string, to: &path, creatingWith: CGFloat.init)
+    assign(string, to: &path, creatingWith: CGFloat.init)
 }
 
 fileprivate func assignFloat(_ string: XMLString,
                              to path: inout CGFloat) -> ParseError? {
-    return assign(string, to: &path, creatingWith: CGFloat.init)
+    assign(string, to: &path, creatingWith: CGFloat.init)
 }
 
 protocol NodeParsing: AnyObject {
@@ -301,7 +301,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     }
 
     func parseAttributes(_: [(XMLString, XMLString)]) -> ParseError? {
-        return nil
+        nil
     }
 
     func appendChild(_ child: Child) {
@@ -309,7 +309,7 @@ class ParentParser<Child>: NodeParsing where Child: NodeParsing {
     }
 
     func childForElement(_: String) -> (Child, (Child) -> ())? {
-        return nil
+        nil
     }
 
     func didEnd(element: String) -> Bool {
@@ -423,7 +423,7 @@ final class PathParser: ParentParser<GradientParser>, GroupChildParser {
     static let name: Element = .path
     
     override var name: Element {
-        return .path
+        .path
     }
 
     var pathName: String?
@@ -600,7 +600,7 @@ final class ClipPathParser: NodeParsing, GroupChildParser {
     }
 
     func didEnd(element _: String) -> Bool {
-        return true
+        true
     }
 
     func createElement() -> Result<VectorDrawable.ClipPath> {
@@ -626,15 +626,15 @@ final class AnyGroupParserChild: GroupChildParser {
     }
 
     func parse(element: String, attributes: [(XMLString, XMLString)]) -> ParseError? {
-        return parser.parse(element: element, attributes: attributes)
+        parser.parse(element: element, attributes: attributes)
     }
 
     func didEnd(element: String) -> Bool {
-        return parser.didEnd(element: element)
+        parser.didEnd(element: element)
     }
 
     func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
-        return parser.createElement(in: viewportSize)
+        parser.createElement(in: viewportSize)
     }
 
 }
@@ -694,7 +694,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
     }
 
     func createElement(in viewportSize: CGSize) -> Result<GroupChild> {
-        return children.mapAllOrFail { parser in
+        children.mapAllOrFail { parser in
             parser.createElement(in: viewportSize)
         }
         .flatMap { childElements in
@@ -708,7 +708,7 @@ final class GroupParser: ParentParser<AnyGroupParserChild>, GroupChildParser {
                                                                   translation: .init(x: translationX, y: translationY)),
                                              children: childElements,
                                              clipPaths: clipPaths))
-                }
+            }
         }
     }
 
@@ -800,7 +800,7 @@ class GradientParser: NodeParsing {
     }
     
     func didEnd(element: String) -> Bool {
-        return element == androidResourceAttribute
+        element == androidResourceAttribute
     }
     
     

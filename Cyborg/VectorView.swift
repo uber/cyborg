@@ -181,7 +181,7 @@ open class VectorView: UIView {
     }
 
     open override var intrinsicContentSize: CGSize {
-        return drawableSize
+        drawableSize
     }
     
     open override var contentMode: UIView.ContentMode {
@@ -228,11 +228,11 @@ struct ExternalValues {
     let theme: ThemeProviding
 
     func colorFromTheme(named name: String) -> UIColor {
-        return theme.colorFromTheme(named: name)
+        theme.colorFromTheme(named: name)
     }
 
     func colorFromResources(named name: String) -> UIColor {
-        return resources.colorFromResources(named: name)
+        resources.colorFromResources(named: name)
     }
 
 }
@@ -257,7 +257,7 @@ extension VectorDrawable {
     }
 
     var intrinsicSize: CGSize {
-        return .init(width: baseWidth, height: baseHeight)
+        .init(width: baseWidth, height: baseHeight)
     }
 
 }
@@ -439,13 +439,13 @@ final class ThemeableGradientLayer: CAGradientLayer {
 extension CGSize {
         
     func scaleAspectFit(in dimensions: CGSize) -> CGSize {
-        return scaledToAspect(in: dimensions,
-                              with: min)
+        scaledToAspect(in: dimensions,
+                       with: min)
     }
     
     func scaleAspectFill(in dimensions: CGSize) -> CGSize {
-        return scaledToAspect(in: dimensions,
-                              with: max)
+        scaledToAspect(in: dimensions,
+                       with: max)
     }
     
     private func scaledToAspect(in dimensions: CGSize,

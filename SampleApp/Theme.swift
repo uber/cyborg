@@ -20,7 +20,7 @@ import Cyborg
 final class Theme: ColorProvider, Cyborg.ThemeProviding {
     
     func colorFromTheme(named name: String) -> UIColor {
-        return colorForKey(name)
+        colorForKey(name)
     }
     
 }
@@ -28,7 +28,7 @@ final class Theme: ColorProvider, Cyborg.ThemeProviding {
 final class Resources: ColorProvider, ResourceProviding {
     
     func colorFromResources(named name: String) -> UIColor {
-        return colorForKey(name)
+        colorForKey(name)
     }
     
 }
