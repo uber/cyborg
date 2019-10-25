@@ -32,7 +32,7 @@ The full list of features is enumerated in the [Android Documentation](https://d
 ## Installing Cyborg
 
 1. Get [Carthage](https://github.com/Carthage/Carthage#quick-start).
-2. Add the following to your CartFile: `github git@github.com:uber/cyborg.git ~> [desired version]`
+2. Add the following to your CartFile: `github "uber/cyborg" ~> [desired version]`
 
 ## Using Cyborg
 
