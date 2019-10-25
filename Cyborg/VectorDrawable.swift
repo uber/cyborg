@@ -139,13 +139,13 @@ public final class VectorDrawable {
     /// - parameter size: the size to set the drawable to
     /// - returns: a new `VectorDrawable` with the specified size.
     public func withSize(_ size: CGSize) -> VectorDrawable {
-        return .init(baseWidth: size.width,
-                     baseHeight: size.height,
-                     viewPortWidth: viewPortWidth,
-                     viewPortHeight: viewPortHeight,
-                     baseAlpha: baseAlpha,
-                     groups: groups,
-                     tint: tint)
+        .init(baseWidth: size.width,
+              baseHeight: size.height,
+              viewPortWidth: viewPortWidth,
+              viewPortHeight: viewPortHeight,
+              baseAlpha: baseAlpha,
+              groups: groups,
+              tint: tint)
     }
     
     /// Creates a duplicate of the callee with its base size multiplied by `multiple`.
@@ -153,8 +153,8 @@ public final class VectorDrawable {
     /// - parameter multiple: the number to multiply the starting size by
     /// - returns: a new `VectorDrawable` with the specified size.
     public func withSizeMultiple(_ multiple: CGFloat) -> VectorDrawable {
-        return withSize(.init(width: baseWidth * multiple,
-                              height: baseHeight * multiple))
+        withSize(.init(width: baseWidth * multiple,
+                       height: baseHeight * multiple))
     }
     
     /// Creates a duplicate of the callee with its tint set to `tint`.
@@ -162,13 +162,13 @@ public final class VectorDrawable {
     /// - parameter tint: the new tint to use
     /// - returns: a new `VectorDrawable` with the specified `tint`.
     public func withTint(_ tint: AndroidTint) -> VectorDrawable {
-        return .init(baseWidth: baseWidth,
-                     baseHeight: baseHeight,
-                     viewPortWidth: viewPortWidth,
-                     viewPortHeight: viewPortHeight,
-                     baseAlpha: baseAlpha,
-                     groups: groups,
-                     tint: tint)
+        .init(baseWidth: baseWidth,
+              baseHeight: baseHeight,
+              viewPortWidth: viewPortWidth,
+              viewPortHeight: viewPortHeight,
+              baseAlpha: baseAlpha,
+              groups: groups,
+              tint: tint)
     }
 
     /// Representation of a <group> element from a VectorDrawable document.
@@ -257,8 +257,8 @@ public final class VectorDrawable {
                           drawableSize: CGSize,
                           transform: [Transform],
                           tint: AndroidTint) -> [CALayer] {
-            return [createLayer(drawableSize: drawableSize,
-                                transform: transform)]
+            [createLayer(drawableSize: drawableSize,
+                         transform: transform)]
         }
 
     }
@@ -504,7 +504,7 @@ public final class VectorDrawable {
 extension UIColor {
     
     func multiplyAlpha(with other: CGFloat) -> UIColor {
-        return withAlphaComponent(alpha * other)
+        withAlphaComponent(alpha * other)
     }
     
     var alpha: CGFloat {
@@ -529,11 +529,11 @@ extension UIColor {
 extension Array where Element == Transform {
 
     func apply(to path: CGPath, relativeTo size: CGSize) -> CGPath {
-        return reduce(path) { path, transform in
+        reduce(path) { path, transform in
             transform.apply(to: path, relativeTo: size)
         }
     }
-
+    
 }
 
 /// A rigid body transformation as specced by VectorDrawable.
@@ -622,14 +622,14 @@ extension BlendMode {
         let (sr, sg, sb, sa) = src.rgba
         let (dr, dg, db, da) = dst.rgba
         func clamp(_ float: CGFloat) -> CGFloat {
-            return max(0, min(float, 1))
+            max(0, min(float, 1))
         }
         func createColor(_ color: (CGFloat, CGFloat) -> CGFloat,
                          _ alpha: (CGFloat, CGFloat) -> CGFloat) -> UIColor {
-            return UIColor(red: clamp(color(sr, dr)),
-                           green: clamp(color(sg, dg)),
-                           blue: clamp(color(sb, db)),
-                           alpha: clamp(alpha(sa, da)))
+            UIColor(red: clamp(color(sr, dr)),
+                    green: clamp(color(sg, dg)),
+                    blue: clamp(color(sb, db)),
+                    alpha: clamp(alpha(sa, da)))
         }
         switch self {
         case .add:

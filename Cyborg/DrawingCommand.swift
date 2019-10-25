@@ -445,31 +445,31 @@ let allDrawingCommands: [Parser<PathSegment>] = [
 extension CGPoint {
 
     func add(_ rhs: CGPoint) -> CGPoint {
-        return .init(x: x + rhs.x, y: y + rhs.y)
+        .init(x: x + rhs.x, y: y + rhs.y)
     }
 
     func subtract(_ rhs: CGPoint) -> CGPoint {
-        return .init(x: x - rhs.x, y: y - rhs.y)
+        .init(x: x - rhs.x, y: y - rhs.y)
     }
 
     func times(_ x1: CGFloat, _ y1: CGFloat) -> CGPoint {
-        return .init(x: x * x1, y: y * y1)
+        .init(x: x * x1, y: y * y1)
     }
 
     func times(_ size: CGSize) -> CGPoint {
-        return .init(x: x * size.width, y: y * size.height)
+        .init(x: x * size.width, y: y * size.height)
     }
 
     func times(_ other: CGFloat) -> CGPoint {
-        return .init(x: x * other, y: y * other)
+        .init(x: x * other, y: y * other)
     }
 
     func times(_ other: CGPoint) -> CGPoint {
-        return times(other.x, other.y)
+        times(other.x, other.y)
     }
 
     func dot(_ other: CGPoint) -> CGFloat {
-        return (x * other.x) + (y * other.y)
+        (x * other.x) + (y * other.y)
     }
 
     func reflected(across current: CGPoint) -> CGPoint {
@@ -488,7 +488,7 @@ extension CGPoint {
     }
     
     func isWithinAPointOf(_ other: CGPoint) -> Bool {
-        return abs(x - other.x) < 1.0 &&
+        abs(x - other.x) < 1.0 &&
             abs(y - other.y) < 1.0
     }
     
