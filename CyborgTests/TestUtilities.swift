@@ -85,7 +85,7 @@ extension ParseResult {
 
     var asOptional: (Wrapped, Int32)? {
         switch self {
-        case .ok(let wrapped): return wrapped
+        case .ok(let wrapped, let int): return (wrapped, int)
         case .error: return nil
         }
     }

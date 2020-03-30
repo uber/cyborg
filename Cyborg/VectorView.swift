@@ -99,12 +99,15 @@ open class VectorView: UIView {
         }
         if bounds.size != .zero,
             let drawable = drawable {
-            switch contentMode {
-            case .scaleToFill,
-                 .redraw: // redraw behaves the same as scaleToFil in `UIImageView`
+            func scaleToFill() {
                 for layer in layer.sublayers ?? [] {
                     layer.frame = bounds
                 }
+            }
+            switch contentMode {
+            case .scaleToFill,
+                 .redraw: // redraw behaves the same as scaleToFil in `UIImageView`
+                scaleToFill()
             case .scaleAspectFit:
                 let size = drawable.intrinsicSize.scaleAspectFit(in: bounds.size)
                 for layer in layer.sublayers ?? [] {
@@ -154,6 +157,9 @@ open class VectorView: UIView {
                 makeActualSize(drawable,
                                at: .init(x: bounds.origin.x + bounds.size.width - drawable.baseWidth,
                                          y: bounds.origin.y + bounds.size.height - drawable.baseHeight))
+            @unknown default:
+                // assume it's scaleToFill.
+                scaleToFill()
             }
         }
     }
