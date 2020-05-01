@@ -104,6 +104,9 @@ public final class VectorDrawable {
     /// The overall alpha to apply to the drawable.
     public let baseAlpha: CGFloat
     
+    /// Whether the Drawable flips automatically in RTL.
+    public let autoMirrored: Bool
+    
     /// The tint to apply to the drawable.
     ///
     /// This tint color overrides the tint color on the `VectorView` it is
@@ -124,6 +127,7 @@ public final class VectorDrawable {
          viewPortHeight: CGFloat,
          baseAlpha: CGFloat,
          groups: [GroupChild],
+         autoMirrored: Bool,
          tint: AndroidTint? = nil) {
         self.baseWidth = baseWidth
         self.baseHeight = baseHeight
@@ -131,6 +135,7 @@ public final class VectorDrawable {
         self.viewPortHeight = viewPortHeight
         self.baseAlpha = baseAlpha
         self.groups = groups
+        self.autoMirrored = autoMirrored
         self.tint = tint
     }
     
@@ -145,6 +150,7 @@ public final class VectorDrawable {
               viewPortHeight: viewPortHeight,
               baseAlpha: baseAlpha,
               groups: groups,
+              autoMirrored: autoMirrored,
               tint: tint)
     }
     
@@ -168,6 +174,7 @@ public final class VectorDrawable {
               viewPortHeight: viewPortHeight,
               baseAlpha: baseAlpha,
               groups: groups,
+              autoMirrored: autoMirrored,
               tint: tint)
     }
 
@@ -497,7 +504,8 @@ public final class VectorDrawable {
                                              viewPortWidth: 0,
                                              viewPortHeight: 0,
                                              baseAlpha: 0,
-                                             groups: [])
+                                             groups: [],
+                                             autoMirrored: false)
 
 }
 

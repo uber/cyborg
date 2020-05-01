@@ -400,7 +400,8 @@ final class VectorParser: ParentParser<GroupParser> {
                           viewPortWidth: viewPortWidth,
                           viewPortHeight: viewPortHeight,
                           baseAlpha: alpha,
-                          groups: groups))
+                          groups: groups,
+                          autoMirrored: autoMirrored))
             }
         } else {
             return .error("Could not parse a <vector> element, but there was no error. This is a bug in the VectorDrawable Library.")

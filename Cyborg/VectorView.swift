@@ -167,7 +167,8 @@ open class VectorView: UIView {
     private func updateLayers() {
         if let drawable = drawable {
             let transform: CATransform3D
-            if case .rightToLeft = effectiveUserInterfaceLayoutDirection {
+            if drawable.autoMirrored,
+                case .rightToLeft = effectiveUserInterfaceLayoutDirection {
                 transform = CATransform3DMakeScale(-1, 1, 1)
             } else {
                 transform = CATransform3DIdentity
