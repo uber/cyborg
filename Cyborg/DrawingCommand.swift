@@ -33,6 +33,8 @@ enum DrawingCommand: Equatable {
     case smoothCurveAbsolute(CGPoint, CGPoint)
     case quadratic(CGPoint, CGPoint)
     case quadraticAbsolute(CGPoint, CGPoint)
+    case smoothQuadratic(CGPoint)
+    case smoothQuadraticAbsolute(CGPoint)
     case closePath
     case closePathAbsolute
     case arc(CGPoint, CGFloat, CGFloat, CGFloat, CGPoint)
@@ -108,12 +110,14 @@ enum DrawingCommand: Equatable {
             let end = end.times(size).add(last)
             let control1 = control1.times(size).add(last)
             path.addQuadCurve(to: end, control: control1)
-            return end.asPriorContext
+            return .lastAndControlPoint(end,
+                                        control1.reflected(across: end))
         case .quadraticAbsolute(let control1, let end):
             let end = end.times(size)
             let control1 = control1.times(size)
             path.addQuadCurve(to: end, control: control1)
-            return end.asPriorContext
+            return .lastAndControlPoint(end,
+                                        control1.reflected(across: end))
         case .arc(let radius, let rotation, let largeArcFlag, let sweepFlag, let endPoint):
             return applyArc(to: path,
                             in: size,
@@ -134,6 +138,20 @@ enum DrawingCommand: Equatable {
                             endPoint: endPoint,
                             prior: prior,
                             isRelative: false)
+        case .smoothQuadratic(let end):
+            let (last, control) = prior.pointAndControlPoint
+            let end = end.times(size).add(last)
+            path.addQuadCurve(to: end,
+                              control: control)
+            return .lastAndControlPoint(end,
+                                        control.reflected(across: end))
+        case .smoothQuadraticAbsolute(let end):
+            let (_, control) = prior.pointAndControlPoint
+            let end = end.times(size)
+            path.addQuadCurve(to: end,
+                              control: control)
+            return .lastAndControlPoint(end,
+                                        control.reflected(across: end))
         case .closePath, .closePathAbsolute:
             path.closeSubpath()
             return path.currentPoint.asPriorContext
@@ -332,6 +350,26 @@ func parseSmoothCurve() -> Parser<PathSegment> {
     })
 }
 
+func parseSmoothQuadraticCurveAbsolute() -> Parser<PathSegment> {
+    parse(command: .T,
+          followedBy: oneOrMore(of: coordinatePair()),
+          convertToPathCommandsWith: { (points: [CGPoint]) -> PathSegment in
+            points.map { point in
+                .smoothQuadraticAbsolute(point)
+            }
+    })
+}
+
+func parseSmoothQuadraticCurve() -> Parser<PathSegment> {
+    parse(command: .t,
+          followedBy: oneOrMore(of: coordinatePair()),
+          convertToPathCommandsWith: { (points: [CGPoint]) -> PathSegment in
+            points.map { point in
+                .smoothQuadratic(point)
+            }
+    })
+}
+
 func parseSmoothCurveAbsolute() -> Parser<PathSegment> {
     return parse(command: .S,
                  followedBy: 2.coordinatePairs(),
@@ -440,6 +478,8 @@ let allDrawingCommands: [Parser<PathSegment>] = [
     parseClosePathAbsolute(),
     parseArc(),
     parseArcAbsolute(),
+    parseSmoothQuadraticCurve(),
+    parseSmoothQuadraticCurveAbsolute(),
 ]
 
 extension CGPoint {
