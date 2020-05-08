@@ -48,7 +48,15 @@ class DisplayView: View {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         vectorView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(vectorView)
-        vectorView.backgroundColor = .red
+        // Having a background helps debug drawables; this color is
+        // unlikely to appear in the sample SVGs provided by the W3
+        // spec.
+        //
+        // TODO: implement a better UX for communicating the background of the drawable.
+        vectorView.backgroundColor = .init(red: 0.7,
+                                           green: 0,
+                                           blue: 0,
+                                           alpha: 1)
         vectorView.contentMode = .scaleAspectFill
         addSubview(scrollView)
         NSLayoutConstraint
