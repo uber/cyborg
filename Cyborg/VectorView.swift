@@ -166,24 +166,34 @@ open class VectorView: UIView {
 
     private func updateLayers() {
         if let drawable = drawable {
-            let transform: CATransform3D
-            if drawable.autoMirrored,
-                case .rightToLeft = effectiveUserInterfaceLayoutDirection {
-                transform = CATransform3DMakeScale(-1, 1, 1)
-            } else {
-                transform = CATransform3DIdentity
-            }
             drawableLayers = drawable.layerRepresentation(in: bounds,
                                                           using: ExternalValues(resources: resources,
                                                                                 theme: theme),
                                                           tint: drawable.tint ?? tint)
-            for layer in drawableLayers {
-                layer.transform = transform
-            }
+            updateAutoMirror(to: drawable.autoMirrored)
             drawableSize = drawable.intrinsicSize
         } else {
             drawableLayers = []
             drawableSize = .zero
+        }
+    }
+    
+    private func updateAutoMirror(to isMirrored: Bool) {
+        let transform: CATransform3D
+        if isMirrored,
+            case .rightToLeft = effectiveUserInterfaceLayoutDirection {
+            transform = CATransform3DMakeScale(-1, 1, 1)
+        } else {
+            transform = CATransform3DIdentity
+        }
+        for layer in drawableLayers {
+            layer.transform = transform
+        }
+    }
+
+    open override var semanticContentAttribute: UISemanticContentAttribute {
+        didSet {
+            updateAutoMirror(to: drawable?.autoMirrored ?? false)
         }
     }
 
