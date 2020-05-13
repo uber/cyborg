@@ -6,6 +6,7 @@ Pod::Spec.new do |s|
   s.homepage     = 'https://github.com/uber/cyborg'
   s.author       = { 'xxxx' => 'xxxx@uber.com' }
   s.source       = { :git => 'https://github.com/uber/cyborg.git', :tag => s.version }
+  s.swift_versions = ['5.1']
   s.source_files = 'Cyborg/*.swift'
   s.library      = 'xml2'
   s.xcconfig     = { 'HEADER_SEARCH_PATHS' => '$(SDKROOT)/usr/include/libxml2'}
