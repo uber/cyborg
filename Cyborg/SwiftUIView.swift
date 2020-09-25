@@ -45,8 +45,8 @@ import SwiftUI
 ///
 /// - Note: `resources` does not update after the view is first created,
 /// it's passed as an `Environment` var solely for convenience.
-@available(iOS 13.0, *)
-public struct VectorDrawableView: UIViewRepresentable {
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, *)
+public struct VectorDrawableView {
     
     public let drawable: VectorDrawable
     
@@ -54,7 +54,33 @@ public struct VectorDrawableView: UIViewRepresentable {
     public init(_ drawable: VectorDrawable) {
         self.drawable = drawable
     }
+}
+
+#if os(macOS)
+extension VectorDrawableView: NSViewRepresentable {
+    public typealias NSViewType = VectorView
     
+    public func makeNSView(context: NSViewRepresentableContext<VectorDrawableView>) -> VectorView {
+        let view = VectorView(theme: context.environment.vectorDrawableTheme,
+                              resources: context.environment.vectorDrawableResources)
+        print(context.environment.vectorDrawableTheme.colorFromTheme(named: ""))
+        view.setContentHuggingPriority(.defaultHigh,
+                                       for: .horizontal)
+        view.setContentHuggingPriority(.defaultHigh,
+                                       for: .vertical)
+        view.drawable = drawable
+        return view
+    }
+    
+    public func updateNSView(_ uiView: VectorView,
+                             context: NSViewRepresentableContext<VectorDrawableView>) {
+        uiView.drawable = drawable
+        uiView.theme = context.environment.vectorDrawableTheme
+    }
+}
+#else
+@available(iOS 13.0, tvOS 13.0, *)
+extension VectorDrawableView: UIViewRepresentable {
     public func makeUIView(context: UIViewRepresentableContext<VectorDrawableView>) -> VectorView {
         let view = VectorView(theme: context.environment.vectorDrawableTheme,
                               resources: context.environment.vectorDrawableResources)
@@ -72,8 +98,8 @@ public struct VectorDrawableView: UIViewRepresentable {
         uiView.drawable = drawable
         uiView.theme = context.environment.vectorDrawableTheme
     }
-
 }
+#endif
 
 /// The key for Vector Drawable themes.
 public struct ThemeKey: EnvironmentKey {
@@ -108,8 +134,7 @@ public struct ResourceKey: EnvironmentKey {
     
 }
 
-
-@available(iOS 13.0, *)
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, *)
 public extension EnvironmentValues {
     
     /// The theme to use for `VectorDrawables`.

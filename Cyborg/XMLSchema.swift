@@ -15,7 +15,11 @@
 //
 
 import Foundation
+#if os(macOS)
+import SwiftUI
+#else
 import UIKit
+#endif
 
 /// Elements of a VectorDrawable document.
 enum Element: String {

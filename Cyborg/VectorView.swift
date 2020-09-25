@@ -14,10 +14,173 @@
 //  limitations under the License.
 //
 
-import UIKit
+#if os(macOS)
+import SwiftUI
 
-/// A Tint mode and color.
-public typealias AndroidTint = (BlendMode, UIColor)
+
+/// Displays a VectorDrawable.
+open class VectorView: NSView {
+
+    /// The tint to use for this drawable.
+    ///
+    /// This property is useful primarily for cases where
+    /// the drawable is intended to be reused in many contexts,
+    /// such as icons. In the icon case, you may find it useful to
+    /// set the tint to `(.dst, myColor)`, which will choose
+    /// `myColor` instead of the color specified in the xml.
+    ///
+    /// This property is overridden by the `VectorDrawable`'s `tint` property
+    /// if it has been set.
+    ///
+    /// - note: `tint` is considered external to the VectorDrawable
+    /// and won't be updated when `theme` is set, though it will apply to
+    /// new values provided by the theme.
+    /// It is your responsibility to ensure that changes
+    /// to `theme` also change `tint` if appropriate.
+    public var tint: AndroidTint = (.src, .clear) {
+        didSet {
+            updateLayers()
+        }
+    }
+
+    /// A source for external values to use to theme the VectorDrawable.
+    public var theme: ThemeProviding {
+        didSet {
+            updateLayers()
+        }
+    }
+
+    private let resources: ResourceProviding
+
+    /// The drawable to display.
+    open var drawable: VectorDrawable? {
+        didSet {
+            updateLayers()
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    private var drawableLayers: [CALayer] = [] {
+        didSet {
+            for layer in oldValue {
+                layer.removeFromSuperlayer()
+            }
+            for drawableLayer in drawableLayers {
+                layer?.addSublayer(drawableLayer)
+            }
+        }
+    }
+
+    private var drawableSize: CGSize = .zero
+
+    /// Initializer.
+    ///
+    /// - parameter externalValues: A source for external values to use to theme the VectorDrawable.
+    public init(theme: ThemeProviding, resources: ResourceProviding) {
+        self.theme = theme
+        self.resources = resources
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable, message: "NSCoder and Interface Builder is not supported. Use Programmatic layout.")
+    public required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    open override func layout() {
+        super.layout()
+        func makeActualSize(_ drawable: VectorDrawable,
+                            at point: CGPoint) {
+            for layer in layer?.sublayers ?? [] {
+                layer.frame = .init(origin: point,
+                                    size: drawable.intrinsicSize)
+            }
+        }
+        if bounds.size != .zero,
+            let drawable = drawable {
+            func scaleToFill() {
+                for layer in layer?.sublayers ?? [] {
+                    layer.frame = bounds
+                }
+            }
+            
+            func scaleToFit() {
+                let size = drawable.intrinsicSize.scaleAspectFit(in: bounds.size)
+                for layer in layer?.sublayers ?? [] {
+                    layer.frame = .init(origin: bounds.origin,
+                                        size: size)
+                }
+            }
+            
+            func center() {
+                makeActualSize(drawable,
+                               at: .init(x: bounds.origin.x + bounds.size.width / 2 - drawable.baseWidth / 2,
+                                         y: bounds.origin.y + bounds.size.height / 2 - drawable.baseHeight / 2))
+            }
+            
+            switch contentMode {
+            case .scaleAxesIndependently: // redraw behaves the same as scaleToFil in `UIImageView`
+                scaleToFill()
+            case .scaleProportionallyUpOrDown:
+                scaleToFit()
+            case .scaleProportionallyDown:
+                if drawable.intrinsicSize.width > bounds.size.width &&
+                    drawable.intrinsicSize.height > bounds.size.height {
+                    scaleToFit()
+                } else {
+                    center()
+                }
+            case .scaleNone:
+                center()
+            @unknown default:
+                // assume it's scaleToFill.
+                scaleToFill()
+            }
+        }
+    }
+
+    private func updateLayers() {
+        if let drawable = drawable {
+            drawableLayers = drawable.layerRepresentation(in: bounds,
+                                                          using: ExternalValues(resources: resources,
+                                                                                theme: theme),
+                                                          tint: drawable.tint ?? tint)
+            updateAutoMirror(to: drawable.autoMirrored)
+            drawableSize = drawable.intrinsicSize
+        } else {
+            drawableLayers = []
+            drawableSize = .zero
+        }
+    }
+    
+    private func updateAutoMirror(to isMirrored: Bool) {
+        let transform: CATransform3D
+        if isMirrored,
+            case .rightToLeft = userInterfaceLayoutDirection {
+            transform = CATransform3DMakeScale(-1, 1, 1)
+        } else {
+            transform = CATransform3DIdentity
+        }
+        for layer in drawableLayers {
+            layer.transform = transform
+        }
+    }
+
+    open override var intrinsicContentSize: NSSize {
+        drawableSize
+    }
+    
+    open var contentMode: NSImageScaling = .scaleNone {
+        didSet {
+            updateLayers()
+        }
+    }
+
+}
+
+#else
+
+import UIKit
 
 /// Displays a VectorDrawable.
 open class VectorView: UIView {
@@ -208,6 +371,7 @@ open class VectorView: UIView {
     }
 
 }
+#endif
 
 /// Provides values from a "theme" which
 /// corresponds to the objects of the same name on Android. You can reimplement the
