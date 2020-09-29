@@ -22,7 +22,9 @@ import PackageDescription
 let package = Package(
     name: "Cyborg",
     platforms: [
-        .iOS("11.0.0")
+        .iOS(.v11),
+        .tvOS(.v11),
+        .macOS(.v10_15),
     ],
     products: [
     .library(name: "Cyborg",

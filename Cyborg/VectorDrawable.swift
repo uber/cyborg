@@ -14,7 +14,15 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+import AppKit
+public typealias UIColor = NSColor
+#else
 import UIKit
+#endif
+
+/// A Tint mode and color.
+public typealias AndroidTint = (BlendMode, UIColor)
 
 enum AndroidUnitOfMeasure: String {
 
