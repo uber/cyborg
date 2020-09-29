@@ -56,6 +56,7 @@ open class VectorView: NSView {
     open var drawable: VectorDrawable? {
         didSet {
             updateLayers()
+            needsLayout = true
             invalidateIntrinsicContentSize()
         }
     }

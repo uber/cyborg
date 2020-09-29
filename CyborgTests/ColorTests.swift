@@ -105,5 +105,17 @@ class ColorTests: XCTestCase {
             }
         }
     }
+    
+    func test_get_components() {
+        let alpha: CGFloat = 1
+        let greyscaleColor = UIColor(white: 0.5,
+                                     alpha: alpha)
+        XCTAssertEqual(greyscaleColor.alpha, alpha)
+        let hsvColor = UIColor(hue: 0.5,
+                               saturation: 0.5,
+                               brightness: 0.1,
+                               alpha: 1)
+        XCTAssertEqual(hsvColor.alpha, alpha)
+    }
 
 }
