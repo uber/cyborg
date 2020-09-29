@@ -15,7 +15,7 @@
 //
 
 #if os(macOS)
-import SwiftUI
+import AppKit
 public typealias UIColor = NSColor
 #else
 import UIKit

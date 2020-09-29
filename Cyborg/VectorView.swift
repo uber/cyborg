@@ -15,7 +15,7 @@
 //
 
 #if os(macOS)
-import SwiftUI
+import AppKit
 
 
 /// Displays a VectorDrawable.
@@ -119,7 +119,7 @@ open class VectorView: NSView {
             }
             
             switch contentMode {
-            case .scaleAxesIndependently: // redraw behaves the same as scaleToFil in `UIImageView`
+            case .scaleAxesIndependently:
                 scaleToFill()
             case .scaleProportionallyUpOrDown:
                 scaleToFit()

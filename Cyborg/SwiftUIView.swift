@@ -57,13 +57,13 @@ public struct VectorDrawableView {
 }
 
 #if os(macOS)
+@available(OSX 10.15, *)
 extension VectorDrawableView: NSViewRepresentable {
     public typealias NSViewType = VectorView
     
     public func makeNSView(context: NSViewRepresentableContext<VectorDrawableView>) -> VectorView {
         let view = VectorView(theme: context.environment.vectorDrawableTheme,
                               resources: context.environment.vectorDrawableResources)
-        print(context.environment.vectorDrawableTheme.colorFromTheme(named: ""))
         view.setContentHuggingPriority(.defaultHigh,
                                        for: .horizontal)
         view.setContentHuggingPriority(.defaultHigh,
@@ -84,7 +84,6 @@ extension VectorDrawableView: UIViewRepresentable {
     public func makeUIView(context: UIViewRepresentableContext<VectorDrawableView>) -> VectorView {
         let view = VectorView(theme: context.environment.vectorDrawableTheme,
                               resources: context.environment.vectorDrawableResources)
-        print(context.environment.vectorDrawableTheme.colorFromTheme(named: ""))
         view.setContentHuggingPriority(.defaultHigh,
                                        for: .horizontal)
         view.setContentHuggingPriority(.defaultHigh,

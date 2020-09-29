@@ -16,7 +16,7 @@
 
 import Foundation
 #if os(macOS)
-import SwiftUI
+import AppKit
 #else
 import UIKit
 #endif
