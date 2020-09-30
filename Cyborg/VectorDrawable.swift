@@ -524,15 +524,39 @@ extension UIColor {
     }
     
     var alpha: CGFloat {
+        // iOS seems to automatically convert this, MacOS does not
+        #if os(iOS)
         var alpha: CGFloat = 0
         getRed(nil, green: nil, blue: nil, alpha: &alpha)
         return alpha
+        #else
+        if let rgb = usingColorSpace(.sRGB) {
+            var alpha: CGFloat = 0
+            rgb.getRed(nil, green: nil, blue: nil, alpha: &alpha)
+            return alpha
+        } else {
+            assertionFailure("Couldn't convert a color to rgb.")
+            return 1
+        }
+        #endif
     }
     
     var rgba: (CGFloat, CGFloat, CGFloat, CGFloat) {
+        // iOS seems to automatically convert this, MacOS does not
+        #if os(iOS)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getRed(&r, green: &g, blue: &b, alpha: &a)
         return (r, g, b, a)
+        #else
+        if let rgb = usingColorSpace(.sRGB) {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            rgb.getRed(&r, green: &g, blue: &b, alpha: &a)
+            return (r, g, b, a)
+        } else {
+            assertionFailure("Couldn't convert a color to rgb.")
+            return (1, 1, 1, 1)
+        }
+        #endif
     }
     
     func tintedWith(_ tint: AndroidTint) -> UIColor {
