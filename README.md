@@ -14,6 +14,8 @@ It is intended as a replacement for UIImages, Icon Fonts, and Apple's PDF vector
 - RTL support
 - Easily convertible from SVG using Android Studio or third-party tools
 
+Cyborg also supports MacOS (AppKit), TvOS, and can be used from SwiftUI. However, be aware that these implementations are currently less mature than the iOS version.
+
 ## Performance Comparisons
 
 We benchmarked Cyborg against a number of alternatives, loading the 50+ icons contained in our Driver app's icon set.
