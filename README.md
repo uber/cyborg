@@ -33,8 +33,14 @@ The full list of features is enumerated in the [Android Documentation](https://d
 
 ## Installing Cyborg
 
+Cyborg supports Swift Package Manager and Carthage. 
+
+To install using Carthage: 
+
 1. Get [Carthage](https://github.com/Carthage/Carthage#quick-start).
 2. Add the following to your CartFile: `github "uber/cyborg" ~> [desired version]`
+
+To add Cyborg to an Xcode project using Swift Package Manager, follow the [instructions provided by Apple](https://developer.apple.com/documentation/xcode/adding_package_dependencies_to_your_app). 
 
 ## Using Cyborg
 
